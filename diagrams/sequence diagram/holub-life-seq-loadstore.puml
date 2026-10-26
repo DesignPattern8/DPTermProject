@@ -1,0 +1,108 @@
+@startuml holub-life-seq-loadstore
+' SD3. 패턴 저장 / 불러오기 (UC7, UC6) — Memento 패턴
+' 근거: Universe.doStore()/doLoad(), Neighborhood.createMemento()/transfer(), NeighborhoodState, Resident.transfer()
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 260
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #444444
+  LifeLineBorderColor #999999
+  ArrowColor #444444
+  GroupBackgroundColor #F2F2F2
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+autonumber "<b>0."
+
+title SD3. 패턴 저장(Store) / 불러오기(Load) — Memento 흐름
+
+actor "사용자" as User
+participant ":Universe\n<<Singleton, Mediator>>" as U
+participant "Files\n<<static>>" as F
+participant ":Clock" as C
+participant "outermost\n:Neighborhood" as ON
+participant "memento\n:NeighborhoodState\n<<Memento>>" as M
+participant "inner\n:Neighborhood" as IN
+participant ":Resident" as R
+participant "파일\n(.life)" as FS
+
+== UC7. 패턴 저장 (Grid > Store) ==
+User -> U : 메뉴 선택 → doStore()
+activate U
+U -> F : userSelected(".", ".life", "Life File", "Write")
+F --> U : File (JFileChooser)
+U -> FS ** : new FileOutputStream(file)
+U -> C : Clock.instance().stop()
+U -> ON : createMemento()
+activate ON
+ON -> M ** : new NeighborhoodState()
+ON -> ON : transfer(m, (0,0), STORE)
+note right of ON : createMemento() 내부에서도\n이미 한 번 STORE transfer 수행
+ON --> U : memento
+deactivate ON
+U -> ON : transfer(memento, (0,0), Cell.STORE)
+activate ON
+loop 8×8 (upperLeft 좌표를 블록 폭만큼 이동)
+  ON -> IN : transfer(memento, upperLeft, STORE)
+  activate IN
+  loop 8×8
+    IN -> R : transfer(memento, upperLeft, STORE)
+    opt amAlive
+      R -> M : markAsAlive(upperLeft)
+      M -> M : liveCells.add(new Point(upperLeft))
+    end
+  end
+  deactivate IN
+end
+deactivate ON
+U -> M : flush(out)
+M -> FS : ObjectOutputStream.writeObject(liveCells)
+U -> FS : out.close()
+deactivate U
+
+== UC6. 패턴 불러오기 (Grid > Load) ==
+User -> U : 메뉴 선택 → doLoad()
+activate U
+U -> F : userSelected(".", ".life", "Life File", "Load")
+F --> U : File
+U -> FS ** : new FileInputStream(file)
+U -> C : Clock.instance().stop()
+U -> ON : clear()
+ON -> IN : clear() (재귀)
+IN -> R : clear() → amAlive = willBeAlive = false
+U -> ON : createMemento()
+ON -> M ** : new NeighborhoodState()
+ON --> U : memento (빈 상태)
+U -> M : load(in)
+M -> FS : ObjectInputStream.readObject()
+FS --> M : liveCells (Collection<Point>)
+U -> ON : transfer(memento, (0,0), Cell.LOAD)
+activate ON
+loop 8×8
+  ON -> IN : transfer(memento, upperLeft, LOAD)
+  activate IN
+  loop 8×8
+    IN -> R : transfer(memento, upperLeft, LOAD)
+    R -> M : isAlive(upperLeft)
+    M --> R : liveCells.contains(upperLeft)
+    R -> R : amAlive = willBeAlive = 결과
+  end
+  IN -> IN : 살아난 셀이 있으면 amActive = true\nactiveEdges 갱신
+  deactivate IN
+end
+deactivate ON
+U -> FS : in.close()
+U -> U : repaint()
+deactivate U
+
+note over U, FS
+  IOException 발생 시 JOptionPane으로
+  "Write Failed!" / "Read Failed!" 표시
+end note
+
+@enduml

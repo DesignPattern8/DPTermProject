@@ -1,0 +1,249 @@
+@startuml holub-life-class-core
+' Holub Life Game (HolubLife.jar v1.02 source) - 핵심 클래스 상세 (com.holub.life + Publisher)
+' 소스: src/com/holub/** (14 files, 3,114 lines)
+
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+set separator none
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam stereotypeCBackgroundColor #FFF4CC
+skinparam package {
+  BackgroundColor #F7F7F7
+  BorderColor #999999
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title Holub Life Game — 핵심 클래스 상세 (com.holub.life + Publisher)
+
+
+package "com.holub.life" {
+
+  class Life <<entry>> {
+    - {static} universe : JComponent
+    + {static} main(arguments : String[]) : void
+    - Life()
+  }
+
+  class Universe <<Singleton, Mediator>> {
+    - outermostCell : Cell
+    - {static} theInstance : Universe
+    - {static} DEFAULT_GRID_SIZE : int = 8
+    - {static} DEFAULT_CELL_SIZE : int = 8
+    - Universe()
+    + {static} instance() : Universe
+    - doLoad() : void
+    - doStore() : void
+    + paint(g : Graphics) : void
+    - refreshNow() : void
+  }
+
+  interface Cell <<Composite: Component>> {
+    + {static} DUMMY : Cell
+    + figureNextState(north, south, east, west,\n  northeast, northwest, southeast, southwest : Cell) : boolean
+    + edge(row : int, column : int) : Cell
+    + transition() : boolean
+    + redraw(g : Graphics, here : Rectangle, drawAll : boolean) : void
+    + userClicked(here : Point, surface : Rectangle) : void
+    + isAlive() : boolean
+    + widthInCells() : int
+    + create() : Cell
+    + isDisruptiveTo() : Direction
+    + clear() : void
+    + transfer(memento : Storable, upperLeftCorner : Point, doLoad : boolean) : boolean
+    + createMemento() : Storable
+  }
+
+  interface "Cell.Memento" as CellMemento <<Memento>> {
+    + markAsAlive(location : Point) : void
+    + isAlive(location : Point) : boolean
+  }
+
+  interface Storable {
+    + load(in : InputStream) : void
+    + flush(out : OutputStream) : void
+  }
+
+  class "Cell.DUMMY" as Dummy <<Singleton, Null Object>> {
+    항상 죽어 있는 경계 셀
+    (Cell의 익명 구현)
+  }
+
+  class Neighborhood <<Composite: Composite>> {
+    - {static} readingPermitted : ConditionVariable
+    - {static} nestingLevel : int
+    - amActive : boolean
+    - grid : Cell[][]
+    - gridSize : int
+    - oneLastRefreshRequired : boolean
+    - activeEdges : Direction
+    + Neighborhood(gridSize : int, prototype : Cell)
+    + create() : Cell
+    + figureNextState(...8 neighbors) : boolean
+    + transition() : boolean
+    + redraw(g, here, drawAll) : void
+    + edge(row, column) : Cell
+    + userClicked(here, surface) : void
+    + isAlive() : boolean
+    + widthInCells() : int
+    + isDisruptiveTo() : Direction
+    + clear() : void
+    + transfer(memento, corner, load) : boolean
+    + createMemento() : Storable
+    - rememberThatCellAtEdgeChangedState(row, column) : void
+  }
+
+  class "Neighborhood.NeighborhoodState" as NeighborhoodState <<Memento>> {
+    + NeighborhoodState()
+    + NeighborhoodState(in : InputStream)
+    + load(in : InputStream) : void
+    + flush(out : OutputStream) : void
+    + markAsAlive(location : Point) : void
+    + isAlive(location : Point) : boolean
+  }
+
+  class Resident <<Composite: Leaf>> {
+    - {static} BORDER_COLOR : Color
+    - {static} LIVE_COLOR : Color
+    - {static} DEAD_COLOR : Color
+    - amAlive : boolean
+    - willBeAlive : boolean
+    - isStable() : boolean
+    + figureNextState(...8 neighbors) : boolean
+    + transition() : boolean
+    + redraw(g, here, drawAll) : void
+    + userClicked(here, surface) : void
+    + create() : Cell
+    + isDisruptiveTo() : Direction
+    + transfer(blob, upperLeft, doLoad) : boolean
+    + createMemento() : Storable
+    - verify(c : Cell, direction : String) : void
+  }
+
+  class Direction {
+    - map : int
+    + {static} NORTH, SOUTH, EAST, WEST : Direction
+    + {static} NORTHEAST, NORTHWEST : Direction
+    + {static} SOUTHEAST, SOUTHWEST : Direction
+    + {static} ALL, NONE : Direction
+    + Direction()
+    + Direction(d : Direction)
+    + equals(d : Direction) : boolean
+    + clear() : void
+    + add(d : Direction) : void
+    + has(d : Direction) : boolean
+    + the(d : Direction) : boolean
+  }
+
+  class "Direction.Immutable" as DirImmutable <<Immutable>> {
+    + clear() : void {throws UnsupportedOperationException}
+    + add(d : Direction) : void {throws UnsupportedOperationException}
+  }
+
+  class Clock <<Singleton, Observer: Subject>> {
+    - clock : java.util.Timer
+    - tick : TimerTask
+    - publisher : Publisher
+    - {static} instance : Clock
+    - Clock()
+    + {static} instance() : Clock
+    + startTicking(millisecondsBetweenTicks : int) : void
+    + stop() : void
+    + addClockListener(observer : Listener) : void
+    + tick() : void
+    - createMenus() : void
+    - menuIsActive() : boolean
+  }
+
+  interface "Clock.Listener" as ClockListener <<Observer: Observer>> {
+    + tick() : void
+  }
+}
+
+package "com.holub.tools" {
+  class Publisher <<Observer 구현 / Strategy>> {
+    - subscribers : Node  {volatile}
+    + subscribe(subscriber : Object) : void
+    + cancelSubscription(subscriber : Object) : void
+    + publish(deliveryAgent : Distributor) : void
+  }
+  interface "Publisher.Distributor" as Distributor <<Visitor>> {
+    + deliverTo(subscriber : Object) : void
+  }
+  class "Publisher.Node" as PubNode <<Immutable>> {
+    + subscriber : Object
+    + next : Node
+    + remove(target : Object) : Node
+    + accept(deliveryAgent : Distributor) : void
+  }
+}
+
+
+
+
+' ===== 상속 / 구현 =====
+
+Neighborhood ..|> Cell
+Resident ..|> Cell
+Dummy ..|> Cell
+CellMemento --|> Storable
+NeighborhoodState ..|> CellMemento
+DirImmutable --|> Direction
+
+' ===== 내부 타입 (nested) =====
+Cell +-- CellMemento
+Cell +-- Dummy
+Neighborhood +-- NeighborhoodState
+Direction +-- DirImmutable
+Clock +-- ClockListener
+Publisher +-- Distributor
+Publisher +-- PubNode
+
+' ===== 연관 / 집합 =====
+Neighborhood *-- "gridSize × gridSize" Cell : grid
+Neighborhood --> "1" Direction : activeEdges
+Universe --> "1" Cell : outermostCell
+Clock --> "1" Publisher : publisher
+Publisher --> "0..1" PubNode : subscribers
+PubNode --> "0..1" PubNode : next
+
+' ===== 의존 =====
+Life ..> Universe : instance()
+Universe ..> Neighborhood : <<create>>
+Universe ..> Resident : <<create>>\n(prototype)
+Universe ..> Clock : addClockListener()
+Universe ..> ClockListener : <<anonymous impl>>
+Universe ..> Storable : load / store
+Clock ..> Distributor : <<anonymous impl>>
+Publisher ..> ClockListener : notifies\n(Object로 보관)
+
+note right of Neighborhood
+  <b>Prototype</b>: 생성자에서 prototype.create()로 grid 채움
+  <b>Flyweight</b>: 이웃 셀을 필드로 저장하지 않고
+  figureNextState()의 인자로 전달
+  Universe가 8×8 안에 8×8을 중첩 → 64×64 칸
+end note
+
+note bottom of Clock
+  tick마다 Publisher.publish()로
+  Clock.Listener들에게 알림.
+  Universe가 익명 Listener를 등록해
+  figureNextState() → transition() 호출
+end note
+
+note left of Universe
+  JPanel 상속. Swing 이벤트(마우스, 메뉴)를
+  outermostCell 요청으로 변환하는 Mediator.
+  Load/Store 시 Memento 사용
+end note
+
+@enduml

@@ -1,0 +1,63 @@
+@startuml holub-life-state-resident
+' ST2. Resident 상태 ((amAlive, willBeAlive) 쌍 기준)
+' 근거: Resident.figureNextState(), transition(), userClicked(), clear(), transfer()
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+  StartColor #444444
+  EndColor #444444
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+hide empty description
+
+title ST2. Resident(셀) 상태 다이어그램 — (amAlive, willBeAlive)
+
+state "Dead · Stable\n(false, false)" as DS #F2F2F2
+state "Dead · 탄생 예정\n(false, true)" as DB #E0F0FF
+state "Alive · Stable\n(true, true)" as AS #FFE0E0
+state "Alive · 사망 예정\n(true, false)" as AD #FFF0D0
+
+[*] --> DS : create()\n(prototype 복제)
+
+' figureNextState: willBeAlive = (n==3 || (amAlive && n==2))
+DS --> DB : figureNextState\n[n == 3]
+DB --> DS : figureNextState\n[n != 3]
+AS --> AD : figureNextState\n[n < 2 || n > 3]
+AD --> AS : figureNextState\n[n == 2 || n == 3]
+
+' transition: amAlive = willBeAlive
+DB --> AS : transition()\n(탄생)
+AD --> DS : transition()\n(사망)
+
+' userClicked: amAlive = !amAlive (willBeAlive는 그대로)
+DS --> AD : userClicked()
+AD --> DS : userClicked()
+AS --> DB : userClicked()
+DB --> AS : userClicked()
+
+note as N1
+  <b>자기 전이</b> (화살표 생략)
+  • DS, AS에서 transition(): 상태 그대로
+  • DS에서 figureNextState [n≠3], AS에서 [n=2,3]: 그대로
+  <b>어느 상태에서든</b>
+  • clear() → Dead · Stable
+  • transfer(LOAD) → 파일에 있으면 Alive · Stable,
+     없으면 Dead · Stable
+end note
+
+note as N2
+  <b>관찰</b>
+  • userClicked()가 amAlive만 뒤집어서, 클릭 직후 셀은
+     항상 "예정" 상태(AD 또는 DB)로 들어감.
+     다음 figureNextState()가 willBeAlive를 다시 계산하므로 결과는 정상
+  • transition()은 isStable()(= 변화 없음)을 반환해서
+     실제 변화 여부와 반대 값을 돌려줌 (SD1 참고)
+end note
+
+@enduml

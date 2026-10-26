@@ -1,0 +1,109 @@
+@startuml holub-life-package
+' Holub Life Game (HolubLife.jar v1.02) - 패키지 다이어그램
+' 근거: 각 .java 파일의 import 문 + 본문 실제 사용 여부 (주석/미사용 import 제외)
+
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam packageStyle folder
+skinparam nodesep 40
+skinparam ranksep 90
+skinparam package {
+  BackgroundColor #F7F7F7
+  BorderColor #777777
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+skinparam ArrowColor #444444
+set separator none
+hide empty members
+hide circle
+
+title Holub Life Game — 패키지 다이어그램 (실제 사용 기준 의존 관계)
+
+package "com.holub.life" as life <<application>> #EAF2FF {
+  class Life
+  class Universe
+  class Clock
+  class Cell
+  class Neighborhood
+  class Resident
+  class Direction
+  class Storable
+  Life -[hidden]right- Universe
+  Universe -[hidden]right- Clock
+  Clock -[hidden]right- Cell
+  Life -[hidden]down- Neighborhood
+  Neighborhood -[hidden]right- Resident
+  Resident -[hidden]right- Direction
+  Direction -[hidden]right- Storable
+}
+
+package "com.holub.ui" as ui <<library>> {
+  class MenuSite
+  class Colors
+}
+
+package "com.holub.tools" as tools <<library>> {
+  class Publisher
+  class Log
+}
+
+package "com.holub.io" as io <<library>> {
+  class Files
+}
+
+package "com.holub.asynch" as asynch <<library>> {
+  class ConditionVariable
+}
+
+package "JDK" as jdk #EEEEEE {
+  package "javax.swing" as swing {
+  }
+  package "java.awt" as awt {
+  }
+  package "java.io" as jio {
+  }
+  package "java.util\njava.util.logging" as jutil {
+  }
+}
+
+' ===== 내부 패키지 간 의존 (라벨 = 사용하는 클래스) =====
+life ..> ui : «import»\nMenuSite ← Life, Universe, Clock\nColors ← Neighborhood, Resident
+life ..> tools : «import»\nPublisher ← Clock
+life ..> io : «import»\nFiles ← Universe
+life ..> asynch : «import»\nConditionVariable ← Neighborhood
+ui ..> tools : «use»\nLog ← MenuSite.Test (테스트 전용)
+
+' ===== JDK 의존 (회색) =====
+ui -[#AAAAAA,dashed]-> swing
+ui -[#AAAAAA,dashed]-> awt
+io -[#AAAAAA,dashed]-> swing : JFileChooser
+tools -[#AAAAAA,dashed]-> jutil : logging
+asynch -[hidden]-> jio
+
+note as N1
+  <b>life → JDK 직접 의존</b> (선 생략)
+  javax.swing (JFrame, JPanel, Swing 이벤트)
+  java.awt (Graphics, Color, Point, Rectangle)
+  java.io (InputStream/OutputStream, 직렬화)
+  java.util (Timer, TimerTask, LinkedList)
+end note
+
+note as N2
+  <b>관찰 사항</b>
+  • 의존 방향이 모두 life → 유틸리티라 순환 의존 없음
+  • 유틸리티 패키지끼리는 독립적 (ui → tools는 테스트 코드뿐)
+  • 모델(Cell/Neighborhood/Resident)이 java.awt에 직접 의존
+     → 모델과 화면 그리기가 같은 패키지·같은 클래스에 섞여 있음
+  • Clock(타이밍 로직)이 MenuSite(UI 메뉴)를 직접 생성
+  <b>미사용 import</b> (컴파일 의존만 있고 실제 사용 없음)
+  • Neighborhood → com.holub.io.Files, com.holub.ui.MenuSite, Clock
+  • Resident → Universe, Neighborhood
+end note
+
+life .. N1
+N2 -[hidden]- life
+
+@enduml

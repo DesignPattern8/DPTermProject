@@ -1,0 +1,87 @@
+@startuml holub-life-usecase
+' Holub Life Game (HolubLife.jar v1.02) - 기존 기능 유스케이스 다이어그램
+' 근거: Universe.java (마우스, Grid 메뉴), Clock.java (Go 메뉴), Resident.userClicked()
+' 확장 기능은 이후 이름 앞에 'E'를 붙여 추가 (과제 규칙)
+
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam rectangle {
+  BackgroundColor #F7F7F7
+  BorderColor #999999
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+left to right direction
+
+title Holub Life Game — 기존 기능 유스케이스 다이어그램
+
+actor "사용자\n(User)" as User
+actor "타이머\n(java.util.Timer)" as Timer <<system>>
+actor "파일 시스템\n(.life 파일)" as FS <<system>>
+
+rectangle "Holub Life Game" {
+
+  usecase "UC1. 셀 상태 토글\n(Toggle Cell)" as UC1
+  usecase "UC2. 연속 실행\n(Run Simulation)" as UC2
+  usecase "UC3. 실행 정지\n(Halt)" as UC3
+  usecase "UC4. 한 세대 진행\n(Tick — Single Step)" as UC4
+  usecase "UC5. 그리드 초기화\n(Clear Grid)" as UC5
+  usecase "UC6. 패턴 불러오기\n(Load)" as UC6
+  usecase "UC7. 패턴 저장\n(Store)" as UC7
+  usecase "UC8. 프로그램 종료\n(Exit)" as UC8
+
+  usecase "다음 세대 계산\n(Compute Next Generation)" as CNG
+  usecase "파일 선택\n(Select .life File)" as SEL
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+
+UC2 ..> CNG : <<include>>
+UC4 ..> CNG : <<include>>
+Timer --> CNG
+
+UC6 ..> SEL : <<include>>
+UC7 ..> SEL : <<include>>
+UC6 ..> UC3 : <<include>>
+UC7 ..> UC3 : <<include>>
+UC6 ..> UC5 : <<include>>
+
+UC6 --> FS
+UC7 --> FS
+
+
+
+
+
+
+
+legend bottom left
+  |= 유스케이스 |= 진입 경로 |= 구현 위치 |
+  | UC1 셀 상태 토글 | 그리드 마우스 클릭 | Universe(MouseListener) → Neighborhood.userClicked() → Resident.userClicked() |
+  | UC2 연속 실행 | Go > Agonizing(500ms) / Slow(150) / Medium(70) / Fast(30) | Clock.startTicking(ms) |
+  | UC3 실행 정지 | Go > Halt | Clock.startTicking(0) = stop() |
+  | UC4 한 세대 진행 | Go > Tick (Single Step) | Clock.tick() |
+  | 다음 세대 계산 | Clock tick 수신 | Universe의 Clock.Listener → figureNextState() → transition() |
+  | UC5 그리드 초기화 | Grid > Clear | Universe → outermostCell.clear() |
+  | UC6 패턴 불러오기 | Grid > Load | Universe.doLoad(): stop → clear → Memento.load() → transfer(LOAD) |
+  | UC7 패턴 저장 | Grid > Store | Universe.doStore(): stop → transfer(STORE) → Memento.flush() |
+  | UC8 프로그램 종료 | Grid > Exit | System.exit(0) |
+endlegend
+
+@enduml

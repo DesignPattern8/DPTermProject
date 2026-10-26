@@ -1,0 +1,125 @@
+@startuml holub-life-seq-tick
+' SD1. 한 세대 진행 (UC2 연속 실행 / UC4 Single Step 공통 흐름)
+' 근거: Clock.java, Publisher.java, Universe.java, Neighborhood.java, Resident.java
+
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam sequenceMessageAlign left
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 260
+skinparam sequence {
+  ParticipantBackgroundColor #FFFFFF
+  ParticipantBorderColor #444444
+  LifeLineBorderColor #999999
+  ArrowColor #444444
+  GroupBackgroundColor #F2F2F2
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+autonumber "<b>0."
+
+title SD1. 한 세대 진행 — Clock tick → 다음 세대 계산 → 전이 → 화면 갱신
+
+actor "사용자" as User
+participant "TimerTask\n(java.util.Timer)" as Timer
+participant ":Clock\n<<Singleton>>" as Clock
+participant ":Publisher" as Pub
+participant "listener\n:Clock.Listener\n(Universe 익명 클래스)" as L
+participant "outermost\n:Neighborhood" as ON
+participant "inner\n:Neighborhood" as IN
+participant ":Resident" as R
+participant ":Universe\n<<Singleton>>" as U
+participant "Swing EDT" as EDT
+
+== 시작 경로 (둘 중 하나) ==
+alt UC2 연속 실행 (Go > Slow 등)
+  User -> Clock : 메뉴 선택 → startTicking(150)
+  Clock -> Timer ** : new TimerTask()\nscheduleAtFixedRate(tick, 0, 150)
+  loop 150ms마다
+    Timer -> Clock : run() → tick()
+  end
+else UC4 Single Step (Go > Tick)
+  User -> Clock : 메뉴 선택 → tick()
+end
+
+== Observer 통지 ==
+Clock -> Pub : publish(new Distributor{...})
+loop 구독자 연결 리스트 순회
+  Pub -> Pub : node.accept(distributor)\n→ distributor.deliverTo(subscriber)
+  alt !menuIsActive()
+    Pub -> L : ((Listener) subscriber).tick()
+  else 메뉴가 열려 있음
+    note right of Pub : tick 무시\n(메뉴 덧그림 버그 우회)
+  end
+end
+
+== 1단계: 다음 상태 계산 (figureNextState) ==
+L -> ON : figureNextState(DUMMY × 8)
+note right of L : 가장 바깥 셀의 이웃은\n모두 Cell.DUMMY (Null Object)
+activate ON
+alt amActive || 인접 블록의 isDisruptiveTo()가 나를 향함
+  loop row, column ∈ 8×8
+    ON -> ON : 8개 이웃 결정\n(경계면 north.edge(...) 등, 아니면 grid[r±1][c±1])
+    ON -> IN : figureNextState(n, s, e, w, ne, nw, se, sw)
+    activate IN
+    alt 이 내부 블록이 active이거나 경계가 disruptive
+      loop row, column ∈ 8×8
+        IN -> R : figureNextState(8 neighbors)
+        activate R
+        R -> R : 살아있는 이웃 수 계산 (isAlive() × 8)\nwillBeAlive = (n==3 || (amAlive && n==2))
+        R --> IN : !isStable()
+        deactivate R
+      end
+    end
+    IN --> ON : amActive (변화 예정 여부)
+    deactivate IN
+  end
+end
+ON --> L : amActive
+deactivate ON
+
+== 2단계: 상태 전이 (transition) ==
+opt figureNextState()가 true
+  L -> ON : transition()
+  activate ON
+  ON -> ON : ++nestingLevel == 0 이면\nreadingPermitted.set(false) (그리기 잠금)
+  loop row, column ∈ 8×8
+    ON -> IN : transition()
+    activate IN
+    loop row, column ∈ 8×8
+      IN -> R : transition()
+      activate R
+      R -> R : amAlive = willBeAlive
+      R --> IN : changed
+      deactivate R
+      IN -> IN : rememberThatCellAtEdgeChangedState()\n→ activeEdges 갱신
+    end
+    IN --> ON : someSubcellChangedState
+    deactivate IN
+  end
+  ON -> ON : nestingLevel-- == 0 이면\nreadingPermitted.set(true) (잠금 해제)
+  ON --> L : someSubcellChangedState
+  deactivate ON
+
+  == 3단계: 화면 갱신 ==
+  opt transition()이 true
+    L -> U : refreshNow()
+    U ->> EDT : SwingUtilities.invokeLater(Runnable)
+    EDT -> ON : redraw(g, bounds, drawAll = false)
+    activate ON
+    alt !amActive && !oneLastRefreshRequired
+      ON --> EDT : 바로 return (안정 블록은 그리지 않음)
+    else
+      ON -> ON : readingPermitted.waitForTrue()
+      loop 하위 셀
+        ON -> IN : redraw(g, subcell, false)
+        IN -> R : redraw(g, subcell, false)
+      end
+    end
+    deactivate ON
+  end
+end
+
+@enduml

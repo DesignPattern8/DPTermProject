@@ -1,0 +1,176 @@
+@startuml holub-life-object
+' Holub Life Game (HolubLife.jar v1.02) - 객체 다이어그램 (런타임 스냅샷)
+' 시점: 프로그램 시작 직후, 사용자가 중앙 블록 inner[3][3] 안에 Blinker(가로 3칸)를 클릭해 놓은 상태, 아직 tick 전
+' 근거: Universe 생성자, Neighborhood(int, Cell)/create(), Clock.instance(), Publisher.subscribe()
+
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam nodesep 35
+skinparam ranksep 60
+skinparam object {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title Holub Life Game — 객체 다이어그램\n(Blinker 3칸을 클릭한 직후, tick 전 스냅샷)
+
+' ===== 진입 / 싱글톤 =====
+object "frame : Life" as frame {
+  title = "The Game of Life. (c)2003 ..."
+}
+
+object "theInstance : Universe" as universe #EAF2FF {
+  outermostCell = outer
+  (JPanel, 크기 64×8 = 512px)
+}
+
+object "instance : Clock" as clock #EAF2FF {
+  clock = Timer
+  tick = null  (정지 상태)
+  publisher = pub
+}
+
+object "pub : Publisher" as pub {
+  subscribers = node1
+}
+
+object "node1 : Publisher.Node" as node1 {
+  subscriber = listener
+  next = null
+}
+
+object "listener : Universe$익명\n(Clock.Listener)" as listener {
+  (Universe.this 참조)
+}
+
+' ===== Composite 계층 =====
+object "outer : Neighborhood" as outer #FFF4E0 {
+  gridSize = 8
+  grid = Cell[8][8]
+  amActive = true
+  activeEdges = NONE
+  oneLastRefreshRequired = false
+}
+
+object "inner[0][0] : Neighborhood" as in00 {
+  gridSize = 8
+  amActive = false
+  activeEdges = NONE
+}
+
+object "inner[3][3] : Neighborhood" as in33 #FFF4E0 {
+  gridSize = 8
+  amActive = true
+  activeEdges = NONE
+  (내부 칸만 바뀌어 경계 비활성)
+}
+
+object "inner[7][7] : Neighborhood" as in77 {
+  gridSize = 8
+  amActive = false
+  activeEdges = NONE
+}
+
+object "… 나머지 61개\ninner : Neighborhood" as inRest #F2F2F2 {
+}
+
+object "r[0][0] : Resident" as r00 {
+  amAlive = false
+  willBeAlive = false
+}
+
+object "… 63개 : Resident" as r00rest #F2F2F2 {
+}
+
+object "r[3][2] : Resident" as r32 #FFE0E0 {
+  amAlive = true
+  willBeAlive = false
+}
+
+object "r[3][3] : Resident" as r33 #FFE0E0 {
+  amAlive = true
+  willBeAlive = false
+}
+
+object "r[3][4] : Resident" as r34 #FFE0E0 {
+  amAlive = true
+  willBeAlive = false
+}
+
+object "… 61개 : Resident" as r33rest #F2F2F2 {
+  amAlive = false
+}
+
+' ===== 공유 객체 (static) =====
+object "readingPermitted : ConditionVariable" as cv {
+  isTrue = true
+  (Neighborhood의 static 필드 —
+   65개 Neighborhood가 공유)
+}
+
+object "DUMMY : Cell$익명" as dummy {
+  isAlive() = false 고정
+  (바깥 경계 이웃으로 인자 전달만 됨)
+}
+
+object "NONE : Direction.Immutable" as dnone {
+  map = 0x00
+}
+
+' ===== 링크 =====
+frame --> universe : getContentPane().add()
+universe --> outer : outermostCell
+clock --> pub : publisher
+pub --> node1 : subscribers
+node1 --> listener : subscriber
+listener ..> universe : outer this
+
+outer *-- in00 : grid[0][0]
+outer *-- in33 : grid[3][3]
+outer *-- in77 : grid[7][7]
+outer *-- inRest
+
+in00 *-- r00 : grid[0][0]
+in00 *-- r00rest
+in33 *-- r32 : grid[3][2]
+in33 *-- r33 : grid[3][3]
+in33 *-- r34 : grid[3][4]
+in33 *-- r33rest
+
+outer ..> cv
+in33 ..> cv
+listener ..> dummy : figureNextState(DUMMY×8)
+dummy ..> dnone : isDisruptiveTo()
+
+note right of outer
+  <b>총 객체 수</b>
+  Neighborhood 1 + 64 = 65개
+  Resident 64 × 64 = 4,096개
+  → 화면은 64×64 칸
+end note
+
+note bottom of r33rest
+  절대 좌표로 보면 Blinker는
+  (27,26) (27,27) (27,28) 위치.
+  inner[3][3]이 행·열 24~31을 담당
+end note
+
+note as Proto
+  <b>Prototype으로 생성 후 버려지는 객체</b>
+  Universe 생성자에서
+  ① new Resident() → 안쪽 Neighborhood의 prototype
+  ② new Neighborhood(8, ①) → 바깥 Neighborhood의 prototype
+     (자기 grid를 위해 Resident 64개를 또 생성)
+  두 prototype은 어디에도 저장되지 않아 곧바로 GC 대상.
+  실제 grid는 prototype.create()로 만든 복제본으로 채워짐
+  (Neighborhood.create() = new Neighborhood(gridSize, grid[0][0]))
+end note
+
+Proto .. universe
+
+@enduml

@@ -1,0 +1,48 @@
+@startuml holub-life-state-clock
+' ST1. Clock 상태 (tick 필드 기준: null = 정지, TimerTask = 실행)
+' 근거: Clock.startTicking(), stop(), tick(), createMenus(), menuIsActive(); Universe.doLoad()/doStore()
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+  StartColor #444444
+  EndColor #444444
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title ST1. Clock 상태 다이어그램
+left to right direction
+
+[*] --> Stopped : Clock.instance()\n최초 생성
+
+state "Stopped\n(tick == null)" as Stopped
+
+state "Running\n(tick == TimerTask)" as Running {
+  state "Agonizing\n500ms 주기" as A
+  state "Slow\n150ms 주기" as S
+  state "Medium\n70ms 주기" as M
+  state "Fast\n30ms 주기" as F
+}
+Running : do / 주기마다 tick()
+
+Stopped --> Running : Go > Agonizing / Slow / Medium / Fast\n/ startTicking(ms)\n(선택한 속도의 하위 상태로 진입)
+Running --> Running : 다른 속도 선택\n/ 기존 task.cancel() 후 재예약
+Running --> Stopped : Go > Halt\n/ startTicking(0)
+Running --> Stopped : Grid > Load · Store\n/ Universe가 Clock.stop()
+Stopped --> Stopped : Go > Tick (Single Step)\n/ tick() 1회
+
+legend bottom
+  <b>tick() 1회의 동작</b> (모든 상태 공통)
+  Publisher.publish() → 각 구독자에 대해 [menuIsActive()]이면 통지 생략, 아니면 Listener.tick()
+  Running 중에도 Go > Tick을 고르면 주기와 별개로 tick()이 1회 추가 실행됨
+  <b>관찰</b>
+  상태가 별도 객체가 아니라 tick 필드의 null 여부와
+  메뉴 이름 첫 글자('T','A','S','M','F', 그 외는 Halt)를 분기하는 삼항 연산으로 표현됨 → State 패턴 도입 후보
+endlegend
+
+@enduml

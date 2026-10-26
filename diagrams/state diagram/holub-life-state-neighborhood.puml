@@ -1,0 +1,52 @@
+@startuml holub-life-state-neighborhood
+' ST3. Neighborhood 활성 상태 (amActive, oneLastRefreshRequired 기준)
+' 근거: Neighborhood.figureNextState(), redraw(), userClicked(), clear(), transfer()
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+  StartColor #444444
+  EndColor #444444
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title ST3. Neighborhood(블록) 활성 상태 다이어그램
+
+state "Inactive\n(amActive = false,\noneLastRefresh = false)" as I #F2F2F2
+I : figureNextState: 인접 블록이 나를 향해\ndisruptive가 아니면 하위 셀 계산 생략
+I : redraw(drawAll=false): 그리지 않음
+
+state "Active\n(amActive = true)" as A #FFF4E0
+A : figureNextState: 하위 셀 전부 계산
+A : redraw: 하위 셀 그림 + 파란 테두리
+
+state "LastRefresh\n(amActive = false,\noneLastRefresh = true)" as L #E0F0FF
+L : redraw: 한 번 더 그려서\n파란 테두리 제거
+
+[*] --> I : 생성
+
+I --> A : figureNextState()\n[인접 블록의 isDisruptiveTo()가 나를 향함\n && 하위 셀 중 변화 예정 있음]
+I --> A : userClicked()
+I --> A : transfer(LOAD)\n[살아있는 셀 있음]
+
+A --> A : figureNextState()\n[하위 셀 중 변화 예정 있음]
+A --> L : figureNextState()\n[변화 예정 없음]
+
+L --> I : redraw()\n/ oneLastRefreshRequired = false
+L --> A : figureNextState() [변화 예정 있음]\n또는 userClicked()
+
+A --> I : clear()
+
+note bottom of A
+  isDisruptiveTo()는 activeEdges를 돌려주며,
+  transition()에서 경계 칸이 바뀌면
+  NORTH/SOUTH/EAST/WEST/모서리 방향이 기록됨
+  → 다음 tick에 이웃 블록을 깨움
+end note
+
+@enduml
