@@ -1,4 +1,5 @@
 package com.holub.life;
+
 import java.io.*;
 
 /***
@@ -7,7 +8,8 @@ import java.io.*;
  * @include /etc/license.txt
  */
 
-public interface Storable
-{	void load ( InputStream in   ) throws IOException;
-	void flush( OutputStream out ) throws IOException;
+public interface Storable {
+  void load(InputStream in) throws IOException;
+
+  void flush(OutputStream out) throws IOException;
 }
