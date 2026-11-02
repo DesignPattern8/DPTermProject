@@ -1,0 +1,110 @@
+@startuml holub-life-usecase-2p
+' Holub Life Game - 2인용 승패 모드 확장 유스케이스 다이어그램 (초안)
+' 근거: 2인용 Life Game 규칙 명세 (초안, 2026-11-02)
+' 확장 기능은 유스케이스 이름 앞에 'E'를 붙임 (과제 규칙)
+' 기존 유스케이스(UC1~UC8)는 holub-life-usecase.puml 참고. 여기에는 확장과 직접 관련된 것만 표시
+
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam usecase {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam usecase<<extended>> {
+  BackgroundColor #EAF2FF
+  BorderColor #2F5597
+}
+skinparam rectangle {
+  BackgroundColor #F7F7F7
+  BorderColor #999999
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+left to right direction
+
+title Holub Life Game — 2인용 승패 모드 확장 유스케이스 다이어그램 (초안)
+
+actor "사용자\n(User)" as User
+actor "플레이어 A" as PA
+actor "플레이어 B" as PB
+actor "타이머\n(java.util.Timer)" as Timer <<system>>
+
+PA -up-|> User
+PB -up-|> User
+
+rectangle "Holub Life Game" {
+
+  usecase "E3. 셀 배치\n(Place Cell)" as E3 <<extended>>
+  usecase "E4. 배치 확정\n(Confirm Placement)" as E4 <<extended>>
+  usecase "E5. 패스\n(Pass)" as E5 <<extended>>
+  usecase "E9. 배치 가능 여부 검사\n(Validate Placement)" as E9 <<extended>>
+  usecase "E2. 2인 게임 시작\n(Start 2-Player Game)" as E2 <<extended>>
+  usecase "E1. 게임 모드 선택\n(Select Game Mode)" as E1 <<extended>>
+  usecase "E8. 게임 상태 확인\n(View Status: 단계·차례·남은 개수·셀 수)" as E8 <<extended>>
+  usecase "E6. 라운드 시뮬레이션\n(Run Round: K generations)" as E6 <<extended>>
+  usecase "E7. 승패 판정\n(Judge Winner)" as E7 <<extended>>
+
+  usecase "UC4. 한 세대 진행\n(Tick — Single Step)" as UC4
+  usecase "UC7. 패턴 저장\n(Store)" as UC7
+  usecase "다음 세대 계산\n(Compute Next Generation)" as CNG
+}
+
+User --> E1
+User --> E2
+User --> E8
+User --> UC4
+PA --> E3
+PB --> E3
+PA --> E4
+PB --> E4
+PA --> E5
+PB --> E5
+
+E2 ..> E1 : <<include>>
+E3 ..> E9 : <<include>>
+E4 ..> E3 : <<include>>\n(임시 배치를 확정)
+E4 ..> E6 : <<include>>\n(초기 배치 N개 완료 시)
+E5 ..> E6 : <<include>>\n(연달아 두 번 패스 시)
+E6 ..> CNG : <<include>>
+E6 ..> E7 : <<include>>\n(매 세대 직후)
+Timer --> E6
+UC4 .up.> E6 : <<extend>>\n(시뮬레이션 단계에서만,\nK에 포함)
+
+note right of E9
+  - 빈칸(DEAD)에만 배치
+  - 초기 배치: 자기 진영(좌/우 절반)만
+  - 개입: 영역 제한 없음
+  - 남은 배치 개수 > 0
+  - 현재 차례 플레이어만
+end note
+
+note right of E7
+  - 한쪽 전멸 → 남은 쪽 승
+  - 동시 전멸 → 무승부
+  - R라운드 종료 → 셀 수 비교
+end note
+
+note bottom of UC7
+  2인용 모드에서는 비활성화
+  (저장 미지원)
+end note
+
+legend bottom left
+  |= 유스케이스 |= 진입 경로 |= 관련 규칙 (명세 장) |
+  | E1 게임 모드 선택 | 메뉴 > Mode > Classic / 2 Players | 모드별 규칙·상태·승패 판정 교체 |
+  | E2 2인 게임 시작 | 2 Players 선택 후 시작 | 초기 배치 단계, 선공 A (4장) |
+  | E3 셀 배치 | 그리드 클릭 (현재 차례 플레이어) | 임시 배치, 확정 전 이동 가능 (5장) |
+  | E4 배치 확정 | 확정 버튼 / Enter | 확정 시 차례 넘어감, 취소 불가 (5장) |
+  | E5 패스 | 패스 버튼 (개입 단계만) | 연달아 두 번 패스하면 개입 종료 (4장) |
+  | E6 라운드 시뮬레이션 | 배치·개입 종료 시 자동 | K세대 진행, 입력 무시, 건너뛰기 없음 (4·6장) |
+  | E7 승패 판정 | 매 세대 직후 / R라운드 종료 | 전멸·동시 전멸·셀 수 비교 (6장) |
+  | E8 게임 상태 확인 | 상태 표시줄 | 단계·차례·남은 개수·A:B 셀 수 |
+  | E9 배치 가능 여부 검사 | E3에 포함 | 빈칸·진영·개수·차례 (5장) |
+endlegend
+
+@enduml
