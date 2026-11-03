@@ -38,7 +38,8 @@ dependencies {
 // ---- 다이어그램 렌더링 (AGENTS.md 2-5) ----
 // src/**/docs/diagrams/*.puml 을 같은 폴더에 png·svg로 렌더링한다: ./gradlew renderDiagrams
 // 리팩토링 전 원본 다이어그램(저장소 루트의 diagrams/)은 보존 대상이라 렌더링하지 않는다.
-// Graphviz가 없는 환경에서는 .puml 안에 `!pragma layout smetana`를 쓴다(이슈 #22 참고).
+// Graphviz 없이도 상태·클래스·시퀀스 다이어그램이 렌더링되는 것을 확인했다(이슈 #22). 레이아웃이 깨지면 .puml에 `!pragma layout smetana`를 넣는다.
+// 결과 파일 이름은 `@startuml <이름>`을 따르므로 이름을 파일명과 같게 쓴다.
 val plantuml: Configuration = configurations.create("plantuml")
 
 dependencies {
