@@ -15,7 +15,8 @@
 | 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 리뷰 대기 (CI 통과), #16 머지 후 rebase |
 | 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
-| 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | → `feature/two-player-mode` | 1차(단계·차례·배치·패스)·2차(승패 판정) 구현 완료, PR 리뷰 대기 |
+| 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ `feature/two-player-mode`) | 1차(단계·차례·배치·패스)·2차(승패 판정) 구현 완료, 리뷰 대기 (CI 통과) |
+| 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | (이 작업 기록 갱신 후 개설) | 구현·확인 완료 |
 | 4. 2인용 UI 통합 | #7 | — | — | 대기 |
 | 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
 
@@ -104,6 +105,24 @@
 - 전체 표와 측정 방법: [`life/docs/measurement-resident-transition.md`](https://github.com/DesignPattern8/DPTermProject/blob/fix/resident-transition/Codes/GameOfLife/src/com/holub/life/docs/measurement-resident-transition.md)
 - CL-C-08은 glider 보드에서 tick 2~10마다 5개 이하인지 확인한다(수정 전 tick 2에서 65로 실패, 수정 후 매 tick 2).
 
+## 다이어그램 렌더링 (#22)
+
+**문제**: AGENTS.md 2-5는 `.puml` 원본과 png/svg를 함께 커밋하도록 정했는데, 렌더링 도구가 없어 팀원마다 따로 설치해야 했다(이번 세션에서 PlantUML jar를 직접 받아 실행하는 것도 차단됨).
+
+**한 것**: `build.gradle.kts`에 Maven Central의 `net.sourceforge.plantuml:plantuml:1.2026.9`를 별도 configuration으로 넣고 `./gradlew renderDiagrams`(png·svg 작업 2개를 묶음)를 추가했다. 대상은 `src/**/docs/diagrams/*.puml`이고, 결과는 같은 폴더에 생긴다. 루트 `diagrams/`(리팩토링 전 원본)는 보존 대상이라 렌더링하지 않는다.
+
+**확인** (Graphviz 없는 macOS, JDK 26)
+
+| 경우 | 결과 |
+| --- | --- |
+| `.puml`이 없음 (main) | 두 작업 SKIPPED, 성공 |
+| 상태(#6의 게임 단계)·클래스·시퀀스 다이어그램 | png·svg 생성, 이미지를 열어 정상 렌더링 확인. `!pragma layout smetana` 없이도 됨 |
+| 문법 오류가 있는 `.puml` | 작업 실패(종료 코드 1) |
+| `./gradlew test` | 영향 없음 (34개 통과) |
+
+- 결과 파일 이름은 파일명이 아니라 `@startuml <이름>`을 따른다. 그래서 `@startuml` 이름을 파일명과 같게 쓴다.
+- 처음 쓴 `val plantuml by configurations.creating`이 Gradle 9에서 deprecated 경고를 내서 `configurations.create("plantuml")`로 바꿨다.
+
 ## 2인용 모드 (`feature/two-player-mode`)
 
 ### 규칙 명세
@@ -171,10 +190,11 @@
 
 - PR #16 → #17·#18 rebase·재테스트 → 머지
 - 세 버그 PR 머지 후: 리팩토링 담당에게 보낼 요약(무엇이 바뀌었고 어떤 테스트가 고정하는지)
-- #6 PR(`feat/6-game-flow` → `feature/two-player-mode`) 리뷰·머지
+- #6 PR #21(`feat/6-game-flow` → `feature/two-player-mode`) 리뷰·머지. base가 기본 브랜치(main)가 아니라서 머지돼도 `Closes #6`으로 이슈가 자동으로 닫히지 않음 → 머지 후 직접 닫기
+- #22 머지 후: `feat/6-game-flow`에서 게임 단계 상태 다이어그램을 렌더링해 png/svg 추가, 2인용 클래스·시퀀스 다이어그램 작성
 - 브랜치 방식(2026-11-03 결정): `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보낸다. `main`으로는 회의 후 #5까지 끝나면 한 번에 PR을 연다
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현
-- 다이어그램 렌더링: `build.gradle.kts`에 Maven Central의 PlantUML 의존성으로 렌더링 작업을 추가하는 [CHORE] 이슈·PR(base `main`). 다음 작업. 다이어그램 원본은 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
+- 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
 - 도메인 `docs/README.md`: `twoplayer/docs/`는 #6 PR에 넣음. `life/docs/`는 다음 core 도메인 PR에 함께
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
 
