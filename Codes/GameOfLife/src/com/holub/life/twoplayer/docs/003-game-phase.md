@@ -97,4 +97,15 @@ A와 구조는 같지만, 다음 단계를 정하는 일을 `TwoPlayerGame`이 �
 
 ## 구현 후 실측
 
-(구현 후 기입)
+#6 1차 구현 기준(2026-11-03). LOC는 빈 줄과 주석을 뺀 줄 수.
+
+| 항목 | 추정 (A) | 실측 |
+| --- | --- | --- |
+| 새 타입 | 인터페이스 1 + 단계 4 + 공통 상위 1 + 종류 enum 1 | 단계 쪽 6개: `Phase`(인터페이스), `PlacingPhase`(공통 상위), `InitialPlacementPhase`, `InterventionPhase`, `SimulationPhase`, `GameOverPhase` (모두 package-private) + 공개 타입 7개: `TwoPlayerGame`, `TwoPlayerBoard`, `GameSettings`, `Player`, `PhaseKind`, `Response`, `Coordinate` |
+| LOC | 약 300 | 패키지 전체 367 (단계 클래스 6개 227, `TwoPlayerGame` 70, 나머지 70). 원래 줄 수(빈 줄·주석 포함) 529 |
+| 간접성 | 입력 1번에 +1 | +1 (`TwoPlayerGame.select` → `Phase.select`) |
+| 결합도 | 단계 ↔ 게임 상호 참조 | 단계 클래스는 `TwoPlayerGame`의 package-private 메서드 6개(`board`, `settings`, `countGeneration`, `startSimulation`, `endSimulation`, `endIntervention`)만 쓴다. 기존 `com.holub.life` 클래스에는 의존하지 않는다 |
+| `java.awt`/Swing 의존 | 없음 | 없음 (`twoplayer` 패키지에 `java.awt`·`javax.swing` import 0. 처음에 임시 배치 좌표로 `java.awt.Point`를 썼다가 `Coordinate` record로 바꿈) |
+| 테스트 | — | TP-F 17개, TP-P 15개, 모두 `StubBoard`로 Swing 없이 통과. 테스트 코드 605줄(대역·도우미 포함) |
+
+- 기존 코드 변경: 없음(새 패키지만 추가). 클래식 특성 테스트 34개는 그대로 통과.

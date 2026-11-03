@@ -64,7 +64,7 @@ public final class TwoPlayerGame {
   public int remaining(Player player);    // 이번 배치 단계에서 남은 배치 개수
   public int round();                     // 초기 배치 중 0, 라운드 r의 시뮬레이션·개입 중 r
   public int generationInRound();         // 이번 라운드 시뮬레이션에서 진행한 세대 수
-  public Optional<Point> tentative();     // 현재 임시 배치 칸 (x = 열, y = 행)
+  public Optional<Coordinate> tentative(); // 현재 임시 배치 칸
 }
 
 public enum PhaseKind { PLACEMENT, SIMULATION, INTERVENTION, GAME_OVER }
@@ -72,6 +72,7 @@ public enum Player { A, B; public Player opponent(); }
 public enum Response { ACCEPTED, WRONG_PHASE, NOT_YOUR_TURN, OUT_OF_BOARD, CELL_NOT_EMPTY,
                        OPPONENT_HALF, NO_TENTATIVE_PLACEMENT, PASS_NOT_ALLOWED }
 public final class GameSettings { /* N, K, M, R. 기본값 20, 20, 3, 5 */ }
+public record Coordinate(int row, int column) {}
 ```
 
 ## 계약
