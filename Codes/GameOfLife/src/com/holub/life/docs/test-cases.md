@@ -73,8 +73,8 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-M-08 | 예외 (`현재 동작`) | `Collection`이 아닌 객체가 든 파일을 불러오면 `IOException`이 아니라 `ClassCastException` | 직렬화된 `String` | `ClassCastException` | `#loadingNonCollectionThrowsClassCastException` |
 | CL-M-09 | 예외 | 단일 셀과 `DUMMY`는 Memento를 만들 수 없다 | `new Resident().createMemento()`, `Cell.DUMMY.createMemento()` | 둘 다 `UnsupportedOperationException` | `#unitaryCellsCannotCreateMemento` |
 
-- CL-M-06: `Universe.doStore()`는 `createMemento()`(내부에서 이미 `transfer(STORE)`, `Neighborhood.java:400`) 뒤에 `transfer(STORE)`를 한 번 더 부른다(`Universe.java:180-181`). 불러올 때는 `contains()`로만 확인해서 화면 결과는 같다. → 버그 후보로 이슈 등록 예정.
-- CL-M-08: `NeighborhoodState.load()`는 읽은 객체를 확인 없이 `Collection`으로 캐스팅한다(`Neighborhood.java:421`). `Universe.doLoad()`는 `IOException`만 잡으므로(`Universe.java:166`) 이 예외는 "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라간다. → 버그 후보로 이슈 등록 예정.
+- CL-M-06: `Universe.doStore()`는 `createMemento()`(내부에서 이미 `transfer(STORE)`, `Neighborhood.java:400`) 뒤에 `transfer(STORE)`를 한 번 더 부른다(`Universe.java:180-181`). 불러올 때는 `contains()`로만 확인해서 화면 결과는 같다. → #10
+- CL-M-08: `NeighborhoodState.load()`는 읽은 객체를 확인 없이 `Collection`으로 캐스팅한다(`Neighborhood.java:421`). `Universe.doLoad()`는 `IOException`만 잡으므로(`Universe.java:166`) 이 예외는 "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라간다. → #11
 
 ## 4. 셀 단위 동작
 
@@ -90,7 +90,7 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-C-06 | 정상 | 보드 폭은 64칸이다 | `Universe`와 같은 구성 | `widthInCells()` = 64 | `#boardIs64CellsWide` |
 | CL-C-07 | 예외 | `Neighborhood.edge()`에 가운데 칸을 요청하면 assert가 실패한다 | 8×8 `Neighborhood`의 `edge(3,3)` | `AssertionError` (테스트는 `-ea`로 실행) | `#edgeRejectsCentralCell` |
 
-- CL-C-03: AGENTS.md 강령 2에 예로 나온 동작이다(`Resident.java:79-83`). 세대 진행 결과는 CL-G-07~10에서 단순 구현과 같다는 것을 확인했으므로 화면 결과에는 영향이 없다. 이미 알려진 항목이라 별도 이슈 등록 여부는 팀과 정한다.
+- CL-C-03: AGENTS.md 강령 2에 예로 나온 동작이다(`Resident.java:79-83`). 세대 진행 결과는 CL-G-07~10에서 단순 구현과 같다는 것을 확인했으므로 화면 결과에는 영향이 없다. → #12 (보드 결과는 같지만 활성 블록 재계산 최적화가 사실상 꺼지는 영향을 측정해 기록함)
 - CL-C-05: 이 메서드를 호출하는 곳은 저장소에 없다. Cell 인터페이스 회의 안건(`docs/001-cell-state-representation.md`, `feature/two-player-mode` 브랜치)에 포함돼 있다.
 
 ## 사전 확인 기록
