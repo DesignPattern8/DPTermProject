@@ -70,13 +70,14 @@ public final class TwoPlayerGame {
 public enum PhaseKind { PLACEMENT, SIMULATION, INTERVENTION, GAME_OVER }
 public enum Player { A, B; public Player opponent(); }
 public enum Response { ACCEPTED, WRONG_PHASE, NOT_YOUR_TURN, OUT_OF_BOARD, CELL_NOT_EMPTY,
-                       OPPONENT_HALF, NO_PLACEMENTS_LEFT, NO_TENTATIVE_PLACEMENT, PASS_NOT_ALLOWED }
+                       OPPONENT_HALF, NO_TENTATIVE_PLACEMENT, PASS_NOT_ALLOWED }
 public final class GameSettings { /* N, K, M, R. 기본값 20, 20, 3, 5 */ }
 ```
 
 ## 계약
 
 - 입력 메서드는 거부해도 예외를 던지지 않고 거부 이유를 돌려준다. 거부된 입력은 게임 상태를 바꾸지 않는다.
+- 거부 이유 판단 순서: 단계 → 차례 → 보드 범위 → 진영(초기 배치만) → 빈 칸. 남은 개수가 0인 플레이어는 자동 패스로 차례가 오지 않으므로 별도 이유가 없다(`NOT_YOUR_TURN`).
 - `tick()`은 시뮬레이션 단계에서만 보드를 1세대 진행하고 true를 돌려준다. 다른 단계에서는 아무것도 하지 않고 false.
 - 선공·후공: 초기 배치는 A가 먼저 둔다. 이후 배치 단계(라운드 1 개입, 라운드 2 개입, …)마다 선공이 바뀐다(라운드 1 개입 선공 = B).
 - 자동 패스: 개입 단계에서 차례가 온 플레이어의 남은 개수가 0이거나 `board.hasEmptyCell()`이 false면 그 차례는 자동으로 패스된다. 연속 패스 수에 들어간다.
