@@ -93,4 +93,16 @@ B의 판정을 인터페이스로 만들어 게임에 주입한다.
 
 ## 구현 후 실측
 
-(구현 후 기입)
+#6 2차 구현 기준(2026-11-03, `f3829d5` → `bbda840`). LOC는 빈 줄과 주석을 뺀 줄 수, 줄 증감은 `git diff --numstat`(빈 줄·주석 포함).
+
+| 항목 | 추정 (B) | 실측 |
+| --- | --- | --- |
+| 새 타입 | 판정 1 + 결과 타입 1 | 4개: `GameJudge`(package-private), `GameResult`(record), `Outcome`, `EndReason` (결과를 승패와 이유로 나누느라 enum 2개가 더 생김) |
+| LOC | 판정 약 25 + 결과 약 15 | `GameJudge` 16, `GameResult` 2, `Outcome` 6, `EndReason` 5 |
+| 기존 파일 변경 | `SimulationPhase` 수정 | `SimulationPhase` +9/−3, `TwoPlayerGame` +17/−2, `GameOverPhase` +12/−1, `Phase` +5, `TwoPlayerBoard` +3 |
+| 간접성 | 세대마다 +1 | 세대마다 정적 메서드 호출 1 (`GameJudge.afterGeneration`) + `board.count` 2번 |
+| `java.awt`/Swing 의존 | 없음 | 없음 (`twoplayer` 패키지 import 0) |
+| 테스트 | — | TP-E 10개 통과. TP-E-10은 게임·보드 없이 숫자만으로 판정 규칙을 확인 |
+
+- 패키지 전체: 파일 17개, 빈 줄·주석 제외 423줄(1차 367줄에서 +56).
+- 셀 수를 실제로 세는 방법(2절 표)은 아직 정하지 않았다. 대역이 셀 수를 주입하므로 이번 테스트는 판정 규칙과 시점만 확인한다. 실제 보드로 같은 예시를 확인하는 것은 #5 이후.
