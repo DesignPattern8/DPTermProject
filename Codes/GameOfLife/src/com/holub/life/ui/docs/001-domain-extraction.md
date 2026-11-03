@@ -13,4 +13,7 @@ redraw의 색·사각형·순회 순서를 BoardRenderer로 옮긴다. 활성 �
 구체 클래스 2개 추가. 원본 셀별 redraw 디스패치 대신 Renderer 내 기존 셀 타입 분기가 들어간다. 픽셀 좌표 변환과 모델 토글은 두 번의 트리 경로 순회가 된다. 성능은 측정하지 않았다. 전후 픽셀 해시로 출력 동일성을 검증한다.
 
 ## 후속 작업
-Universe의 패널/메뉴/파일 대화상자와 Life의 프레임 구성도 이 도메인으로 추출한다. 타이머 방식·새 표시 옵션은 변경하지 않는다.
+Universe의 패널/메뉴, 파일 대화상자와 Life의 프레임 구성도 이 도메인으로 추출했다. 타이머 방식·새 표시 옵션은 변경하지 않는다.
+
+## 전체 화면 추출 결과
+Universe의 패널/그리기 호출은 BoardPanel, 메뉴는 GameMenu, 기존 io.Files는 FileDialogs, Life의 JFrame 구성은 LifeFrame으로 이전했다. 루트 Life는 조립만 수행한다. 메뉴 개수·문구·속도·선택 중 tick 차단·파일 취소 오류 표시·Exit/System.exit(0)을 유지한다. Swing Timer나 새 이벤트 인터페이스는 추가하지 않는다.

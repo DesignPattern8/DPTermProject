@@ -1,13 +1,11 @@
 package com.holub.life;
 
 import com.holub.life.model.Cell;
-import com.holub.life.model.Resident;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.NeighborhoodState;
-import com.holub.life.ui.GridCoordinateMapper;
-
+import com.holub.life.model.Resident;
 import com.holub.life.persistence.LegacyLifeCodec;
-
+import com.holub.life.ui.GridCoordinateMapper;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.ByteArrayInputStream;
@@ -19,8 +17,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 테스트용 클래식 보드. {@link Universe}와 같은 셀 구성을 Swing 없이 만들고, Universe의 메뉴·마우스·Clock 리스너가 모델에 하는
- * 호출을 그대로 재현한다. 좌표는 (행, 열)이고, 반환하는 {@link Point}는 원본 Memento 형식과 같이 x = 열, y = 행이다.
+ * 테스트용 클래식 보드. 원본 Universe(e38ce7a)와 같은 셀 구성을 Swing 없이 만들고, Universe의 메뉴·마우스·Clock 리스너가 모델에 하는 호출을
+ * 그대로 재현한다. 좌표는 (행, 열)이고, 반환하는 {@link Point}는 원본 Memento 형식과 같이 x = 열, y = 행이다.
  */
 final class ClassicBoard {
   static final int SIZE = 64;
@@ -34,7 +32,8 @@ final class ClassicBoard {
 
   /** 마우스 클릭 (Universe.java:79). 픽셀 1개 = 셀 1개인 영역으로 클릭한다. */
   ClassicBoard click(int row, int column) {
-    GridCoordinateMapper.userClicked(outermost, new Point(column, row), new Rectangle(0, 0, SIZE, SIZE));
+    GridCoordinateMapper.userClicked(
+        outermost, new Point(column, row), new Rectangle(0, 0, SIZE, SIZE));
     return this;
   }
 
@@ -92,7 +91,8 @@ final class ClassicBoard {
     }
   }
 
-  static Collection<?> readStoredCollection(byte[] bytes) throws IOException, ClassNotFoundException {
+  static Collection<?> readStoredCollection(byte[] bytes)
+      throws IOException, ClassNotFoundException {
     return (Collection<?>) new ObjectInputStream(new ByteArrayInputStream(bytes)).readObject();
   }
 

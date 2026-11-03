@@ -1,13 +1,12 @@
 package com.holub.life;
 
-import com.holub.life.model.Cell;
-import com.holub.life.model.Resident;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Resident;
 import java.awt.Point;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

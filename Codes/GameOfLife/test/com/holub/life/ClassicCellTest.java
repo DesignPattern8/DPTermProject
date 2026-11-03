@@ -1,16 +1,15 @@
 package com.holub.life;
 
-import com.holub.life.model.Cell;
-import com.holub.life.model.Resident;
-import com.holub.life.model.Neighborhood;
-import com.holub.life.ui.GridCoordinateMapper;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Neighborhood;
+import com.holub.life.model.Resident;
+import com.holub.life.ui.GridCoordinateMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -20,7 +19,7 @@ class ClassicCellTest {
 
   private static Resident liveResident() {
     Resident r = new Resident();
-    r.toggle(0, 0); // 픽셀 처리를 분리한 기존 셀 상태 토글
+    GridCoordinateMapper.userClicked(r, null, null); // 추출된 함수에 원본과 같은 인자 전달
     return r;
   }
 

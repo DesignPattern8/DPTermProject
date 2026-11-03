@@ -15,8 +15,9 @@ public final class BoardRenderer {
       try {
         if (!block.beginRedraw(drawAll)) return;
         int compoundWidth = here.width;
-        Rectangle subcell = new Rectangle(here.x, here.y,
-            here.width / block.gridSize(), here.height / block.gridSize());
+        Rectangle subcell =
+            new Rectangle(
+                here.x, here.y, here.width / block.gridSize(), here.height / block.gridSize());
         for (int row = 0; row < block.gridSize(); ++row) {
           for (int column = 0; column < block.gridSize(); ++column) {
             redraw(block.childAt(row, column), g, subcell, drawAll);

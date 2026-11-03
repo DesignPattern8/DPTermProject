@@ -9,3 +9,5 @@ void LegacyLifeCodec.flush(NeighborhoodState state, OutputStream out) throws IOE
 ```
 
 기존 Collection<Point> 객체 직렬화 형식을 유지한다. x=열, y=행. 중복과 순서를 보존한다. load는 Collection 캐스트만 수행하고 원소나 좌표를 추가 검증하지 않는다. null도 저장 객체에 대입되어 복원 시 기존 예외가 발생한다. 전달된 스트림은 호출자가 관리한다. 모델 상태 캡처·복원과 실행 정지는 호출자의 책임이다. 동시 접근 보장은 추가하지 않는다.
+
+파일 열기는 BoardFileStore.openForLoad(File)/openForStore(File)가 수행한다. 반환 스트림의 수명과 원본 동작 순서는 GameController가 소유한다. 실패 경로를 바꾸지 않기 위해 파일 열기와 디코딩을 단일 원자 연산으로 합치지 않았다.

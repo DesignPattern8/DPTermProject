@@ -270,11 +270,17 @@ public final class Neighborhood implements Cell {
     // else it's an internal cell. Do nothing.
   }
 
-  public int gridSize() { return gridSize; }
+  public int gridSize() {
+    return gridSize;
+  }
 
-  public Cell childAt(int row, int column) { return grid[row][column]; }
+  public Cell childAt(int row, int column) {
+    return grid[row][column];
+  }
 
-  public boolean isActive() { return amActive; }
+  public boolean isActive() {
+    return amActive;
+  }
 
   public boolean beginRedraw(boolean drawAll) throws InterruptedException {
     if (!amActive && !oneLastRefreshRequired && !drawAll) return false;
@@ -344,5 +350,4 @@ public final class Neighborhood implements Cell {
     transfer(m, new Point(0, 0), Cell.STORE);
     return m;
   }
-
 }

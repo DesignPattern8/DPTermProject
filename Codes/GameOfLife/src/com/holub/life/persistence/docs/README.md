@@ -5,3 +5,6 @@
 - [설계 결정](001-domain-extraction.md)
 - [계약](interfaces.md)
 - [테스트](test-cases.md)
+
+- [전체 이전 구조·전후 UML](../../application/docs/002-domain-layout.md)
+- [검증 결과](../../application/docs/verification.md)

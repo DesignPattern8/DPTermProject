@@ -22,3 +22,14 @@
 | EXT-U02 | 경계 | 메뉴 선택 중 tick 억제 유지 | 선택 경로 유/무 | 선택 중 미진행, 해제 후 진행 | GameMenuTest#openMenuSuppressesTick |
 
 픽셀 기대값은 원본 src를 별도 임시 디렉터리에서 컴파일하여 생성한다. 테스트 실행 시 원본 복제본에 의존하지 않는다. 테스트별 도메인 문서에서 이 정의를 링크한다.
+
+추가 제어 추출 케이스(구현 전 정의):
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| EXT-A05 | 정상 | 실제 파일 경로의 기존 중복과 복원 유지 | 셀 하나 저장 → Clear → Load | 파일 좌표 2개, 복원 셀 1개 | GameControllerTest#storeKeepsDuplicateCoordinatesAndRoundTrip |
+| EXT-A06 | 예외 | 출력 파일 열기 실패 시 기존 보드 유지 | 디렉터리를 저장 경로로 전달 | IOException, 기존 셀 유지 | GameControllerTest#invalidOutputDoesNotClearBoard |
+
+| EXT-N01 | 정상/경계/예외 | 실제 Swing 연결의 전후 동작 보존 | 메뉴 10개, 클릭, Tick, Store, Clear, Load, 취소, 잘못된 파일, Exit | 원본/변경본 모두 같은 검증 통과 및 Exit 코드 0 | NativeUiSmoke#main |
+
+EXT-N01은 디스플레이가 있는 환경에서 별도 프로세스로 실행한다. CI의 headless JUnit을 비활성화하거나 건너뛰게 하지 않는다.
