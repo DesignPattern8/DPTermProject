@@ -91,13 +91,15 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | --- | --- | --- | --- | --- | --- |
 | CL-C-01 | 정상 | 새 `Resident`는 죽어 있다 | `new Resident()` | `isAlive() == false` | `ClassicCellTest#newResidentIsDead` |
 | CL-C-02 | 정상 | 고립된 산 셀은 다음 상태가 바뀐다고 알리고, transition 뒤 죽는다 | 산 `Resident`, 이웃 모두 `DUMMY` | `figureNextState` = true, transition 뒤 `isAlive()` = false | `#isolatedLiveResidentDies` |
-| CL-C-03 | 경계 (`현재 동작`) | `Resident.transition()`의 반환값은 "바뀌었는가"의 반대다 | CL-C-02의 셀 / 계속 죽어 있는 셀 | 바뀐 셀은 false, 안 바뀐 셀은 true | `#residentTransitionReturnsInvertedFlag` |
+| CL-C-03 | 정상 | `Resident.transition()`은 상태가 바뀐 셀에 true, 안 바뀐 셀에 false를 반환한다 | CL-C-02의 셀 / 계속 죽어 있는 셀 | 바뀐 셀은 true, 안 바뀐 셀은 false | `#residentTransitionReportsChange` |
 | CL-C-04 | 정상 | `DUMMY`는 항상 죽어 있고 가장자리 요청에 자기 자신을 돌려준다 | `Cell.DUMMY` | `isAlive()` = false, `edge(0,0)`과 `edge(5,5)`가 `DUMMY` | `#dummyIsAlwaysDead` |
 | CL-C-05 | 경계 (`현재 동작`) | `Neighborhood.isAlive()`는 빈 보드에서도 true다 | 빈 64×64 보드 | `isAlive()` = true | `#neighborhoodIsAliveIsAlwaysTrue` |
 | CL-C-06 | 정상 | 보드 폭은 64칸이다 | `Universe`와 같은 구성 | `widthInCells()` = 64 | `#boardIs64CellsWide` |
 | CL-C-07 | 예외 | `Neighborhood.edge()`에 가운데 칸을 요청하면 assert가 실패한다 | 8×8 `Neighborhood`의 `edge(3,3)` | `AssertionError` (테스트는 `-ea`로 실행) | `#edgeRejectsCentralCell` |
+| CL-C-08 | 정상 | 움직이는 패턴 근처의 하위 블록만 다시 계산한다 (활성 블록 최적화) | 64×64, CL-G-03 glider, tick 2~10 | tick마다 셀을 다시 계산한 `Neighborhood` 수(바깥 블록 1 포함)가 5 이하 (수정 전에는 65) | `#onlyBlocksNearChangesAreRecomputed` |
 
-- CL-C-03: AGENTS.md 강령 2에 예로 나온 동작이다(`Resident.java:79-83`). 세대 진행 결과는 CL-G-07~10에서 단순 구현과 같다는 것을 확인했으므로 화면 결과에는 영향이 없다. → #12 (보드 결과는 같지만 활성 블록 재계산 최적화가 사실상 꺼지는 영향을 측정해 기록함)
+- CL-C-03: #12에서 수정. 수정 전에는 반환값이 뒤집혀 있었다(`Resident.java:79-83`, 이전 기대값: 바뀐 셀 false·안 바뀐 셀 true, 메서드 `#residentTransitionReturnsInvertedFlag`). 이 값은 `Neighborhood.transition()`(`Neighborhood.java:240`, 계측 카운터 추가 전에는 232)에서 하위 블록의 가장자리 활성 표시(`activeEdges`)와 상위 반환값에 쓰인다. 보드 결과·다시 그리기·`refreshNow()` 호출은 수정 전후가 같다(CL-G-07~10이 그대로 통과).
+- CL-C-08: #12에서 추가. 이 수정의 효과를 보여주는 테스트다. 재계산 수는 `Neighborhood`의 package-private 계측 카운터로 센다. 수정 전후 실측값: [measurement-resident-transition.md](measurement-resident-transition.md)
 - CL-C-05: 이 메서드를 호출하는 곳은 저장소에 없다. Cell 인터페이스 회의 안건(`docs/001-cell-state-representation.md`, `feature/two-player-mode` 브랜치)에 포함돼 있다.
 
 ## 사전 확인 기록
