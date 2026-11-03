@@ -69,6 +69,16 @@ public final class TwoPlayerGame {
     return phase.tentative();
   }
 
+  /** 지금 살아 있는 자기 셀 수 (상태 표시용). */
+  public int score(Player player) {
+    throw new UnsupportedOperationException("not implemented yet");
+  }
+
+  /** 종료 단계에서만 값이 있다. */
+  public Optional<GameResult> result() {
+    throw new UnsupportedOperationException("not implemented yet");
+  }
+
   // ---- 단계 클래스가 쓰는 package-private 메서드 ----
 
   TwoPlayerBoard board() {

@@ -20,4 +20,7 @@ public interface TwoPlayerBoard {
 
   /** rules.md 3장 규칙으로 1세대 진행한다. */
   void advanceGeneration();
+
+  /** 지금 살아 있는 owner 셀 수. */
+  int count(Player owner);
 }

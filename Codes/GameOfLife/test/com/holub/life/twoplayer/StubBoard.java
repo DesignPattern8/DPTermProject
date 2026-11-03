@@ -1,11 +1,17 @@
 package com.holub.life.twoplayer;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
  * TwoPlayerBoard 대역. 셀 상태 표현(#5) 전이라 게임 진행 테스트에서 실제 보드 대신 쓴다. 확정 배치된 칸을 기억해 isEmpty에 반영하고,
  * advanceGeneration() 호출 수를 센다. 세대 진행은 보드를 바꾸지 않는다(= 정물 보드).
+ *
+ * <p>셀 수(count)는 기본적으로 놓인 칸 수를 센다. 승패 판정 테스트는 scriptCounts()로 세대마다의 셀 수를 주입한다(세대 진행 1번마다
+ * 다음 값).
  */
 final class StubBoard implements TwoPlayerBoard {
   private final int rows;
@@ -15,6 +21,21 @@ final class StubBoard implements TwoPlayerBoard {
   int placeCalls = 0;
   /** true면 모든 칸이 차 있는 것처럼 동작한다 (자동 패스 테스트용). */
   boolean full = false;
+
+  private final Deque<int[]> scriptedCounts = new ArrayDeque<>();
+  private int[] currentCounts = null; // null이면 놓인 칸 수를 센다
+
+  /** 세대 진행 1번마다 차례로 쓸 셀 수 {A, B}. */
+  StubBoard scriptCounts(int[]... perGeneration) {
+    scriptedCounts.addAll(List.of(perGeneration));
+    return this;
+  }
+
+  /** 지금 셀 수를 바로 정한다. */
+  StubBoard setCounts(int countA, int countB) {
+    currentCounts = new int[] {countA, countB};
+    return this;
+  }
 
   StubBoard(int rows, int columns) {
     this.rows = rows;
@@ -69,5 +90,12 @@ final class StubBoard implements TwoPlayerBoard {
   @Override
   public void advanceGeneration() {
     generations++;
+    if (!scriptedCounts.isEmpty()) currentCounts = scriptedCounts.poll();
+  }
+
+  @Override
+  public int count(Player owner) {
+    if (currentCounts != null) return currentCounts[owner == Player.A ? 0 : 1];
+    return (int) cells.values().stream().filter(owner::equals).count();
   }
 }
