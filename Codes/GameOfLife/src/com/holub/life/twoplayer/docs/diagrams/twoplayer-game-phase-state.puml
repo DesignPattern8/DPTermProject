@@ -1,0 +1,62 @@
+@startuml twoplayer-game-phase-state
+' 2인용 게임 단계 상태 다이어그램
+' 근거: rules.md 4장(게임 진행)·6장(종료), 003-game-phase.md, 005-cell-count-and-judge.md
+' 코드: com.holub.life.twoplayer — TwoPlayerGame, InitialPlacementPhase, SimulationPhase, InterventionPhase, GameOverPhase
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam state {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+  StartColor #444444
+  EndColor #444444
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title 2인용 게임 단계 (PhaseKind)
+
+[*] --> Placement : new TwoPlayerGame(board, settings)
+
+state "PLACEMENT\n(InitialPlacementPhase)" as Placement
+Placement : 선공 A, 1개씩 번갈아
+Placement : select: 자기 진영의 빈 칸만
+Placement : confirm: 놓고 차례 넘김
+Placement : pass: PASS_NOT_ALLOWED
+Placement : tick: 무시(false)
+
+state "SIMULATION\n(SimulationPhase, round r)" as Simulation
+Simulation : tick: board.advanceGeneration()
+Simulation : 매 세대 직후 GameJudge.afterGeneration
+Simulation : select / confirm / pass: WRONG_PHASE
+
+state "INTERVENTION\n(InterventionPhase, round r)" as Intervention
+Intervention : 선공: r 홀수 B, r 짝수 A
+Intervention : 각자 M개, 보드 어디든
+Intervention : 남은 개수 0 또는 빈칸 없음 → 자동 패스
+Intervention : tick: 무시(false)
+
+state "GAME_OVER\n(GameOverPhase)" as GameOver
+GameOver : result(): GameResult
+GameOver : 모든 입력 WRONG_PHASE, tick false
+
+Placement --> Simulation : A·B 모두 N개 확정\n/ round = 1
+Simulation --> GameOver : 세대 직후 한쪽 이상 0\n/ WIPE_OUT
+Simulation --> Intervention : K세대 완료 [r < R]
+Simulation --> GameOver : K세대 완료 [r = R]\n/ afterLastRound (ROUNDS_COMPLETED)
+Intervention --> Simulation : 연속 2패스(자동 패스 포함)\n/ round = r + 1
+GameOver --> [*]
+
+note right of Simulation
+  정체돼도 K세대를 모두 진행한다.
+  K번째 세대에 전멸하면
+  r < R이어도 개입 없이 종료.
+end note
+
+note bottom of Intervention
+  들어오자마자 선공이 둘 수 없으면 자동 패스.
+  양쪽 다 못 두면 바로 다음 라운드 시뮬레이션.
+end note
+@enduml
