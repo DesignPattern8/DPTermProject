@@ -76,6 +76,7 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-M-11 | 예외 | 수정 전 형식(칸이 두 번씩 든) 파일도 그대로 불러와진다 | `Point(5,5)`, `Point(6,5)`가 두 번씩 든 `LinkedList`를 직렬화한 바이트 | (5,5)·(5,6) 두 칸만 살아 있음 | `#loadsFileWithDuplicatedCells` |
 
 - CL-M-06: #10에서 수정. 수정 전에는 `Universe.doStore()`가 `createMemento()`(내부에서 이미 `transfer(STORE)`, `Neighborhood.java:400`) 뒤에 `transfer(STORE)`를 한 번 더 불러서 각 칸이 두 번씩 기록됐다(이전 기대값: 크기 4, 메서드 `#storeRecordsEachLiveCellTwice`). 중복 호출을 지워 한 번씩만 기록한다.
+  - **한계**: Universe를 화면 없이 띄울 수 없어서 doStore 자체의 회귀는 테스트로 잡지 못함. `Universe` 클래스를 불러오기만 해도 `MenuSite not established` assert가 실패한다. 그래서 CL-M-06은 `doStore()`와 같은 순서로 호출하는 `ClassicBoard#store()`를 검증한다. UI 분리(#9) 뒤 저장 경로를 화면 없이 호출할 수 있게 되면 `doStore()`를 직접 검증하도록 바꾼다.
 - CL-M-10, CL-M-11: #10에서 추가. CL-M-11은 수정 전에 저장한 파일과의 호환을 확인한다(불러올 때는 `contains()`로만 확인하므로 중복이 있어도 결과가 같다).
 - CL-M-08: `NeighborhoodState.load()`는 읽은 객체를 확인 없이 `Collection`으로 캐스팅한다(`Neighborhood.java:421`). `Universe.doLoad()`는 `IOException`만 잡으므로(`Universe.java:166`) 이 예외는 "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라간다. → #11
 
