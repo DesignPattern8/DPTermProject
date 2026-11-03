@@ -23,4 +23,9 @@ interface Phase {
   int remaining(Player player);
 
   Optional<Coordinate> tentative();
+
+  /** 종료 단계에서만 값이 있다. */
+  default Optional<GameResult> result() {
+    return Optional.empty();
+  }
 }

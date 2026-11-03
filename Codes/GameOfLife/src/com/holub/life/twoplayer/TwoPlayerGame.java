@@ -71,12 +71,12 @@ public final class TwoPlayerGame {
 
   /** 지금 살아 있는 자기 셀 수 (상태 표시용). */
   public int score(Player player) {
-    throw new UnsupportedOperationException("not implemented yet");
+    return board.count(player);
   }
 
   /** 종료 단계에서만 값이 있다. */
   public Optional<GameResult> result() {
-    throw new UnsupportedOperationException("not implemented yet");
+    return phase.result();
   }
 
   // ---- 단계 클래스가 쓰는 package-private 메서드 ----
@@ -99,14 +99,19 @@ public final class TwoPlayerGame {
     phase = new SimulationPhase(this, newRound);
   }
 
-  void endSimulation(int finishedRound) {
+  /** 전멸 없이 K세대가 끝났을 때. 마지막 라운드면 셀 수로 판정하고, 아니면 개입으로 간다. */
+  void endSimulation(int finishedRound, int scoreA, int scoreB) {
     if (finishedRound == settings.rounds()) {
-      phase = new GameOverPhase();
+      endGame(GameJudge.afterLastRound(scoreA, scoreB));
       return;
     }
     InterventionPhase intervention = new InterventionPhase(this, finishedRound);
     phase = intervention;
     intervention.begin(); // 자동 패스로 곧바로 끝날 수 있어서 phase를 먼저 바꾼다
+  }
+
+  void endGame(GameResult result) {
+    phase = new GameOverPhase(result);
   }
 
   void endIntervention(int finishedRound) {

@@ -2,8 +2,14 @@ package com.holub.life.twoplayer;
 
 import java.util.Optional;
 
-/** 종료: 어떤 입력도 받지 않는다 (rules.md 4장 표). 승패 결과는 #6 2차에서 추가한다. */
+/** 종료: 어떤 입력도 받지 않고, 결과를 보관한다 (rules.md 4장 표, 6장). */
 final class GameOverPhase implements Phase {
+  private final GameResult result;
+
+  GameOverPhase(GameResult result) {
+    this.result = result;
+  }
+
   @Override
   public PhaseKind kind() {
     return PhaseKind.GAME_OVER;
@@ -42,5 +48,10 @@ final class GameOverPhase implements Phase {
   @Override
   public Optional<Coordinate> tentative() {
     return Optional.empty();
+  }
+
+  @Override
+  public Optional<GameResult> result() {
+    return Optional.of(result);
   }
 }

@@ -4,7 +4,7 @@ import java.util.Optional;
 
 /**
  * 시뮬레이션: K세대를 진행한다. 배치 입력은 받지 않는다. 보드가 정체돼도 K세대를 모두 진행한다 (rules.md 4장 2, 6장).
- * 매 세대 전멸 검사는 #6 2차에서 추가한다.
+ * 매 세대 직후 전멸을 검사하고, 전멸이면 K세대를 기다리지 않고 종료한다(docs/005-cell-count-and-judge.md).
  */
 final class SimulationPhase implements Phase {
   private final TwoPlayerGame game;
@@ -22,9 +22,15 @@ final class SimulationPhase implements Phase {
 
   @Override
   public boolean tick() {
-    game.board().advanceGeneration();
+    TwoPlayerBoard board = game.board();
+    board.advanceGeneration();
     game.countGeneration();
-    if (game.generationInRound() == game.settings().generationsPerRound()) game.endSimulation(round);
+    int scoreA = board.count(Player.A);
+    int scoreB = board.count(Player.B);
+    Optional<GameResult> wipeOut = GameJudge.afterGeneration(scoreA, scoreB);
+    if (wipeOut.isPresent()) game.endGame(wipeOut.get());
+    else if (game.generationInRound() == game.settings().generationsPerRound())
+      game.endSimulation(round, scoreA, scoreB);
     return true;
   }
 
