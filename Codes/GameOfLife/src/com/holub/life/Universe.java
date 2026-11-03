@@ -1,5 +1,12 @@
 package com.holub.life;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Resident;
+import com.holub.life.model.Neighborhood;
+import com.holub.life.model.NeighborhoodState;
+import com.holub.life.ui.GridCoordinateMapper;
+import com.holub.life.ui.BoardRenderer;
+
 import com.holub.life.persistence.LegacyLifeCodec;
 
 import com.holub.io.Files;
@@ -78,7 +85,7 @@ public class Universe extends JPanel {
             Rectangle bounds = getBounds();
             bounds.x = 0;
             bounds.y = 0;
-            outermostCell.userClicked(e.getPoint(), bounds);
+            GridCoordinateMapper.userClicked(outermostCell, e.getPoint(), bounds);
             repaint();
           }
         });
@@ -203,7 +210,7 @@ public class Universe extends JPanel {
     // corner of the screen. Pretend that it's at (0,0)
     panelBounds.x = 0;
     panelBounds.y = 0;
-    outermostCell.redraw(g, panelBounds, true); // {=Universe.redraw1}
+    BoardRenderer.redraw(outermostCell, g, panelBounds, true); // {=Universe.redraw1}
   }
 
   /**
@@ -223,7 +230,7 @@ public class Universe extends JPanel {
               Rectangle panelBounds = getBounds();
               panelBounds.x = 0;
               panelBounds.y = 0;
-              outermostCell.redraw(g, panelBounds, false); // {=Universe.redraw2}
+              BoardRenderer.redraw(outermostCell, g, panelBounds, false); // {=Universe.redraw2}
             } finally {
               g.dispose();
             }

@@ -1,4 +1,4 @@
-package com.holub.life;
+package com.holub.life.model;
 
 import java.awt.Point;
 import java.util.Collection;

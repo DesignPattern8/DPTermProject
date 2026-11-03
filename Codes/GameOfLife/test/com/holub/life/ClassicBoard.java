@@ -1,5 +1,11 @@
 package com.holub.life;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Resident;
+import com.holub.life.model.Neighborhood;
+import com.holub.life.model.NeighborhoodState;
+import com.holub.life.ui.GridCoordinateMapper;
+
 import com.holub.life.persistence.LegacyLifeCodec;
 
 import java.awt.Point;
@@ -28,7 +34,7 @@ final class ClassicBoard {
 
   /** 마우스 클릭 (Universe.java:79). 픽셀 1개 = 셀 1개인 영역으로 클릭한다. */
   ClassicBoard click(int row, int column) {
-    outermost.userClicked(new Point(column, row), new Rectangle(0, 0, SIZE, SIZE));
+    GridCoordinateMapper.userClicked(outermost, new Point(column, row), new Rectangle(0, 0, SIZE, SIZE));
     return this;
   }
 

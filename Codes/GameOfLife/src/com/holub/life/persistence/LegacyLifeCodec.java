@@ -1,6 +1,6 @@
 package com.holub.life.persistence;
 
-import com.holub.life.NeighborhoodState;
+import com.holub.life.model.NeighborhoodState;
 import java.io.*;
 import java.util.Collection;
 

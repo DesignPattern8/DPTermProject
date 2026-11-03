@@ -1,5 +1,10 @@
 package com.holub.life;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Resident;
+import com.holub.life.model.Neighborhood;
+import com.holub.life.ui.GridCoordinateMapper;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -15,7 +20,7 @@ class ClassicCellTest {
 
   private static Resident liveResident() {
     Resident r = new Resident();
-    r.userClicked(null, null); // Resident.userClicked는 인자를 쓰지 않고 상태만 뒤집는다
+    r.toggle(0, 0); // 픽셀 처리를 분리한 기존 셀 상태 토글
     return r;
   }
 

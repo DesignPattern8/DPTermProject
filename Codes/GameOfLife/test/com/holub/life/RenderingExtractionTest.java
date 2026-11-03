@@ -1,5 +1,8 @@
 package com.holub.life;
 
+import com.holub.life.ui.GridCoordinateMapper;
+import com.holub.life.ui.BoardRenderer;
+
 import static org.junit.jupiter.api.Assertions.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -12,7 +15,7 @@ class RenderingExtractionTest {
 
   private static String render(ClassicBoard board, BufferedImage image, boolean all) throws Exception {
     Graphics g = image.getGraphics();
-    try { board.cell().redraw(g, new Rectangle(0,0,512,512), all); }
+    try { BoardRenderer.redraw(board.cell(), g, new Rectangle(0,0,512,512), all); }
     finally { g.dispose(); }
     MessageDigest digest = MessageDigest.getInstance("SHA-256");
     for (int y=0; y<image.getHeight(); y++) for (int x=0; x<image.getWidth(); x++) {
@@ -55,9 +58,9 @@ class RenderingExtractionTest {
   @Test void unevenSurfaceKeepsOriginalClickBehavior() {
     ClassicBoard board=new ClassicBoard();
     Rectangle surface=new Rectangle(0,0,511,511);
-    board.cell().userClicked(new Point(63,63),surface);
-    board.cell().userClicked(new Point(0,0),surface);
+    GridCoordinateMapper.userClicked(board.cell(), new Point(63,63),surface);
+    GridCoordinateMapper.userClicked(board.cell(), new Point(0,0),surface);
     assertEquals(ClassicBoard.cells(new int[][]{{8,8},{0,0}}),board.liveCells());
-    assertThrows(ArrayIndexOutOfBoundsException.class,()->board.cell().userClicked(new Point(510,510),surface));
+    assertThrows(ArrayIndexOutOfBoundsException.class,()->GridCoordinateMapper.userClicked(board.cell(), new Point(510,510),surface));
   }
 }
