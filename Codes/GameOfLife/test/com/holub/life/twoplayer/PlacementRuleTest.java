@@ -10,7 +10,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.awt.Point;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +32,7 @@ class PlacementRuleTest {
     Response r = game.select(Player.A, 10, 10);
     // Then
     assertEquals(Response.ACCEPTED, r);
-    assertEquals(Optional.of(new Point(10, 10)), game.tentative());
+    assertEquals(Optional.of(new Coordinate(10, 10)), game.tentative());
     assertEquals(Player.A, game.currentPlayer());
     assertEquals(0, board.placeCalls); // 임시 배치는 보드에 놓지 않는다
   }
@@ -47,7 +46,7 @@ class PlacementRuleTest {
     Response r = game.select(Player.A, 11, 11);
     // Then
     assertEquals(Response.ACCEPTED, r);
-    assertEquals(Optional.of(new Point(11, 11)), game.tentative());
+    assertEquals(Optional.of(new Coordinate(11, 11)), game.tentative());
     assertTrue(board.isEmpty(10, 10));
     assertEquals(0, board.placeCalls);
   }

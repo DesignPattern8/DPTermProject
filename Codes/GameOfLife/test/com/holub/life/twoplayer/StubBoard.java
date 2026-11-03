@@ -1,6 +1,5 @@
 package com.holub.life.twoplayer;
 
-import java.awt.Point;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,7 +10,7 @@ import java.util.Map;
 final class StubBoard implements TwoPlayerBoard {
   private final int rows;
   private final int columns;
-  private final Map<Point, Player> cells = new HashMap<>();
+  private final Map<Coordinate, Player> cells = new HashMap<>();
   int generations = 0;
   int placeCalls = 0;
   /** true면 모든 칸이 차 있는 것처럼 동작한다 (자동 패스 테스트용). */
@@ -28,12 +27,12 @@ final class StubBoard implements TwoPlayerBoard {
 
   /** 테스트 준비용: 게임을 거치지 않고 칸에 셀을 둔다. */
   StubBoard preset(int row, int column, Player owner) {
-    cells.put(new Point(column, row), owner);
+    cells.put(new Coordinate(row, column), owner);
     return this;
   }
 
   Player owner(int row, int column) {
-    return cells.get(new Point(column, row));
+    return cells.get(new Coordinate(row, column));
   }
 
   int liveCount() {
@@ -52,7 +51,7 @@ final class StubBoard implements TwoPlayerBoard {
 
   @Override
   public boolean isEmpty(int row, int column) {
-    return !full && !cells.containsKey(new Point(column, row));
+    return !full && !cells.containsKey(new Coordinate(row, column));
   }
 
   @Override
@@ -64,7 +63,7 @@ final class StubBoard implements TwoPlayerBoard {
   public void place(int row, int column, Player owner) {
     if (!isEmpty(row, column)) throw new IllegalStateException("place() on a non-empty cell");
     placeCalls++;
-    cells.put(new Point(column, row), owner);
+    cells.put(new Coordinate(row, column), owner);
   }
 
   @Override
