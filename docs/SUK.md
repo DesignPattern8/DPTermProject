@@ -1,6 +1,6 @@
 # 작업 기록 (Son2kwon)
 
-- 담당: 2인용 모드 + 팀 공용 테스트 환경·클래식 특성 테스트
+- 담당: 2인용 모드 + 팀 공용 테스트 환경·클래식 특성 테스트 + 특성 테스트에서 발견한 버그 3건
 - 기간: 2026-11-03 ~
 - 상세 근거는 각 도메인 `docs/`에 있고, 이 문서는 진행 순서와 결과만 모은다(AGENTS.md 2-1).
 
@@ -9,14 +9,15 @@
 | 단계 | 이슈 | 브랜치 | PR | 상태 |
 | --- | --- | --- | --- | --- |
 | 0. 테스트 환경 (Gradle + JUnit 5 + CI) | #2 | `chore/test-setup` | #3 | 머지됨 |
-| 1. 클래식 특성 테스트 | #4 | `test/classic-characterization` | #13 | 리뷰 대기 (CI 통과) |
+| 1. 클래식 특성 테스트 | #4 | `test/classic-characterization` | #13 | 머지됨 |
+| 작업 기록 정리 | #14 | `docs/suk-worklog` | #15 | 머지됨 |
+| 버그: Store 중복 기록 | #10 | `fix/store-duplicate` | #16 | 리뷰 대기 (CI 통과) |
+| 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 리뷰 대기 (CI 통과), #16 머지 후 rebase |
+| 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
-| 3. 2인용 게임 진행 모델 | #6 | — | — | 대기 |
+| 3. 2인용 게임 진행 모델 | #6 | `feature/two-player-mode` | — | 1차(단계·차례·배치·패스) 구현 완료, PR 미개설 |
 | 4. 2인용 UI 통합 | #7 | — | — | 대기 |
 | 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
-| 버그: Store 중복 기록 | #10 | — | — | 등록만 |
-| 버그: 불러오기 ClassCastException | #11 | — | — | 등록만 |
-| 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | — | — | 등록만 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
 
@@ -42,7 +43,7 @@
 
 **확인**: 로컬 JDK 26 통과, 실패 테스트를 넣으면 빌드 실패(종료 코드 1) 확인, CI 통과(Temurin 26.0.2). IntelliJ에서 직접 열어 보는 확인은 리뷰어에게 요청했다.
 
-## 1. 클래식 특성 테스트 (#4 → PR #13)
+## 1. 클래식 특성 테스트 (#4 → PR #13, 머지)
 
 **목적**: 2인용 기능을 넣기 전에 클래식 모드의 현재 동작을 고정한다(강령 1). 프로덕션 코드는 바꾸지 않았다.
 
@@ -56,29 +57,54 @@
 
 **결과**: 로컬·CI 모두 34개 통과(새 33 + 스모크 1). 무작위 보드(시드 42) 5개 × 100세대, R-pentomino 300세대, 가장자리에 닿는 glider 240세대가 매 세대 단순 구현과 같았다.
 
-**한계**: `Universe`·`Clock`은 생성자에서 메뉴를 등록하고, 메뉴는 `JFrame`이 있어야 해서 headless에서 만들 수 없다. Go 메뉴(속도·Tick), Exit, 파일 선택 대화상자는 직접 테스트하지 못했고, 각 메뉴가 모델에 하는 호출만 재현했다.
+**한계**: `Universe`·`Clock`은 생성자에서 메뉴를 등록하고, 메뉴는 `JFrame`이 있어야 해서 headless에서 만들 수 없다. `Universe` 클래스를 불러오기만 해도 `MenuSite not established` assert가 실패한다. Go 메뉴(속도·Tick), Exit, 파일 선택 대화상자는 직접 테스트하지 못했고, 각 메뉴가 모델에 하는 호출만 재현했다.
 
-### 발견한 버그 3건 (고치지 않고 현재 동작으로 고정, 강령 2)
+## 버그 3건 수정 (#10, #11, #12)
 
-| 이슈 | 내용 | 위치 | 고정한 테스트 |
+특성 테스트(#4)를 쓰면서 찾은 버그를 고치지 않고 현재 동작으로 고정해 두었다가(강령 2), 버그마다 `main`에서 브랜치를 따로 만들어 PR 하나씩 올렸다. 순서는 모두 **테스트 케이스 정의 변경 → 테스트 변경 → 코드 수정**이고, 바뀐 케이스 말고 다른 특성 테스트는 수정 없이 통과했다. 세 PR은 `docs/test-cases.md`의 인접한 곳을 고쳐서, 먼저 머지된 PR 기준으로 rebase하기로 했다.
+
+| 이슈 | PR | 수정 | 바뀐·추가한 케이스 | 수정 전 → 후 |
+| --- | --- | --- | --- | --- |
+| #10 Store 중복 기록 | #16 | `Universe.doStore()`의 중복 `transfer(STORE)` 한 줄 삭제 | CL-M-06 기대값(각 칸 1번), CL-M-10·11 추가 | 수정 전후 모두 36개 통과 (아래 한계) |
+| #11 불러오기 `ClassCastException` | #17 | `NeighborhoodState.load()`가 `Collection`이 아니거나 원소가 `Point`가 아니면 `IOException`으로 던짐. `Universe`는 안 바꿈 | CL-M-08 기대값(`IOException`), CL-M-12·13 추가 | 2개 실패 → 36개 통과 |
+| #12 `transition()` 반환값 | #18 | `Resident.transition()`을 `!isStable()` 반환으로 | CL-C-03 기대값, CL-C-08(재계산 블록 수) 추가 | 2개 실패 → 35개 통과 |
+
+### #10의 결정과 한계
+
+- 테스트가 `doStore()` 자체를 검증하게 하려면 저장 경로를 `Universe` 밖으로 빼야 했다. `Universe`는 #9(UI 분리) 담당이 구조를 바꾸고 있어서 **구조는 그대로 두고 한 줄만 지웠다.**
+- 그래서 **Universe를 화면 없이 띄울 수 없어서 doStore 자체의 회귀는 테스트로 잡지 못한다.** CL-M-06은 `doStore()`와 같은 순서로 호출하는 `ClassicBoard#store()`를 검증하고, 수정 전에도 통과했다. test-cases.md와 PR #16 본문에 적었고, #9에 "UI 분리 후 CL-M-06이 doStore를 직접 검증하게 바꿔 달라"고 댓글을 남겼다.
+
+### #11의 결정
+
+- 수정 위치를 `Universe.doLoad()`가 아니라 `NeighborhoodState.load()`로 했다. 형식 오류를 `IOException`으로 바꾸면 `doLoad()`의 기존 `catch`가 받으므로 `Universe`를 건드리지 않고, 테스트도 `load()`를 직접 호출할 수 있다.
+- 수정 전: CL-M-08은 `ClassCastException`, CL-M-12는 "예외 없음"으로 실패. 수정 후: 통과.
+
+### #12 조사와 측정
+
+고치기 전에 반환값을 뒤집으면 무엇이 달라지는지 먼저 조사했다(코드는 바꾸지 않고, 뒤집은 복사본을 scratch에서 컴파일해 비교).
+
+| 항목 | 수정 전후 |
+| --- | --- |
+| 활성 블록 계산(`Neighborhood.java:232`의 `activeEdges`) | **바뀜.** 다시 계산하는 블록 수가 크게 줄어듦 |
+| 다시 그리기(블록별 `amActive`·`oneLastRefreshRequired`) | 같음. 1,190세대 전부 일치, `BufferedImage` 렌더링 픽셀 해시도 일치 |
+| `Universe`의 `refreshNow()` 호출 | 같음. `transition()`은 `figureNextState()`가 true일 때만 불리므로 |
+| 보드 결과 | 같음. 뒤집은 상태로 테스트를 돌리면 CL-C-03만 실패, CL-G(`ReferenceLife` 비교) 전부 통과 |
+| tick당 시간 (best of 10, 200 tick) | glider 0.0397 → 0.0062 ms, 무작위 보드 0.0562 → 0.0477 ms |
+
+수정 PR에서는 재계산 수를 세는 package-private 카운터(`Neighborhood.recomputedNeighborhoods`)를 넣고 실측했다. tick당 셀을 다시 계산한 `Neighborhood` 수(바깥 블록 1 포함, 최대 65)의 평균:
+
+| 보드 | tick 수 | 수정 전 | 수정 후 |
 | --- | --- | --- | --- |
-| #10 | Store가 살아 있는 칸을 두 번씩 기록. `createMemento()`가 이미 transfer한 뒤 `doStore()`가 한 번 더 transfer. 불러온 결과는 같음 | `Universe.java:180-181` | CL-M-06 |
-| #11 | `Collection`이 아닌 파일을 불러오면 `ClassCastException`. `doLoad`는 `IOException`만 잡아 "Read Failed!"가 안 뜸 | `Neighborhood.java:421`, `Universe.java:166` | CL-M-08 |
-| #12 | `Resident.transition()`이 "바뀌었는가"의 반대 값을 반환 | `Resident.java:79-83`, `Neighborhood.java:232-235` | CL-C-03 |
+| glider | 240 | 64.7 | 3.3 |
+| blinker | 50 | 63.8 | 4.0 |
+| R-pentomino | 300 | 64.8 | 14.5 |
+| 무작위 5개 (시드 42) | 각 100 | 65.0 | 50.6~55.7 |
+| block (정물) | 10 | 0.2 | 0.2 |
 
-#12의 영향은 측정해서 확인했다. `Resident` 상태 로직을 복사하고 반환값만 바꿀 수 있게 한 셀을 실제 `Neighborhood`(64×64)에 넣고, tick마다 셀 `figureNextState` 호출 수를 셌다(JDK 26, `-da`, 프로덕션 코드 변경 없음).
+- 전체 표와 측정 방법: [`life/docs/measurement-resident-transition.md`](https://github.com/DesignPattern8/DPTermProject/blob/fix/resident-transition/Codes/GameOfLife/src/com/holub/life/docs/measurement-resident-transition.md)
+- CL-C-08은 glider 보드에서 tick 2~10마다 5개 이하인지 확인한다(수정 전 tick 2에서 65로 실패, 수정 후 매 tick 2).
 
-| 패턴 | 현재(뒤집힘), tick 2부터 | 고친 경우 |
-| --- | --- | --- |
-| blinker | 4096 | 192 |
-| glider | 4096 | 64 |
-| block(정물) | 0 | 0 |
-
-- 활성 블록 계산(`activeEdges`)이 거의 항상 "모든 방향"이 돼서, 움직이는 것이 있으면 64개 블록 전체를 매 tick 다시 계산한다(재계산 생략 최적화가 사실상 꺼짐).
-- 다시 그리기(`refreshNow`) 호출 횟수는 두 경우가 같았다(20 tick 중 20).
-- 보드 결과는 같다. 고친 경우도 무작위 보드 5개 × 100세대에서 단순 구현과 같았다.
-
-## 2인용 모드 준비 (`feature/two-player-mode`)
+## 2인용 모드 (`feature/two-player-mode`)
 
 ### 규칙 명세
 
@@ -104,20 +130,46 @@
 
 ### 2인용 테스트 케이스 정의
 
-- [`twoplayer/docs/test-cases.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/test-cases.md): 66개 (전이 규칙 18, 게임 진행 17, 배치 15, 승패 8, UI 8). 테스트 메서드 이름은 설계 결정 뒤 확정.
+- [`twoplayer/docs/test-cases.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/test-cases.md): 66개 (전이 규칙 18, 게임 진행 17, 배치 15, 승패 8, UI 8).
 - 명세 7장 예시 1~4의 기대값은 별도 Python 시뮬레이터로 다시 계산해 일치를 확인했다.
+
+### 게임 진행 모델 1차 (#6)
+
+`main`(테스트 환경·특성 테스트)을 먼저 `feature/two-player-mode`에 merge한 뒤, **설계 결정 문서 → 테스트 → 구현** 순서로 진행했다.
+
+**설계 결정**
+
+| 문서 | 비교한 후보 | 채택 | 이유 |
+| --- | --- | --- | --- |
+| [003 게임 단계](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/003-game-phase.md) | State / enum + switch / Strategy | State | 지금까지 바뀐 규칙(개입 선공, 빈 확정 거부, 자동 패스)이 모두 "한 단계의 규칙"이라, 단계별 클래스면 한 곳에서 끝난다 |
+| [004 플레이어 입력](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/004-player-input.md) | Command / 직접 호출 + 결과 값 / Observer | 직접 호출 + `Response` | Command가 값을 하는 경우(undo, 큐, 재생)가 없다. undo는 규칙으로 금지, hot-seat라 큐도 없다 |
+
+**셀 상태와의 분리**: 셀 상태는 회의 전이라, 게임 진행이 보드에 묻는 메서드 6개(크기 `rows`·`columns`, 빈 칸인가, 빈 칸이 있는가, 놓기, 1세대 진행)를 `TwoPlayerBoard` 인터페이스로 숨겼다. 테스트는 대역 `StubBoard`로 돌린다. 계약: [`twoplayer/docs/interfaces.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/interfaces.md)
+
+**구현 범위**: 단계 전환, 차례, 선공 교대, 임시 배치·확정, 패스·자동 패스, 진영 제한, 남은 개수, 라운드, tick, 설정값(N=20, K=20, M=3, R=5).
+
+**결과**
+
+- 테스트 32개(TP-F 17, TP-P 15). 골격만 있을 때 32개 모두 실패 → 구현 후 66개 통과(새 32 + 기존 34).
+- 실측(003에 기록): 새 패키지 `com.holub.life.twoplayer`, 단계 클래스 6개(package-private) + 공개 타입 7개, 빈 줄·주석 제외 367줄. 입력 1번에 위임 +1단계. 기존 코드 변경 없음, `java.awt`·Swing 의존 없음.
+- 진행 중 바꾼 것
+  - TP-P-10 정의 수정: 남은 개수가 0이면 자동 패스로 차례가 오지 않아서 "남은 개수 없음" 거부는 생길 수 없다 → "차례 아님"으로 거부되는 것으로 정의를 바꾸고 해당 거부 이유를 없앴다.
+  - 임시 배치 좌표를 처음에 `java.awt.Point`로 썼다가, 003의 "`java.awt` 의존 없음"과 맞지 않아 `Coordinate` record로 바꿨다.
+  - TP-F만 요청받았지만 구현에 배치 규칙(진영·빈 칸·범위)이 들어가서 TP-P 15개도 함께 작성했다(강령 4).
 
 ## 남은 일
 
-- PR #13 리뷰·머지
-- Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현
-- #6 게임 진행 모델: 단계 전환·차례·패스는 셀 색과 무관해서 회의 전에 먼저 시작할 수 있음
-- 버그 #10, #11, #12: 각각 별도 브랜치·PR로 수정, 해당 특성 테스트 기대값만 그 PR에서 변경
+- PR #16 → #17·#18 rebase·재테스트 → 머지
+- 세 버그 PR 머지 후: 리팩토링 담당에게 보낼 요약(무엇이 바뀌었고 어떤 테스트가 고정하는지)
+- #6 2차: 시뮬레이션 중 매 세대 전멸 검사와 승패 판정(TP-E). 셀 수 집계가 필요해서 설계 결정 005(집계 방법)와 함께
+- #6 PR: base를 정해야 함(`main` 또는 `feature/two-player-mode`에 계속 모으기)
+- Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현
+- 다이어그램: 게임 단계 상태 다이어그램, 2인용 클래스·시퀀스 다이어그램(.puml) 미작성. PlantUML 렌더링 도구를 받는 것은 이번 세션에서 차단돼 png/svg는 따로 만들어야 함
 - 도메인 `docs/README.md`(`life/docs/`, `twoplayer/docs/`) 아직 없음
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
-- 다이어그램: 코드 변경이 시작되는 #5부터 전/후 다이어그램 추가
 
 ## 진행하면서 있었던 실수
 
 - 로컬 테스트 확인 전에 push한 적이 있다(#13). 명령의 `exit=1`이 Gradle이 아니라 `grep`의 종료 코드였고, 다시 돌려 Gradle 종료 코드 0과 34개 통과를 확인했다.
 - 커밋하지 않은 `.gitignore` 수정이 있는 상태에서 `git checkout -- .`가 포함된 명령을 실행하려다 차단됐다. 이후 기존 파일을 건드리지 않는 방식(임시 테스트 파일 추가 후 삭제)으로 확인했다.
+- 테스트 출력 한 번을 scratchpad 대신 `/tmp/x`에 썼다. 바로 지웠다.
