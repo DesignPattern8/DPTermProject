@@ -16,7 +16,7 @@
 | 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
 | 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ `feature/two-player-mode`) | 1차(단계·차례·배치·패스)·2차(승패 판정) 구현 완료, 리뷰 대기 (CI 통과) |
-| 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | (이 작업 기록 갱신 후 개설) | 구현·확인 완료 |
+| 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | #23 | 리뷰 대기 (CI 통과) |
 | 4. 2인용 UI 통합 | #7 | — | — | 대기 |
 | 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
 
