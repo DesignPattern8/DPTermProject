@@ -11,8 +11,8 @@
 | 0. 테스트 환경 (Gradle + JUnit 5 + CI) | #2 | `chore/test-setup` | #3 | 머지됨 |
 | 1. 클래식 특성 테스트 | #4 | `test/classic-characterization` | #13 | 머지됨 |
 | 작업 기록 정리 | #14 | `docs/suk-worklog` | #15 | 머지됨 |
-| 버그: Store 중복 기록 | #10 | `fix/store-duplicate` | #16 | 리뷰 대기 (CI 통과) |
-| 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 리뷰 대기 (CI 통과), #16 머지 후 rebase |
+| 버그: Store 중복 기록 | #10 | `fix/store-duplicate` | #16 | 머지됨 |
+| 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | #16 머지 후 rebase 완료, 리뷰 대기 (CI 38개 통과) |
 | 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
 | 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ `feature/two-player-mode`) | 1차(단계·차례·배치·패스)·2차(승패 판정) 구현 완료, 리뷰 대기 (CI 통과) |
@@ -63,6 +63,8 @@
 ## 버그 3건 수정 (#10, #11, #12)
 
 특성 테스트(#4)를 쓰면서 찾은 버그를 고치지 않고 현재 동작으로 고정해 두었다가(강령 2), 버그마다 `main`에서 브랜치를 따로 만들어 PR 하나씩 올렸다. 순서는 모두 **테스트 케이스 정의 변경 → 테스트 변경 → 코드 수정**이고, 바뀐 케이스 말고 다른 특성 테스트는 수정 없이 통과했다. 세 PR은 `docs/test-cases.md`의 인접한 곳을 고쳐서, 먼저 머지된 PR 기준으로 rebase하기로 했다.
+
+- #16 머지 후 #17이 `docs/test-cases.md`에서 충돌했다. #16이 CL-M-09 아래에 CL-M-10·11과 CL-M-06 메모를, #17이 같은 자리에 CL-M-12·13과 CL-M-08 메모를 넣었기 때문이다. 양쪽을 모두 살려(행은 CL-M-10~13 순서, 메모는 #16의 CL-M-06 한계 메모 + #17의 CL-M-08 메모) `main` 기준으로 rebase하고 `--force-with-lease`로 push했다. 테스트 파일은 자동으로 합쳐졌고, 로컬·CI 모두 38개 통과(main 36 + CL-M-12·13).
 
 | 이슈 | PR | 수정 | 바뀐·추가한 케이스 | 수정 전 → 후 |
 | --- | --- | --- | --- | --- |
@@ -188,7 +190,7 @@
 
 ## 남은 일
 
-- PR #16 → #17·#18 rebase·재테스트 → 머지
+- #17·#18 머지 (#16은 머지됨, #17은 rebase 완료, #18은 현재 main과 충돌 없음)
 - 세 버그 PR 머지 후: 리팩토링 담당에게 보낼 요약(무엇이 바뀌었고 어떤 테스트가 고정하는지)
 - #6 PR #21(`feat/6-game-flow` → `feature/two-player-mode`) 리뷰·머지. base가 기본 브랜치(main)가 아니라서 머지돼도 `Closes #6`으로 이슈가 자동으로 닫히지 않음 → 머지 후 직접 닫기
 - #22 머지 후: `feat/6-game-flow`에서 게임 단계 상태 다이어그램을 렌더링해 png/svg 추가, 2인용 클래스·시퀀스 다이어그램 작성
