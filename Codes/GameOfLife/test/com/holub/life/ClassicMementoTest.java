@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Point;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
@@ -129,17 +130,50 @@ class ClassicMementoTest {
     assertThrows(IOException.class, () -> board.load(garbage));
   }
 
-  @Test
-  @DisplayName("CL-M-08 [현재 동작] Collection이 아닌 객체가 든 파일을 불러오면 IOException이 아니라 ClassCastException이 난다")
-  void loadingNonCollectionThrowsClassCastException() throws IOException {
-    // Given
+  /** 객체 하나를 직렬화한 바이트. 저장 파일 형식(ObjectOutputStream)과 같다. */
+  private static byte[] serialized(Object o) throws IOException {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
-      out.writeObject("not a collection");
+      out.writeObject(o);
     }
-    ClassicBoard board = new ClassicBoard();
+    return bytes.toByteArray();
+  }
+
+  /** NeighborhoodState.load()를 직접 호출한다 (createMemento()가 NeighborhoodState를 돌려준다). */
+  private static void loadDirectly(byte[] bytes) throws IOException {
+    new ClassicBoard().cell().createMemento().load(new ByteArrayInputStream(bytes));
+  }
+
+  @Test
+  @DisplayName("CL-M-08 Collection이 아닌 객체(String, null)가 든 파일을 불러오면 IOException이 난다")
+  void loadingNonCollectionThrowsIOException() throws IOException {
+    // Given
+    byte[] string = serialized("not a collection");
+    byte[] nul = serialized(null);
     // When / Then
-    assertThrows(ClassCastException.class, () -> board.load(bytes.toByteArray()));
+    assertThrows(IOException.class, () -> loadDirectly(string));
+    assertThrows(IOException.class, () -> loadDirectly(nul));
+  }
+
+  @Test
+  @DisplayName("CL-M-12 Point가 아닌 원소가 든 Collection 파일을 불러오면 IOException이 난다")
+  void loadingCollectionWithNonPointThrowsIOException() throws IOException {
+    // Given
+    byte[] mixed = serialized(new LinkedList<Object>(List.of(new Point(1, 1), "not a point")));
+    // When / Then
+    assertThrows(IOException.class, () -> loadDirectly(mixed));
+  }
+
+  @Test
+  @DisplayName("CL-M-13 빈 Collection 파일을 불러오면 빈 보드가 된다")
+  void loadingEmptyCollectionGivesEmptyBoard() throws IOException {
+    // Given
+    byte[] empty = serialized(new LinkedList<Point>());
+    ClassicBoard board = new ClassicBoard().clickAll(BLINKER);
+    // When
+    board.load(empty);
+    // Then
+    assertTrue(board.liveCells().isEmpty());
   }
 
   @Test
