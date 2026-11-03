@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,16 +81,42 @@ class ClassicMementoTest {
   }
 
   @Test
-  @DisplayName("CL-M-06 [현재 동작] Store 경로는 살아 있는 칸을 두 번씩 기록한다")
-  void storeRecordsEachLiveCellTwice() throws Exception {
+  @DisplayName("CL-M-06 Store는 살아 있는 칸을 한 번씩만 기록한다")
+  void storeRecordsEachLiveCellOnce() throws Exception {
     // Given
     ClassicBoard board = new ClassicBoard().click(5, 5).click(5, 6);
     // When
     Collection<?> stored = ClassicBoard.readStoredCollection(board.store());
     // Then
-    List<Object> expected = new ArrayList<>(List.of(new Point(5, 5), new Point(6, 5)));
-    expected.addAll(List.of(new Point(5, 5), new Point(6, 5)));
-    assertEquals(expected, new ArrayList<>(stored));
+    assertEquals(List.of(new Point(5, 5), new Point(6, 5)), new ArrayList<>(stored));
+  }
+
+  @Test
+  @DisplayName("CL-M-10 빈 보드를 저장하면 빈 Collection이 기록된다")
+  void emptyBoardStoresEmptyCollection() throws Exception {
+    // Given
+    ClassicBoard board = new ClassicBoard();
+    // When
+    Collection<?> stored = ClassicBoard.readStoredCollection(board.store());
+    // Then
+    assertTrue(stored.isEmpty());
+  }
+
+  @Test
+  @DisplayName("CL-M-11 수정 전 형식(칸이 두 번씩 든) 파일도 그대로 불러와진다")
+  void loadsFileWithDuplicatedCells() throws IOException {
+    // Given: #10 수정 전 Store가 만들던 형식
+    LinkedList<Point> legacy =
+        new LinkedList<>(List.of(new Point(5, 5), new Point(6, 5), new Point(5, 5), new Point(6, 5)));
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
+      out.writeObject(legacy);
+    }
+    ClassicBoard board = new ClassicBoard();
+    // When
+    board.load(bytes.toByteArray());
+    // Then
+    assertEquals(ClassicBoard.cells(new int[][] {{5, 5}, {5, 6}}), board.liveCells());
   }
 
   @Test
