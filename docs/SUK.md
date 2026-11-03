@@ -15,7 +15,7 @@
 | 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 리뷰 대기 (CI 통과), #16 머지 후 rebase |
 | 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
-| 3. 2인용 게임 진행 모델 | #6 | `feature/two-player-mode` | — | 1차(단계·차례·배치·패스) 구현 완료, PR 미개설 |
+| 3. 2인용 게임 진행 모델 | #6 | `feature/two-player-mode` (1차 커밋이 바로 들어가 있음) | — | 1차(단계·차례·배치·패스) 구현 완료, 2차(승패 판정) 진행 예정 |
 | 4. 2인용 UI 통합 | #7 | — | — | 대기 |
 | 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
 
@@ -162,10 +162,10 @@
 - PR #16 → #17·#18 rebase·재테스트 → 머지
 - 세 버그 PR 머지 후: 리팩토링 담당에게 보낼 요약(무엇이 바뀌었고 어떤 테스트가 고정하는지)
 - #6 2차: 시뮬레이션 중 매 세대 전멸 검사와 승패 판정(TP-E). 셀 수 집계가 필요해서 설계 결정 005(집계 방법)와 함께
-- #6 PR: base를 정해야 함(`main` 또는 `feature/two-player-mode`에 계속 모으기)
+- 브랜치 방식(2026-11-03 결정): `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서(예: `feat/6-game-flow`) 이 브랜치로 PR을 보낸다. `main`으로는 회의 후 #5까지 끝나면 한 번에 PR을 연다. #6 1차 커밋은 이미 통합 브랜치에 바로 들어가 있어서 정리 방법을 정해야 함
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현
-- 다이어그램: 게임 단계 상태 다이어그램, 2인용 클래스·시퀀스 다이어그램(.puml) 미작성. PlantUML 렌더링 도구를 받는 것은 이번 세션에서 차단돼 png/svg는 따로 만들어야 함
-- 도메인 `docs/README.md`(`life/docs/`, `twoplayer/docs/`) 아직 없음
+- 다이어그램: 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5). 게임 단계 상태 다이어그램은 #6 PR에 넣는다. 렌더링은 `build.gradle.kts`에 Maven Central의 PlantUML 의존성으로 렌더링 작업을 추가하는 [CHORE] 이슈·PR(base `main`)로 해결 예정(#6 2차 다음)
+- 도메인 `docs/README.md`(`life/docs/`, `twoplayer/docs/`) 아직 없음. 각 도메인 PR에 함께 넣는다
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
 
 ## 진행하면서 있었던 실수
