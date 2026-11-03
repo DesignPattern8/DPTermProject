@@ -15,7 +15,7 @@
 | 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 리뷰 대기 (CI 통과), #16 머지 후 rebase |
 | 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
-| 3. 2인용 게임 진행 모델 | #6 | `feature/two-player-mode` (1차 커밋이 바로 들어가 있음) | — | 1차(단계·차례·배치·패스) 구현 완료, 2차(승패 판정) 진행 예정 |
+| 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | → `feature/two-player-mode` | 1차(단계·차례·배치·패스)·2차(승패 판정) 구현 완료, PR 리뷰 대기 |
 | 4. 2인용 UI 통합 | #7 | — | — | 대기 |
 | 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
 
@@ -133,39 +133,49 @@
 - [`twoplayer/docs/test-cases.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/test-cases.md): 66개 (전이 규칙 18, 게임 진행 17, 배치 15, 승패 8, UI 8).
 - 명세 7장 예시 1~4의 기대값은 별도 Python 시뮬레이터로 다시 계산해 일치를 확인했다.
 
-### 게임 진행 모델 1차 (#6)
+### 게임 진행 모델 (#6)
 
 `main`(테스트 환경·특성 테스트)을 먼저 `feature/two-player-mode`에 merge한 뒤, **설계 결정 문서 → 테스트 → 구현** 순서로 진행했다.
+
+브랜치 정리: 1차 커밋 5개가 통합 브랜치에 바로 들어가 있어서, `feat/6-game-flow`를 그 끝(`f3829d5`)에 만들어 먼저 push한 뒤 `feature/two-player-mode`를 merge 커밋(`99cc727`)으로 되돌렸다(`--force-with-lease`). 이후 2차도 `feat/6-game-flow`에서 진행하고, PR은 `feat/6-game-flow` → `feature/two-player-mode`로 연다.
 
 **설계 결정**
 
 | 문서 | 비교한 후보 | 채택 | 이유 |
 | --- | --- | --- | --- |
-| [003 게임 단계](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/003-game-phase.md) | State / enum + switch / Strategy | State | 지금까지 바뀐 규칙(개입 선공, 빈 확정 거부, 자동 패스)이 모두 "한 단계의 규칙"이라, 단계별 클래스면 한 곳에서 끝난다 |
-| [004 플레이어 입력](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/004-player-input.md) | Command / 직접 호출 + 결과 값 / Observer | 직접 호출 + `Response` | Command가 값을 하는 경우(undo, 큐, 재생)가 없다. undo는 규칙으로 금지, hot-seat라 큐도 없다 |
+| [003 게임 단계](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/003-game-phase.md) | State / enum + switch / Strategy | State | 지금까지 바뀐 규칙(개입 선공, 빈 확정 거부, 자동 패스)이 모두 "한 단계의 규칙"이라, 단계별 클래스면 한 곳에서 끝난다 |
+| [004 플레이어 입력](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/004-player-input.md) | Command / 직접 호출 + 결과 값 / Observer | 직접 호출 + `Response` | Command가 값을 하는 경우(undo, 큐, 재생)가 없다. undo는 규칙으로 금지, hot-seat라 큐도 없다 |
+| [005 셀 수 집계와 승패 판정](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/005-cell-count-and-judge.md) | Phase 안 / 별도 판정 클래스 / Strategy / Observer | 별도 판정 클래스(패턴 없음) | 판정은 셀 수 두 개 → 결과인 순수 함수라 숫자만으로 테스트할 수 있다. 다른 점수 방식은 rules.md에서 기각돼 Strategy로 바꿀 대상이 없다 |
 
-**셀 상태와의 분리**: 셀 상태는 회의 전이라, 게임 진행이 보드에 묻는 메서드 6개(크기 `rows`·`columns`, 빈 칸인가, 빈 칸이 있는가, 놓기, 1세대 진행)를 `TwoPlayerBoard` 인터페이스로 숨겼다. 테스트는 대역 `StubBoard`로 돌린다. 계약: [`twoplayer/docs/interfaces.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/interfaces.md)
+**셀 상태와의 분리**: 셀 상태는 회의 전이라, 게임 진행이 보드에 묻는 메서드 6개(크기 `rows`·`columns`, 빈 칸인가, 빈 칸이 있는가, 놓기, 1세대 진행)를 `TwoPlayerBoard` 인터페이스로 숨겼다. 테스트는 대역 `StubBoard`로 돌린다. 계약: [`twoplayer/docs/interfaces.md`](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/interfaces.md)
 
-**구현 범위**: 단계 전환, 차례, 선공 교대, 임시 배치·확정, 패스·자동 패스, 진영 제한, 남은 개수, 라운드, tick, 설정값(N=20, K=20, M=3, R=5).
+**구현 범위**
+
+- 1차: 단계 전환, 차례, 선공 교대, 임시 배치·확정, 패스·자동 패스, 진영 제한, 남은 개수, 라운드, tick, 설정값(N=20, K=20, M=3, R=5)
+- 2차: `TwoPlayerBoard.count(Player)` 추가, 시뮬레이션 중 매 세대 직후 전멸 검사(K세대 전이라도, 마지막 라운드가 아니어도 종료), R라운드 종료 셀 수 비교, `score()`·`result()`
 
 **결과**
 
-- 테스트 32개(TP-F 17, TP-P 15). 골격만 있을 때 32개 모두 실패 → 구현 후 66개 통과(새 32 + 기존 34).
-- 실측(003에 기록): 새 패키지 `com.holub.life.twoplayer`, 단계 클래스 6개(package-private) + 공개 타입 7개, 빈 줄·주석 제외 367줄. 입력 1번에 위임 +1단계. 기존 코드 변경 없음, `java.awt`·Swing 의존 없음.
+- 1차: 테스트 32개(TP-F 17, TP-P 15). 골격만 있을 때 32개 모두 실패 → 구현 후 66개 통과(새 32 + 기존 34).
+- 2차: 테스트 10개(TP-E). 대역에 명세 7장 예시의 세대별 셀 수를 주입했다. 골격만 있을 때 10개 모두 실패 → 구현 후 76개 통과.
+- 실측(003·005에 기록): 패키지 `com.holub.life.twoplayer` 파일 17개, 빈 줄·주석 제외 423줄(1차 367줄). 입력 1번에 위임 +1단계, 세대마다 판정 정적 호출 1번. 기존 코드 변경 없음, `java.awt`·Swing 의존 없음.
+- 문서: 게임 단계 상태 다이어그램 원본([`.puml`](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/diagrams/twoplayer-game-phase-state.puml)), [`twoplayer/docs/README.md`](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/README.md). png/svg는 렌더링 작업(CHORE) 추가 후.
 - 진행 중 바꾼 것
   - TP-P-10 정의 수정: 남은 개수가 0이면 자동 패스로 차례가 오지 않아서 "남은 개수 없음" 거부는 생길 수 없다 → "차례 아님"으로 거부되는 것으로 정의를 바꾸고 해당 거부 이유를 없앴다.
   - 임시 배치 좌표를 처음에 `java.awt.Point`로 썼다가, 003의 "`java.awt` 의존 없음"과 맞지 않아 `Coordinate` record로 바꿨다.
   - TP-F만 요청받았지만 구현에 배치 규칙(진영·빈 칸·범위)이 들어가서 TP-P 15개도 함께 작성했다(강령 4).
+  - TP-E에 "마지막 라운드가 아니어도 K번째 세대에 전멸하면 개입 없이 종료"(TP-E-09)와 "판정 규칙만 숫자로 확인"(TP-E-10)을 추가했다.
+  - 005의 추정(새 타입 2개)과 달리 실제로는 4개가 생겼다. 결과를 승패(`Outcome`)와 이유(`EndReason`)로 나눴기 때문이다.
 
 ## 남은 일
 
 - PR #16 → #17·#18 rebase·재테스트 → 머지
 - 세 버그 PR 머지 후: 리팩토링 담당에게 보낼 요약(무엇이 바뀌었고 어떤 테스트가 고정하는지)
-- #6 2차: 시뮬레이션 중 매 세대 전멸 검사와 승패 판정(TP-E). 셀 수 집계가 필요해서 설계 결정 005(집계 방법)와 함께
-- 브랜치 방식(2026-11-03 결정): `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서(예: `feat/6-game-flow`) 이 브랜치로 PR을 보낸다. `main`으로는 회의 후 #5까지 끝나면 한 번에 PR을 연다. #6 1차 커밋은 이미 통합 브랜치에 바로 들어가 있어서 정리 방법을 정해야 함
+- #6 PR(`feat/6-game-flow` → `feature/two-player-mode`) 리뷰·머지
+- 브랜치 방식(2026-11-03 결정): `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보낸다. `main`으로는 회의 후 #5까지 끝나면 한 번에 PR을 연다
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현
-- 다이어그램: 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5). 게임 단계 상태 다이어그램은 #6 PR에 넣는다. 렌더링은 `build.gradle.kts`에 Maven Central의 PlantUML 의존성으로 렌더링 작업을 추가하는 [CHORE] 이슈·PR(base `main`)로 해결 예정(#6 2차 다음)
-- 도메인 `docs/README.md`(`life/docs/`, `twoplayer/docs/`) 아직 없음. 각 도메인 PR에 함께 넣는다
+- 다이어그램 렌더링: `build.gradle.kts`에 Maven Central의 PlantUML 의존성으로 렌더링 작업을 추가하는 [CHORE] 이슈·PR(base `main`). 다음 작업. 다이어그램 원본은 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
+- 도메인 `docs/README.md`: `twoplayer/docs/`는 #6 PR에 넣음. `life/docs/`는 다음 core 도메인 PR에 함께
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
 
 ## 진행하면서 있었던 실수
