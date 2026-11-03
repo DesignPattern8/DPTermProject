@@ -70,15 +70,18 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-M-05 | 경계 | 빈 보드를 저장·불러오기 할 수 있다 | 빈 보드 저장 → 불러오기 | 빈 보드, 예외 없음 | `#emptyBoardRoundTrip` |
 | CL-M-06 | 정상 | Store는 살아 있는 칸을 한 번씩만 기록한다 | 2칸 저장 (`Universe.doStore`와 같은 순서) | 저장된 `Collection` 크기 2, 각 칸이 1번씩 | `#storeRecordsEachLiveCellOnce` |
 | CL-M-07 | 예외 | 직렬화 형식이 아닌 파일을 불러오면 `IOException` | `"garbage"` 바이트 | `IOException`(실제 `StreamCorruptedException`) | `#loadingGarbageThrowsIOException` |
-| CL-M-08 | 예외 (`현재 동작`) | `Collection`이 아닌 객체가 든 파일을 불러오면 `IOException`이 아니라 `ClassCastException` | 직렬화된 `String` | `ClassCastException` | `#loadingNonCollectionThrowsClassCastException` |
+| CL-M-08 | 예외 | `Collection`이 아닌 객체가 든 파일을 불러오면 `IOException`이 난다 | 직렬화된 `String`, 직렬화된 `null` | 둘 다 `IOException` | `#loadingNonCollectionThrowsIOException` |
 | CL-M-09 | 예외 | 단일 셀과 `DUMMY`는 Memento를 만들 수 없다 | `new Resident().createMemento()`, `Cell.DUMMY.createMemento()` | 둘 다 `UnsupportedOperationException` | `#unitaryCellsCannotCreateMemento` |
 | CL-M-10 | 경계 | 빈 보드를 저장하면 빈 `Collection`이 기록된다 | 빈 보드 저장 | 저장된 `Collection` 크기 0 | `#emptyBoardStoresEmptyCollection` |
 | CL-M-11 | 예외 | 수정 전 형식(칸이 두 번씩 든) 파일도 그대로 불러와진다 | `Point(5,5)`, `Point(6,5)`가 두 번씩 든 `LinkedList`를 직렬화한 바이트 | (5,5)·(5,6) 두 칸만 살아 있음 | `#loadsFileWithDuplicatedCells` |
+| CL-M-12 | 예외 | `Point`가 아닌 원소가 든 `Collection` 파일을 불러오면 `IOException`이 난다 | `Point(1,1)`과 `String`이 든 `LinkedList` | `IOException` | `#loadingCollectionWithNonPointThrowsIOException` |
+| CL-M-13 | 경계 | 빈 `Collection` 파일을 불러오면 빈 보드가 된다 | 빈 `LinkedList`를 직렬화한 바이트, blinker가 있던 보드 | 빈 보드, 예외 없음 | `#loadingEmptyCollectionGivesEmptyBoard` |
 
 - CL-M-06: #10에서 수정. 수정 전에는 `Universe.doStore()`가 `createMemento()`(내부에서 이미 `transfer(STORE)`, `Neighborhood.java:400`) 뒤에 `transfer(STORE)`를 한 번 더 불러서 각 칸이 두 번씩 기록됐다(이전 기대값: 크기 4, 메서드 `#storeRecordsEachLiveCellTwice`). 중복 호출을 지워 한 번씩만 기록한다.
   - **한계**: Universe를 화면 없이 띄울 수 없어서 doStore 자체의 회귀는 테스트로 잡지 못함. `Universe` 클래스를 불러오기만 해도 `MenuSite not established` assert가 실패한다. 그래서 CL-M-06은 `doStore()`와 같은 순서로 호출하는 `ClassicBoard#store()`를 검증한다. UI 분리(#9) 뒤 저장 경로를 화면 없이 호출할 수 있게 되면 `doStore()`를 직접 검증하도록 바꾼다.
 - CL-M-10, CL-M-11: #10에서 추가. CL-M-11은 수정 전에 저장한 파일과의 호환을 확인한다(불러올 때는 `contains()`로만 확인하므로 중복이 있어도 결과가 같다).
-- CL-M-08: `NeighborhoodState.load()`는 읽은 객체를 확인 없이 `Collection`으로 캐스팅한다(`Neighborhood.java:421`). `Universe.doLoad()`는 `IOException`만 잡으므로(`Universe.java:166`) 이 예외는 "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라간다. → #11
+- CL-M-08: #11에서 수정. 수정 전에는 `NeighborhoodState.load()`가 읽은 객체를 확인 없이 `Collection`으로 캐스팅해서(`Neighborhood.java:421`) `ClassCastException`이 났고, `Universe.doLoad()`는 `IOException`만 잡으므로(`Universe.java:166`) "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라갔다(이전 기대값: `ClassCastException`, 메서드 `#loadingNonCollectionThrowsClassCastException`). 이제 `load()`가 형식을 확인하고 `IOException`으로 바꿔 던지므로 `doLoad()`의 기존 catch가 받는다. `Universe`는 바꾸지 않았다.
+- CL-M-12, CL-M-13: #11에서 추가. 테스트는 `createMemento()`로 얻은 `NeighborhoodState`의 `load()`를 직접 호출한다.
 
 ## 4. 셀 단위 동작
 
