@@ -1,7 +1,7 @@
 # 2인용 모드 테스트 케이스
 
 - 근거: [rules.md](rules.md) (2인용 Life Game 규칙 명세). 아래에서 "명세 N장"은 이 문서를 뜻한다.
-- 상태: TP-F·TP-P는 #6 1차에서 테스트 작성(아래 각 장 참고). TP-R·TP-E·TP-U는 정의 단계이고 **테스트 클래스·메서드 이름은 예정**이다.
+- 상태: TP-F·TP-P는 #6 1차, TP-E는 #6 2차에서 테스트 작성(아래 각 장 참고). TP-R·TP-U는 정의 단계이고 **테스트 클래스·메서드 이름은 예정**이다.
 - 공통 전제
   - 좌표는 (행, 열)이고 0부터 센다. 보드 밖은 항상 `DEAD`다.
   - 격자 표기: `A`·`B`는 각 플레이어의 살아 있는 셀, `.`은 죽은 셀이다. 적지 않은 아래쪽 행은 모두 `.`이다.
@@ -91,18 +91,20 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 
 ## 4. 종료 조건과 승패 판정 (명세 6장, #6 2차)
 
-예정 클래스: `GameJudgeTest`
+클래스: `GameJudgeTest` (#6 2차). 보드는 `StubBoard`를 쓰고, 세대마다의 셀 수를 대역에 주입한다(세대 진행 1번마다 다음 값). 주입하는 값은 명세 7장 예시의 실제 셀 수(시뮬레이터로 확인한 값)다. 같은 예시를 실제 보드로 다시 확인하는 것은 #5 이후. 판정 규칙: [005](005-cell-count-and-judge.md). 별도 표시가 없으면 N=2, M=2를 주입한다.
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
-| TP-E-01 | 정상 | 한쪽이 전멸하면 K세대를 기다리지 않고 바로 끝난다 | K=10, A는 고립 셀 1개, B는 block | 세대 1에 종료, B 승, 세대 수 1 | `GameJudgeTest#oneSideWipedOutEndsImmediately` |
-| TP-E-02 | 정상 | 같은 세대에 동시 전멸하면 무승부 | K=20, 명세 예시 4 보드 | 세대 10에 종료, 무승부 | `#simultaneousWipeOutIsDraw` |
-| TP-E-03 | 정상 | R라운드가 끝나면 셀이 많은 쪽이 이긴다 | R=1, K=4, 명세 예시 3 보드 | 종료, B 승 (4:3) | `#moreCellsWinsAfterLastRound` |
-| TP-E-04 | 경계 | R라운드 종료 시 셀 수가 같으면 무승부 | A block과 B block이 떨어져 있음, R=1 | 종료, 무승부 (4:4) | `#equalCountIsDrawAfterLastRound` |
-| TP-E-05 | 경계 | 배치·개입 단계에서는 전멸을 검사하지 않는다 | 초기 배치, A만 1개 둔 상태(B=0) | 게임 계속, 단계 = 초기 배치 | `#noWipeOutCheckDuringPlacement` |
-| TP-E-06 | 경계 | 셀 수가 바뀌는 진동자는 K의 홀짝에 따라 결과가 달라진다(건너뛰지 않음) | A beacon(8/6), B block(4), R=1, K=1과 K=2 | K=1: 6:4 A 승 / K=2: 8:4 A 승, 판정 시점 셀 수가 K세대 결과와 같음 | `#oscillatorCountUsesFullKGenerations` |
-| TP-E-07 | 정상 | 점수는 현재 보드에 살아 있는 자기 셀 수다 | 명세 예시 4 세대 7 | A=6, B=5 | `#scoreIsCurrentLiveCellCount` |
-| TP-E-08 | 예외 | 종료 뒤에는 배치·패스·Tick 입력이 모두 무시된다 | 종료 상태에서 각 입력 | 보드·결과 변화 없음 | `#inputsIgnoredAfterGameOver` |
+| TP-E-01 | 정상 | 한쪽이 전멸하면 K세대를 기다리지 않고 바로 끝난다 | K=10, R=1, 세대 1의 셀 수 A=0·B=4 (A 고립 셀 1개, B block) | 세대 1에 종료, B 승, 이유 = 전멸, 세대 수 1 | `GameJudgeTest#oneSideWipedOutEndsImmediately` |
+| TP-E-02 | 정상 | 같은 세대에 동시 전멸하면 무승부 | K=20, R=1, 명세 예시 4의 셀 수 (세대 1~6: 5:4, 7: 6:5, 8: 3:3, 9: 1:2, 10: 0:0) | 세대 10에 종료, 무승부, 이유 = 전멸 | `#simultaneousWipeOutIsDraw` |
+| TP-E-03 | 정상 | R라운드가 끝나면 셀이 많은 쪽이 이긴다 | R=1, K=4, 명세 예시 3의 셀 수 (매 세대 A=3·B=4) | 종료, B 승 (3:4), 이유 = 라운드 종료 | `#moreCellsWinsAfterLastRound` |
+| TP-E-04 | 경계 | R라운드 종료 시 셀 수가 같으면 무승부 | R=1, K=3, 매 세대 A=4·B=4 (떨어진 block 두 개) | 종료, 무승부 (4:4), 이유 = 라운드 종료 | `#equalCountIsDrawAfterLastRound` |
+| TP-E-05 | 경계 | 배치·개입 단계에서는 전멸을 검사하지 않는다 | 초기 배치에서 A만 1개 둔 상태(A=1·B=0) / 개입에서 A=0·B=4 | 게임 계속, 결과 없음 | `#noWipeOutCheckDuringPlacement` |
+| TP-E-06 | 경계 | 셀 수가 바뀌는 진동자는 K의 홀짝에 따라 결과가 달라진다(건너뛰지 않음) | A beacon(세대 홀수 6, 짝수 8), B block(4), R=1, K=1과 K=2 | K=1: 6:4 A 승 / K=2: 8:4 A 승. 판정 셀 수가 K번째 세대의 값 | `#oscillatorCountUsesFullKGenerations` |
+| TP-E-07 | 정상 | 점수는 현재 보드에 살아 있는 자기 셀 수다 | 명세 예시 4의 셀 수를 세대 7까지 진행 | `score(A)`=6, `score(B)`=5 | `#scoreIsCurrentLiveCellCount` |
+| TP-E-08 | 예외 | 종료 뒤에는 선택·확정·패스·Tick 입력이 모두 무시된다 | TP-E-01로 종료한 상태에서 각 입력 | 모두 거부(Tick은 false), 세대 수·결과 변화 없음 | `#inputsIgnoredAfterGameOver` |
+| TP-E-09 | 경계 | 마지막 라운드가 아니어도 K번째 세대에 전멸하면 개입으로 넘어가지 않고 종료한다 | R=2, K=3, 세대 3의 셀 수 A=2·B=0 | 라운드 1에서 종료, A 승, 이유 = 전멸 | `#wipeOutAtKthGenerationEndsGameBeforeIntervention` |
+| TP-E-10 | 정상 | 판정 규칙만 숫자로 확인한다 (게임 없이) | 세대 직후 (0,3)·(3,0)·(0,0)·(2,3), 마지막 라운드 (5,3)·(3,5)·(4,4) | B 승·A 승·무승부·계속 / A 승·B 승·무승부 | `#judgeRulesOnNumbersOnly` |
 
 ## 5. UI 통합 (명세 4·5·8장, #7)
 
