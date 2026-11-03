@@ -4,8 +4,6 @@ import com.holub.asynch.ConditionVariable;
 import com.holub.ui.Colors;
 import java.awt.*;
 import java.awt.event.*;
-import java.io.*;
-import java.util.*;
 import javax.swing.*;
 
 /***
@@ -375,7 +373,7 @@ public final class Neighborhood implements Cell {
   }
 
   /** Cause subcells to add an annotation to the indicated memento if they happen to be alive. */
-  public boolean transfer(Storable memento, Point corner, boolean load) {
+  public boolean transfer(Memento memento, Point corner, boolean load) {
     int subcellWidth = grid[0][0].widthInCells();
     int myWidth = widthInCells();
     Point upperLeft = new Point(corner);
@@ -395,60 +393,10 @@ public final class Neighborhood implements Cell {
     return amActive;
   }
 
-  public Storable createMemento() {
-    Memento m = new NeighborhoodState();
+  public NeighborhoodState createMemento() {
+    NeighborhoodState m = new NeighborhoodState();
     transfer(m, new Point(0, 0), Cell.STORE);
     return m;
   }
 
-  /**
-   * The NeighborhoodState stores the state of this neighborhood and all its sub-neighborhoods. For
-   * the moment, I'm storing state with serialization, but a future modification might rewrite
-   * load() and flush() to use XML.
-   */
-  private static class NeighborhoodState implements Cell.Memento {
-    Collection liveCells = new LinkedList();
-
-    public NeighborhoodState(InputStream in) throws IOException {
-      load(in);
-    }
-
-    public NeighborhoodState() {}
-
-    public void load(InputStream in) throws IOException {
-      try {
-        ObjectInputStream source = new ObjectInputStream(in);
-        liveCells = (Collection) (source.readObject());
-      } catch (ClassNotFoundException e) { // This exception shouldn't be rethrown as
-        // a ClassNotFoundException because the
-        // outside world shouldn't know (or care) that we're
-        // using serialization to load the object. Nothring
-        // wrong with treating it as an I/O error, however.
-
-        throw new IOException("Internal Error: Class not found on load");
-      }
-    }
-
-    public void flush(OutputStream out) throws IOException {
-      ObjectOutputStream sink = new ObjectOutputStream(out);
-      sink.writeObject(liveCells);
-    }
-
-    public void markAsAlive(Point location) {
-      liveCells.add(new Point(location));
-    }
-
-    public boolean isAlive(Point location) {
-      return liveCells.contains(location);
-    }
-
-    public String toString() {
-      StringBuffer b = new StringBuffer();
-
-      b.append("NeighborhoodState:\n");
-      for (Iterator i = liveCells.iterator(); i.hasNext(); )
-        b.append(((Point) i.next()).toString() + "\n");
-      return b.toString();
-    }
-  }
 }

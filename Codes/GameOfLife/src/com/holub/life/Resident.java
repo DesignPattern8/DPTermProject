@@ -121,8 +121,7 @@ public final class Resident implements Cell {
     return isStable() ? Direction.NONE : Direction.ALL;
   }
 
-  public boolean transfer(Storable blob, Point upperLeft, boolean doLoad) {
-    Memento memento = (Memento) blob;
+  public boolean transfer(Memento memento, Point upperLeft, boolean doLoad) {
     if (doLoad) {
       if (amAlive = willBeAlive = memento.isAlive(upperLeft)) return true;
     } else if (amAlive) // store only live cells
@@ -135,7 +134,7 @@ public final class Resident implements Cell {
    * Mementos must be created by Neighborhood objects. Throw an exception if anybody tries to do it
    * here.
    */
-  public Storable createMemento() {
+  public NeighborhoodState createMemento() {
     throw new UnsupportedOperationException("May not create memento of a unitary cell");
   }
 }

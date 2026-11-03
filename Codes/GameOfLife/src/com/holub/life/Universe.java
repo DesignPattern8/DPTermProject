@@ -1,5 +1,7 @@
 package com.holub.life;
 
+import com.holub.life.persistence.LegacyLifeCodec;
+
 import com.holub.io.Files;
 import com.holub.ui.MenuSite;
 import java.awt.*;
@@ -158,8 +160,8 @@ public class Universe extends JPanel {
       Clock.instance().stop(); // stop the game and
       outermostCell.clear(); // clear the board.
 
-      Storable memento = outermostCell.createMemento();
-      memento.load(in);
+      NeighborhoodState memento = outermostCell.createMemento();
+      LegacyLifeCodec.load(memento, in);
       outermostCell.transfer(memento, new Point(0, 0), Cell.LOAD);
 
       in.close();
@@ -177,9 +179,9 @@ public class Universe extends JPanel {
 
       Clock.instance().stop(); // stop the game
 
-      Storable memento = outermostCell.createMemento();
+      NeighborhoodState memento = outermostCell.createMemento();
       outermostCell.transfer(memento, new Point(0, 0), Cell.STORE);
-      memento.flush(out);
+      LegacyLifeCodec.flush(memento, out);
 
       out.close();
     } catch (IOException theException) {

@@ -87,7 +87,7 @@ public interface Cell {
    *
    * @see Cell
    */
-  interface Memento extends Storable {
+  interface Memento {
     /** On creation of the memento, indicate that a cell is alive. */
     void markAsAlive(Point location);
 
@@ -100,7 +100,7 @@ public interface Cell {
    *
    * @return true if this cell was modified by the transfer.
    */
-  boolean transfer(Storable memento, Point upperLeftCorner, boolean doLoad);
+  boolean transfer(Memento memento, Point upperLeftCorner, boolean doLoad);
 
   /** Possible value for the "load" argument to transfer() */
   public static boolean STORE = false;
@@ -113,7 +113,7 @@ public interface Cell {
    * implemented only by whatever class defines the outermost cell in the universe. Other cell
    * implementions should throw an UnsupportedOperationException when this method is called.
    */
-  Storable createMemento();
+  NeighborhoodState createMemento();
 
   /**
    * The DUMMY Singleton represents a permanently dead (thus stable) cell. It's used for the edges
@@ -158,11 +158,11 @@ public interface Cell {
 
         public void redraw(Graphics g, Rectangle here, boolean drawAll) {}
 
-        public boolean transfer(Storable m, Point ul, boolean load) {
+        public boolean transfer(Memento m, Point ul, boolean load) {
           return false;
         }
 
-        public Storable createMemento() {
+        public NeighborhoodState createMemento() {
           throw new UnsupportedOperationException("Cannot create memento of dummy block");
         }
       };

@@ -1,5 +1,7 @@
 package com.holub.life;
 
+import com.holub.life.persistence.LegacyLifeCodec;
+
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.ByteArrayInputStream;
@@ -55,18 +57,18 @@ final class ClassicBoard {
 
   /** Grid &gt; Store (Universe.java:180-182). 파일 대신 바이트 배열에 쓴다. */
   byte[] store() throws IOException {
-    Storable memento = outermost.createMemento();
+    NeighborhoodState memento = outermost.createMemento();
     outermost.transfer(memento, new Point(0, 0), Cell.STORE);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    memento.flush(out);
+    LegacyLifeCodec.flush(memento, out);
     return out.toByteArray();
   }
 
   /** Grid &gt; Load (Universe.java:159-163). 파일 대신 바이트 배열에서 읽는다. */
   ClassicBoard load(byte[] bytes) throws IOException {
     outermost.clear();
-    Storable memento = outermost.createMemento();
-    memento.load(new ByteArrayInputStream(bytes));
+    NeighborhoodState memento = outermost.createMemento();
+    LegacyLifeCodec.load(memento, new ByteArrayInputStream(bytes));
     outermost.transfer(memento, new Point(0, 0), Cell.LOAD);
     return this;
   }
@@ -75,7 +77,7 @@ final class ClassicBoard {
   Set<Point> liveCells() {
     try {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
-      outermost.createMemento().flush(out);
+      LegacyLifeCodec.flush(outermost.createMemento(), out);
       Set<Point> live = new HashSet<>();
       for (Object o : readStoredCollection(out.toByteArray())) live.add((Point) o);
       return live;
