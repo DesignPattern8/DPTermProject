@@ -53,10 +53,12 @@ final class ClassicBoard {
     return this;
   }
 
-  /** Grid &gt; Store (Universe.java:180-182). 파일 대신 바이트 배열에 쓴다. */
+  /**
+   * Grid &gt; Store (Universe.java:180-181, #10 수정 후). 파일 대신 바이트 배열에 쓴다. Universe를 화면 없이 띄울 수 없어서
+   * doStore()를 직접 부르지 못하고 같은 순서로 호출한다.
+   */
   byte[] store() throws IOException {
     Storable memento = outermost.createMemento();
-    outermost.transfer(memento, new Point(0, 0), Cell.STORE);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     memento.flush(out);
     return out.toByteArray();
