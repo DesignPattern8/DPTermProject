@@ -418,7 +418,18 @@ public final class Neighborhood implements Cell {
     public void load(InputStream in) throws IOException {
       try {
         ObjectInputStream source = new ObjectInputStream(in);
-        liveCells = (Collection) (source.readObject());
+        Object loaded = source.readObject();
+
+        // A file that isn't a Collection of Points isn't a Life file. Report it
+        // as an I/O error so that callers (Universe.doLoad) handle it like any
+        // other unreadable file.
+        if (!(loaded instanceof Collection))
+          throw new IOException("Not a Life file: expected a Collection of cells");
+        for (Object cell : (Collection<?>) loaded)
+          if (!(cell instanceof Point))
+            throw new IOException("Not a Life file: unexpected cell entry");
+
+        liveCells = (Collection) loaded;
       } catch (ClassNotFoundException e) { // This exception shouldn't be rethrown as
         // a ClassNotFoundException because the
         // outside world shouldn't know (or care) that we're
