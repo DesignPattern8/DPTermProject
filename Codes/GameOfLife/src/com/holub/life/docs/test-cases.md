@@ -91,7 +91,7 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-C-07 | 예외 | `Neighborhood.edge()`에 가운데 칸을 요청하면 assert가 실패한다 | 8×8 `Neighborhood`의 `edge(3,3)` | `AssertionError` (테스트는 `-ea`로 실행) | `#edgeRejectsCentralCell` |
 | CL-C-08 | 정상 | 움직이는 패턴 근처의 하위 블록만 다시 계산한다 (활성 블록 최적화) | 64×64, CL-G-03 glider, tick 2~10 | tick마다 셀을 다시 계산한 `Neighborhood` 수(바깥 블록 1 포함)가 5 이하 (수정 전에는 65) | `#onlyBlocksNearChangesAreRecomputed` |
 
-- CL-C-03: #12에서 수정. 수정 전에는 반환값이 뒤집혀 있었다(`Resident.java:79-83`, 이전 기대값: 바뀐 셀 false·안 바뀐 셀 true, 메서드 `#residentTransitionReturnsInvertedFlag`). 이 값은 `Neighborhood.transition()`(`Neighborhood.java:232`)에서 하위 블록의 가장자리 활성 표시(`activeEdges`)와 상위 반환값에 쓰인다. 보드 결과·다시 그리기·`refreshNow()` 호출은 수정 전후가 같다(CL-G-07~10이 그대로 통과).
+- CL-C-03: #12에서 수정. 수정 전에는 반환값이 뒤집혀 있었다(`Resident.java:79-83`, 이전 기대값: 바뀐 셀 false·안 바뀐 셀 true, 메서드 `#residentTransitionReturnsInvertedFlag`). 이 값은 `Neighborhood.transition()`(`Neighborhood.java:240`, 계측 카운터 추가 전에는 232)에서 하위 블록의 가장자리 활성 표시(`activeEdges`)와 상위 반환값에 쓰인다. 보드 결과·다시 그리기·`refreshNow()` 호출은 수정 전후가 같다(CL-G-07~10이 그대로 통과).
 - CL-C-08: #12에서 추가. 이 수정의 효과를 보여주는 테스트다. 재계산 수는 `Neighborhood`의 package-private 계측 카운터로 센다. 수정 전후 실측값: [measurement-resident-transition.md](measurement-resident-transition.md)
 - CL-C-05: 이 메서드를 호출하는 곳은 저장소에 없다. Cell 인터페이스 회의 안건(`docs/001-cell-state-representation.md`, `feature/two-player-mode` 브랜치)에 포함돼 있다.
 
