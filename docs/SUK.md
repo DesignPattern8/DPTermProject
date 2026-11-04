@@ -22,6 +22,7 @@
 | #25 | 11-04 | main | #24 | (팀원 Lidohyeon) 도메인 구조 변경: `model`·`application`·`persistence`·`ui` |
 | #26 | 11-04 | 통합 브랜치 | — | main 동기화 1차 (squash로 머지됨) |
 | #28 | 11-04 | main | #27 | 작업 기록 갱신 (머지 반영, 통합 브랜치 PR 규칙) |
+| #32 | 11-04 | 통합 브랜치 | — | main 동기화 2차 (#25 포함, merge commit으로 머지) |
 
 "통합 브랜치" = `feature/two-player-mode`.
 
@@ -29,16 +30,14 @@
 
 | PR | base | 이슈 | 내용 | 상태 |
 | --- | --- | --- | --- | --- |
-| #32 | 통합 브랜치 | — | main 동기화 2차 (#25 포함) | CI 97개 통과, merge commit으로 머지 예정 |
 | #34 | main | #33 | 클래식 `test-cases.md`를 #25 이후 경로로 갱신(CL-M-06 정리), 측정 문서 기준 커밋 한 줄, 이 작업 기록 | CI 통과, 리뷰 대기 |
+| (회의 자료 경로 PR) | 통합 브랜치 | #5 (Refs) | 회의 자료(001, core `interfaces.md`)를 #25 이후 코드로 갱신, 렌더러 문제 반영 | 이 기록 갱신 후 개설 |
 
 ### 다음 작업
 
 | 작업 | 이슈 | 시작 조건 |
 | --- | --- | --- |
-| 회의 자료 경로 수정 (001, core `interfaces.md`) | #5 (Refs) | #32 머지 후 |
-| #6 다이어그램 (상태 렌더링, 클래스·시퀀스) → 머지 후 #6 닫기 | #6 (Refs) | 경로 수정 다음 |
-| #9·#25 댓글 (CL-M 경로 이동 제안, `@DisplayName` 요청) | — | 최종 문구 승인 후 |
+| #6 다이어그램 (상태 렌더링, 클래스·시퀀스) → 머지 후 #6 닫기 | #6 (Refs) | 회의 자료 경로 PR 다음 |
 | 2인용 셀 상태·전이 규칙 | #5 | Cell 인터페이스 회의 후 |
 | 2인용 UI 통합 | #7 | #5 이후, #25의 UI 구조 위에서 |
 | 2인용 문서·다이어그램 정리 | #8 | #5·#7 이후 |
@@ -235,16 +234,22 @@
 
 **CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. 케이스 정의는 #25가 `life/docs/domain-extraction-tests.md`에 EXT-A01~A06 등으로 이미 써 두었다(실제 저장 경로 검증은 EXT-A05). 같은 PR에서 측정 문서(`measurement-resident-transition.md`)는 줄 번호를 측정 기록 그대로 두고, "줄 번호는 측정 시점 커밋(`db637eb` 수정 전, `94cdaa6` 수정 후) 기준, #25 이후 현재 위치: `model/Neighborhood.java`" 한 줄만 추가했다.
 
-**팀원에게 보낼 댓글 2개 (승인 대기)**: 댓글은 담당별로 나누고 `@` 멘션은 넣지 않는다.
+**팀원에게 남긴 댓글 2개**: 담당별로 나누고 `@` 멘션은 넣지 않았다. [#9 댓글](https://github.com/DesignPattern8/DPTermProject/issues/9#issuecomment-6629193687), [#25 댓글](https://github.com/DesignPattern8/DPTermProject/pull/25#issuecomment-6629194101).
 
 - #9(UI 분리 담당): CL-M 테스트(`ClassicBoard#store()`/`#load()`)를 `GameController` 경로로 옮기는 (a)안을 #9 작업 때 같이 할지
-- #25(작성자): #25가 추가한 테스트 16개(`GameControllerTest` 5, `ClockTest` 1, `GameMenuTest` 2, `RenderingExtractionTest` 5, `LoadFailureCharacterizationTest` 3)에 케이스 ID와 목적이 드러나는 `@DisplayName`을 붙이고, 정의 문서(`domain-extraction-tests.md`)를 각 도메인 `test-cases.md`에서 찾을 수 있게 연결해 달라는 요청
+- #25(작성자): #25가 추가한 테스트 16개(`GameControllerTest` 5, `ClockTest` 1, `GameMenuTest` 2, `RenderingExtractionTest` 5, `LoadFailureCharacterizationTest` 3)에 케이스 ID와 목적이 드러나는 `@DisplayName`을 붙이고, 정의 문서(`domain-extraction-tests.md`)를 각 도메인 `test-cases.md`에서 찾을 수 있게 연결해 달라는 요청. 바쁘면 별도 PR로 붙여도 될지 함께 물었다.
+
+**회의 자료 갱신 (#5, 통합 브랜치)**: #32 머지 후 001과 core `interfaces.md`의 경로·줄 번호를 #25 이후 코드(`life/model`, `life/ui`)로 고쳤다. #25에서 그리기가 `ui/BoardRenderer`로 옮겨지면서 제안 내용에 영향이 생겼다.
+
+- `BoardRenderer`는 `instanceof Neighborhood`/`instanceof Resident`로 셀 종류를 고르고, 색은 `isAlive()`만 본다. 두 조건에 맞지 않는 셀은 그려지지 않으므로, 2인용 셀을 새 클래스로 만들면 화면에 나오지 않고 A·B 색을 고를 정보도 없다.
+- 오버헤드 표에 렌더러 항목(고칠 파일, 그리는 셀 1개당 간접성, 새 셀 종류를 빠뜨렸을 때, 충돌 대상)을 추가했다. 네 후보 모두 렌더러(#9 담당 영역)를 한 번 고쳐야 한다.
+- D(Visitor)를 다시 평가했다. 렌더러·셀 수 집계까지 쓸 곳이 늘고 새 셀 종류 누락이 컴파일 오류로 잡히는 이점이 생겼지만, 가장 자주 부르는 이웃 조회에서 호출이 2배가 되고 `life/model` ↔ `twoplayer` 패키지 순환이 생긴다. 제안은 C(상태 인터페이스 + 모드별 enum, 렌더러는 상태 → 팔레트 색) 유지, 상태는 "제안".
+- 회의에서 정할 것에 3개를 추가했다: 렌더러가 색을 고르는 방법과 담당, 다른 도메인의 Visitor 계획, `CellState` 패키지 위치와 회의 자료 문서 위치(`life/docs` vs #25의 `life/model/docs`).
 
 ## 남은 일
 
-- #32(main 동기화 2차) merge commit으로 머지 → #5 회의 자료 경로 수정(001, core `interfaces.md`, Refs #5) → #6 다이어그램 PR → #6 닫기
-- #25는 머지됨. 회의 자료의 클래스 경로·파일·줄 근거를 #25 이후 코드로 고치고, 바뀐 구조 때문에 제안 내용 자체가 달라지는 부분은 따로 정리
-- #9·#25 댓글 2개: 최종 문구 승인 후 게시
+- 회의 자료 경로 PR(→ 통합 브랜치, Refs #5) 머지 → #6 다이어그램 PR → #6 닫기
+- #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현 (#25 이후)
 - #7 UI 통합: #25가 나눈 UI 구조(`BoardPanel`, `GameMenu`, `GameController`) 위에서 설계
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
