@@ -39,7 +39,9 @@
 | [005-cell-count-and-judge.md](005-cell-count-and-judge.md) | 설계 결정: 셀 수 집계와 승패 판정 → 별도 판정 클래스 |
 | [interfaces.md](interfaces.md) | `TwoPlayerBoard`, `TwoPlayerGame` 시그니처와 계약 |
 | [test-cases.md](test-cases.md) | 테스트 케이스 정의 (TP-R·TP-F·TP-P·TP-E·TP-U) |
-| [diagrams/twoplayer-game-phase-state.puml](diagrams/twoplayer-game-phase-state.puml) | 게임 단계 상태 다이어그램 (png/svg는 렌더링 작업 추가 후) |
+| [diagrams/twoplayer-game-phase-state.puml](diagrams/twoplayer-game-phase-state.puml) ([png](diagrams/twoplayer-game-phase-state.png), [svg](diagrams/twoplayer-game-phase-state.svg)) | 게임 단계 상태 다이어그램 |
+| [diagrams/twoplayer-class.puml](diagrams/twoplayer-class.puml) ([png](diagrams/twoplayer-class.png), [svg](diagrams/twoplayer-class.svg)) | 게임 진행 모델 클래스 다이어그램 (공개 타입 흰색, package-private 회색) |
+| [diagrams/twoplayer-round-sequence.puml](diagrams/twoplayer-round-sequence.puml) ([png](diagrams/twoplayer-round-sequence.png), [svg](diagrams/twoplayer-round-sequence.svg)) | 한 라운드(시뮬레이션 K세대 → 개입 → 다음 라운드) 시퀀스 다이어그램 |
 
 셀 상태 표현(Cell 인터페이스 변경 제안)은 core 쪽 문서에 있다: [../../docs/001-cell-state-representation.md](../../docs/001-cell-state-representation.md), [../../docs/interfaces.md](../../docs/interfaces.md)
 
@@ -55,3 +57,5 @@
 | `StubBoard`, `GameScript` | 대역 보드, 게임 진행 도우미 | — |
 
 실행: `cd Codes/GameOfLife && ./gradlew test` (JDK 26)
+
+다이어그램 렌더링: `cd Codes/GameOfLife && ./gradlew renderDiagrams` (원본 `.puml`과 png·svg를 함께 커밋한다, AGENTS.md 2-5)
