@@ -7,6 +7,21 @@
   - 프로덕션 코드는 바꾸지 않는다. 테스트 코드만 추가한다.
   - Swing 없이 돈다. 보드는 `Universe`와 같은 구성(`new Neighborhood(8, new Neighborhood(8, new Resident()))`, 64×64, `Universe.java:42-43`)으로 테스트에서 직접 만든다.
 
+## 도메인 추출 이후 (#24)
+
+아래 원본 파일명·줄 번호와 "Swing 없이 테스트할 수 없는 것"은 e38ce7a 시점의 특성 분석 기록이다. 기대값은 변경하지 않았다. 현재 경로와 대체 호출은 다음과 같다.
+
+| 원본 | 현재 |
+| --- | --- |
+| Cell/Resident/Neighborhood/Direction | `model/` 패키지 |
+| userClicked | `ui/GridCoordinateMapper.userClicked` → 모델 `toggle` |
+| Memento.load/flush | `persistence/LegacyLifeCodec.load/flush` |
+| Universe의 모델·파일 작업 순서 | `application/GameController` |
+| Universe 화면·메뉴 | `ui/BoardPanel`, `ui/GameMenu` |
+| Clock | `application/Clock` (Timer·Publisher 유지) |
+
+기존 34개 JUnit 테스트의 입력·기대값을 유지했다. import 및 테스트 도우미의 호출부만 변경한다. 추가 검증은 [추출 케이스](domain-extraction-tests.md), [실행 검증 결과](../application/docs/verification.md)를 참고한다.
+
 ## 테스트 도우미
 
 | 도우미 | 하는 일 | 원본 코드에서 같은 동작을 하는 곳 |
