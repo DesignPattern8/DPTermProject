@@ -6,26 +6,42 @@
 
 ## 한눈에 보기
 
-| 단계 | 이슈 | 브랜치 | PR | 상태 |
+### 머지된 PR (머지 순서, 2026-11-03 ~ 11-04)
+
+| PR | 날짜 | base | 이슈 | 내용 |
 | --- | --- | --- | --- | --- |
-| 0. 테스트 환경 (Gradle + JUnit 5 + CI) | #2 | `chore/test-setup` | #3 | 머지됨 |
-| 1. 클래식 특성 테스트 | #4 | `test/classic-characterization` | #13 | 머지됨 |
-| 작업 기록 정리 | #14 | `docs/suk-worklog` | #15 | 머지됨 |
-| 버그: Store 중복 기록 | #10 | `fix/store-duplicate` | #16 | 머지됨 |
-| 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 머지됨 (#16 머지 후 rebase) |
-| 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 머지됨 |
-| 작업 기록 갱신 | #19 | `docs/suk-update` | #20 | 머지됨 |
-| 작업 기록 갱신 (머지 반영, 통합 브랜치 규칙) | #27 | `docs/suk-update-2` | #28 | 머지됨 |
-| 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
-| 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ 통합 브랜치) | 머지됨. 이슈는 다이어그램 PR 머지 후 직접 닫음 |
-| 통합 브랜치에 main 동기화 | — | `chore/sync-main-into-2p` | #26 (→ 통합 브랜치) | 머지됨 (squash) |
-| 통합 브랜치에 main 동기화 2차 (#25 포함) | — | `chore/sync-main-into-2p-2` | #32 (→ 통합 브랜치) | merge commit으로 머지 예정 |
-| 클래식 test-cases.md 경로 갱신 (CL-M-06 정리) | #33 | `docs/classic-test-cases-paths` | #34 | 리뷰 대기 |
-| #5 회의 자료 경로 수정 (001, core interfaces.md) | #5 | (#32 머지 후) | — | 대기 |
-| #6 다이어그램 (상태 렌더링, 클래스·시퀀스) | #6 | (경로 수정 다음) | — | 대기 |
-| 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | #23 | 머지됨 |
-| 4. 2인용 UI 통합 | #7 | — | — | 대기 |
-| 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
+| #3 | 11-03 | main | #2 | 테스트 환경 (Gradle + JUnit 5 + CI) |
+| #13 | 11-03 | main | #4 | 클래식 특성 테스트 33개 (기존 동작 고정) |
+| #15 | 11-03 | main | #14 | 작업 기록 정리 |
+| #16 | 11-03 | main | #10 | 버그: Store 중복 기록 |
+| #17 | 11-03 | main | #11 | 버그: 불러오기 `ClassCastException` (#16 머지 후 rebase) |
+| #18 | 11-03 | main | #12 | 버그: `Resident.transition()` 반환값 뒤집힘 |
+| #20 | 11-03 | main | #19 | 작업 기록 갱신 (버그 3건, #6 1차) |
+| #21 | 11-03 | 통합 브랜치 | #6 (Refs) | 2인용 게임 진행 모델 (단계·배치·패스·승패 판정) |
+| #23 | 11-03 | main | #22 | PlantUML 다이어그램 렌더링 작업 |
+| #25 | 11-04 | main | #24 | (팀원 Lidohyeon) 도메인 구조 변경: `model`·`application`·`persistence`·`ui` |
+| #26 | 11-04 | 통합 브랜치 | — | main 동기화 1차 (squash로 머지됨) |
+| #28 | 11-04 | main | #27 | 작업 기록 갱신 (머지 반영, 통합 브랜치 PR 규칙) |
+
+"통합 브랜치" = `feature/two-player-mode`.
+
+### 진행 중 PR
+
+| PR | base | 이슈 | 내용 | 상태 |
+| --- | --- | --- | --- | --- |
+| #32 | 통합 브랜치 | — | main 동기화 2차 (#25 포함) | CI 97개 통과, merge commit으로 머지 예정 |
+| #34 | main | #33 | 클래식 `test-cases.md`를 #25 이후 경로로 갱신(CL-M-06 정리), 측정 문서 기준 커밋 한 줄, 이 작업 기록 | CI 통과, 리뷰 대기 |
+
+### 다음 작업
+
+| 작업 | 이슈 | 시작 조건 |
+| --- | --- | --- |
+| 회의 자료 경로 수정 (001, core `interfaces.md`) | #5 (Refs) | #32 머지 후 |
+| #6 다이어그램 (상태 렌더링, 클래스·시퀀스) → 머지 후 #6 닫기 | #6 (Refs) | 경로 수정 다음 |
+| #9·#25 댓글 (CL-M 경로 이동 제안, `@DisplayName` 요청) | — | 최종 문구 승인 후 |
+| 2인용 셀 상태·전이 규칙 | #5 | Cell 인터페이스 회의 후 |
+| 2인용 UI 통합 | #7 | #5 이후, #25의 UI 구조 위에서 |
+| 2인용 문서·다이어그램 정리 | #8 | #5·#7 이후 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
 
@@ -217,19 +233,23 @@
 
 **버그 수정이 #25 이후에도 남았는지**: #25 머지 전 #25에 확인 요청 댓글을 남겼고, 머지 후 main에서 확인했다. #16 중복 `transfer` 없음, #17 형식 검사는 `persistence/LegacyLifeCodec.load()`로 이동, #18 `!isStable()`과 계측 카운터는 `model/`에, CL-C-08은 `model/NeighborhoodRecomputationTest`로 이동.
 
-**CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. (a)안과, `GameControllerTest` 등 #25 테스트에 `@DisplayName`(케이스 ID와 목적)을 붙이는 것은 #9 담당에게 제안 예정. 케이스 정의는 #25가 `life/docs/domain-extraction-tests.md`에 EXT-A01~A06 등으로 이미 써 두었다(실제 저장 경로 검증은 EXT-A05).
+**CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. 케이스 정의는 #25가 `life/docs/domain-extraction-tests.md`에 EXT-A01~A06 등으로 이미 써 두었다(실제 저장 경로 검증은 EXT-A05). 같은 PR에서 측정 문서(`measurement-resident-transition.md`)는 줄 번호를 측정 기록 그대로 두고, "줄 번호는 측정 시점 커밋(`db637eb` 수정 전, `94cdaa6` 수정 후) 기준, #25 이후 현재 위치: `model/Neighborhood.java`" 한 줄만 추가했다.
+
+**팀원에게 보낼 댓글 2개 (승인 대기)**: 댓글은 담당별로 나누고 `@` 멘션은 넣지 않는다.
+
+- #9(UI 분리 담당): CL-M 테스트(`ClassicBoard#store()`/`#load()`)를 `GameController` 경로로 옮기는 (a)안을 #9 작업 때 같이 할지
+- #25(작성자): #25가 추가한 테스트 16개(`GameControllerTest` 5, `ClockTest` 1, `GameMenuTest` 2, `RenderingExtractionTest` 5, `LoadFailureCharacterizationTest` 3)에 케이스 ID와 목적이 드러나는 `@DisplayName`을 붙이고, 정의 문서(`domain-extraction-tests.md`)를 각 도메인 `test-cases.md`에서 찾을 수 있게 연결해 달라는 요청
 
 ## 남은 일
 
 - #32(main 동기화 2차) merge commit으로 머지 → #5 회의 자료 경로 수정(001, core `interfaces.md`, Refs #5) → #6 다이어그램 PR → #6 닫기
 - #25는 머지됨. 회의 자료의 클래스 경로·파일·줄 근거를 #25 이후 코드로 고치고, 바뀐 구조 때문에 제안 내용 자체가 달라지는 부분은 따로 정리
-- #9 담당에게 제안: CL-M 테스트를 `GameController` 경로로 옮기는 안, #25 테스트(`GameControllerTest` 등)에 케이스 ID가 드러나는 `@DisplayName` 붙이기
-- `life/docs/measurement-resident-transition.md`도 옛 `Neighborhood.java` 줄 번호(121-129, 240)가 남아 있음 → 별도 확인
+- #9·#25 댓글 2개: 최종 문구 승인 후 게시
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현 (#25 이후)
 - #7 UI 통합: #25가 나눈 UI 구조(`BoardPanel`, `GameMenu`, `GameController`) 위에서 설계
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
-- 도메인 `docs/README.md`: `twoplayer/docs/`는 #21에 넣음. `life/docs/`는 다음 core 도메인 PR에 함께(#25가 core 쪽 README를 추가하므로 그 뒤 확인)
+- 도메인 `docs/README.md`: `twoplayer/docs/`는 #21에 넣음. `life/docs/README.md`는 #25가 추가함(문서 목록에 001·`interfaces.md`는 통합 브랜치가 main에 머지될 때 반영)
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
 
 ## 진행하면서 있었던 실수
@@ -237,3 +257,5 @@
 - 로컬 테스트 확인 전에 push한 적이 있다(#13). 명령의 `exit=1`이 Gradle이 아니라 `grep`의 종료 코드였고, 다시 돌려 Gradle 종료 코드 0과 34개 통과를 확인했다.
 - 커밋하지 않은 `.gitignore` 수정이 있는 상태에서 `git checkout -- .`가 포함된 명령을 실행하려다 차단됐다. 이후 기존 파일을 건드리지 않는 방식(임시 테스트 파일 추가 후 삭제)으로 확인했다.
 - 테스트 출력 한 번을 scratchpad 대신 `/tmp/x`에 썼다. 바로 지웠다.
+- main 동기화 2차(#32) 중, merge를 아직 커밋하지 않은 상태에서 명령 끝에 `git switch`를 붙여 실행했다. git이 전환을 거부해서 아무것도 바뀌지 않았고, 브랜치·진행 중인 merge·파일이 그대로인 것을 확인했다.
+- #25 테스트에 "케이스 ID가 없다"고 보고했는데, 정의는 #25가 `domain-extraction-tests.md`에 EXT-A01~A06으로 이미 써 두었다. 없는 것은 테스트 코드의 `@DisplayName`이었다. 문서(#34)와 PR 본문을 그에 맞게 고쳤다.
