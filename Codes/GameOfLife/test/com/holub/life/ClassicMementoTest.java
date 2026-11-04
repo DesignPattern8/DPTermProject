@@ -6,11 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.awt.Point;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -80,16 +82,42 @@ class ClassicMementoTest {
   }
 
   @Test
-  @DisplayName("CL-M-06 [현재 동작] Store 경로는 살아 있는 칸을 두 번씩 기록한다")
-  void storeRecordsEachLiveCellTwice() throws Exception {
+  @DisplayName("CL-M-06 Store는 살아 있는 칸을 한 번씩만 기록한다")
+  void storeRecordsEachLiveCellOnce() throws Exception {
     // Given
     ClassicBoard board = new ClassicBoard().click(5, 5).click(5, 6);
     // When
     Collection<?> stored = ClassicBoard.readStoredCollection(board.store());
     // Then
-    List<Object> expected = new ArrayList<>(List.of(new Point(5, 5), new Point(6, 5)));
-    expected.addAll(List.of(new Point(5, 5), new Point(6, 5)));
-    assertEquals(expected, new ArrayList<>(stored));
+    assertEquals(List.of(new Point(5, 5), new Point(6, 5)), new ArrayList<>(stored));
+  }
+
+  @Test
+  @DisplayName("CL-M-10 빈 보드를 저장하면 빈 Collection이 기록된다")
+  void emptyBoardStoresEmptyCollection() throws Exception {
+    // Given
+    ClassicBoard board = new ClassicBoard();
+    // When
+    Collection<?> stored = ClassicBoard.readStoredCollection(board.store());
+    // Then
+    assertTrue(stored.isEmpty());
+  }
+
+  @Test
+  @DisplayName("CL-M-11 수정 전 형식(칸이 두 번씩 든) 파일도 그대로 불러와진다")
+  void loadsFileWithDuplicatedCells() throws IOException {
+    // Given: #10 수정 전 Store가 만들던 형식
+    LinkedList<Point> legacy =
+        new LinkedList<>(List.of(new Point(5, 5), new Point(6, 5), new Point(5, 5), new Point(6, 5)));
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
+      out.writeObject(legacy);
+    }
+    ClassicBoard board = new ClassicBoard();
+    // When
+    board.load(bytes.toByteArray());
+    // Then
+    assertEquals(ClassicBoard.cells(new int[][] {{5, 5}, {5, 6}}), board.liveCells());
   }
 
   @Test
@@ -102,17 +130,50 @@ class ClassicMementoTest {
     assertThrows(IOException.class, () -> board.load(garbage));
   }
 
-  @Test
-  @DisplayName("CL-M-08 [현재 동작] Collection이 아닌 객체가 든 파일을 불러오면 IOException이 아니라 ClassCastException이 난다")
-  void loadingNonCollectionThrowsClassCastException() throws IOException {
-    // Given
+  /** 객체 하나를 직렬화한 바이트. 저장 파일 형식(ObjectOutputStream)과 같다. */
+  private static byte[] serialized(Object o) throws IOException {
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
-      out.writeObject("not a collection");
+      out.writeObject(o);
     }
-    ClassicBoard board = new ClassicBoard();
+    return bytes.toByteArray();
+  }
+
+  /** NeighborhoodState.load()를 직접 호출한다 (createMemento()가 NeighborhoodState를 돌려준다). */
+  private static void loadDirectly(byte[] bytes) throws IOException {
+    new ClassicBoard().cell().createMemento().load(new ByteArrayInputStream(bytes));
+  }
+
+  @Test
+  @DisplayName("CL-M-08 Collection이 아닌 객체(String, null)가 든 파일을 불러오면 IOException이 난다")
+  void loadingNonCollectionThrowsIOException() throws IOException {
+    // Given
+    byte[] string = serialized("not a collection");
+    byte[] nul = serialized(null);
     // When / Then
-    assertThrows(ClassCastException.class, () -> board.load(bytes.toByteArray()));
+    assertThrows(IOException.class, () -> loadDirectly(string));
+    assertThrows(IOException.class, () -> loadDirectly(nul));
+  }
+
+  @Test
+  @DisplayName("CL-M-12 Point가 아닌 원소가 든 Collection 파일을 불러오면 IOException이 난다")
+  void loadingCollectionWithNonPointThrowsIOException() throws IOException {
+    // Given
+    byte[] mixed = serialized(new LinkedList<Object>(List.of(new Point(1, 1), "not a point")));
+    // When / Then
+    assertThrows(IOException.class, () -> loadDirectly(mixed));
+  }
+
+  @Test
+  @DisplayName("CL-M-13 빈 Collection 파일을 불러오면 빈 보드가 된다")
+  void loadingEmptyCollectionGivesEmptyBoard() throws IOException {
+    // Given
+    byte[] empty = serialized(new LinkedList<Point>());
+    ClassicBoard board = new ClassicBoard().clickAll(BLINKER);
+    // When
+    board.load(empty);
+    // Then
+    assertTrue(board.liveCells().isEmpty());
   }
 
   @Test

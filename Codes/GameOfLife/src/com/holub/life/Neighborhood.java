@@ -97,6 +97,13 @@ public final class Neighborhood implements Cell {
    * @return true if this neighborhood (i.e. any of it's cells) will change state in the next
    *     transition.
    */
+  /**
+   * Instrumentation for tests only (#12): the number of neighborhoods, at every nesting level, that
+   * recomputed their cells in figureNextState() since the counter was last reset. Package-private
+   * on purpose; not part of the public API.
+   */
+  static int recomputedNeighborhoods = 0;
+
   public boolean figureNextState(
       Cell north,
       Cell south,
@@ -120,6 +127,7 @@ public final class Neighborhood implements Cell {
         || northwest.isDisruptiveTo().the(Direction.SOUTHEAST)
         || southeast.isDisruptiveTo().the(Direction.NORTHWEST)
         || southwest.isDisruptiveTo().the(Direction.NORTHEAST)) {
+      ++recomputedNeighborhoods;
       Cell northCell,
           southCell,
           eastCell,
@@ -418,7 +426,18 @@ public final class Neighborhood implements Cell {
     public void load(InputStream in) throws IOException {
       try {
         ObjectInputStream source = new ObjectInputStream(in);
-        liveCells = (Collection) (source.readObject());
+        Object loaded = source.readObject();
+
+        // A file that isn't a Collection of Points isn't a Life file. Report it
+        // as an I/O error so that callers (Universe.doLoad) handle it like any
+        // other unreadable file.
+        if (!(loaded instanceof Collection))
+          throw new IOException("Not a Life file: expected a Collection of cells");
+        for (Object cell : (Collection<?>) loaded)
+          if (!(cell instanceof Point))
+            throw new IOException("Not a Life file: unexpected cell entry");
+
+        liveCells = (Collection) loaded;
       } catch (ClassNotFoundException e) { // This exception shouldn't be rethrown as
         // a ClassNotFoundException because the
         // outside world shouldn't know (or care) that we're
