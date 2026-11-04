@@ -58,12 +58,12 @@ class GameControllerTest {
   }
 
   @Test
-  void storeKeepsDuplicateCoordinatesAndRoundTrip() throws Exception {
+  void storeWritesEachCoordinateOnceAndRoundTrip() throws Exception {
     board.toggle(5, 6);
     Path file = directory.resolve("board.life");
     controller.store(file.toFile());
     try (ObjectInputStream in = new ObjectInputStream(Files.newInputStream(file))) {
-      assertEquals(List.of(new Point(6, 5), new Point(6, 5)), in.readObject());
+      assertEquals(List.of(new Point(6, 5)), in.readObject());
     }
     controller.clear();
     controller.load(file.toFile());

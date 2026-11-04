@@ -154,7 +154,7 @@ public class NativeUiSmoke {
       File save = Path.of(args[0], "smoke.life").toFile();
       fileMenu("Store", save, false, false);
       try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(save))) {
-        check(((Collection<?>) in.readObject()).size() == 6, "legacy duplicate coordinates");
+        check(((Collection<?>) in.readObject()).size() == 3, "each coordinate stored once");
       }
       edt(() -> item("Grid", "Clear").doClick());
       check(cells().isEmpty(), "clear menu");
@@ -167,7 +167,7 @@ public class NativeUiSmoke {
       fileMenu("Load", bad, false, true);
       check(cells().isEmpty(), "read failure after clear");
       System.out.println(
-          "PASS: launch, 10 menu items, mouse, Tick, Store duplicates, Clear, Load, cancel error,"
+          "PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel error,"
               + " invalid-load clear");
       System.out.println("EXIT_MENU_REQUESTED");
       System.out.flush();

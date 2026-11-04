@@ -1,6 +1,6 @@
 # 도메인 추출 특성 테스트 (#24)
 
-- 기준: e38ce7a. 새 기능·버그 수정·새 패턴 도입 없이 메서드를 추출한다.
+- 최초 추출 기준: e38ce7a. 2026-11-04 main 병합 후 #16·#17·#18의 확정 계약을 반영한다(#29). 새 기능·버그 수정·새 패턴 도입 없이 메서드를 추출한다.
 - 기존 CL-G/E/M/C 33개와 smoke 1개의 입력·기대값은 유지한다. 패키지 import와 추출된 메서드 호출만 조정한다.
 - 구현 전 아래 케이스를 정의하고 원본으로 기대값을 확보한다.
 
@@ -12,8 +12,8 @@
 | EXT-R05 | 경계 | 안정화 직후 마지막 부분 갱신 유지 | block → tick → 부분 갱신 | 원본 픽셀 SHA-256 일치 | RenderingExtractionTest#stableBlockGetsItsLastRefresh |
 | EXT-R04 | 경계 | 정수 나눗셈 좌표 변환 보존 | 폭 511px, 클릭 (63,63), (0,0), (510,510) | 원본 좌표·예외와 동일 | RenderingExtractionTest#unevenSurfaceKeepsOriginalClickBehavior |
 | EXT-M01 | 예외 | 잘못된 파일 로드 시 기존 Clear 순서 보존 | 살아 있는 보드에 garbage | IOException 이후 빈 보드 | LoadFailureCharacterizationTest#invalidFileStillClearsBoard |
-| EXT-M02 | 경계 | Point 아닌 원소를 즉시 검증하지 않음 | 직렬화된 List<String> | 로드 성공, 빈 보드 | LoadFailureCharacterizationTest#nonPointElementsRemainIgnored |
-| EXT-M03 | 예외 | null 컬렉션의 기존 실패 유지 | 직렬화된 null | NullPointerException, 빈 보드 | LoadFailureCharacterizationTest#nullCollectionStillFailsDuringRestore |
+| EXT-M02 | 경계 | Point 아닌 원소 거부 | 직렬화된 List<String> | IOException, 빈 보드 | LoadFailureCharacterizationTest#nonPointElementsThrowIOException |
+| EXT-M03 | 예외 | null 컬렉션을 파일 오류로 처리 | 직렬화된 null | IOException, 빈 보드 | LoadFailureCharacterizationTest#nullCollectionThrowsIOException |
 | EXT-A01 | 정상 | 제어 추출 후 한 세대 진행 | blinker | 한 tick 뒤 기존 수직 좌표 | GameControllerTest#tickAdvancesOneGeneration |
 | EXT-A02 | 예외 | 파일 열기 실패 시 Clear 이전에 실패 | 존재하지 않는 경로 | 기존 보드 유지 | GameControllerTest#missingFileKeepsBoard |
 | EXT-A03 | 예외 | 파일 해석 실패 시 Clear 이후에 실패 | garbage 파일 | 기존 보드가 비워짐 | GameControllerTest#invalidFileClearsBoard |
@@ -27,7 +27,7 @@
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
-| EXT-A05 | 정상 | 실제 파일 경로의 기존 중복과 복원 유지 | 셀 하나 저장 → Clear → Load | 파일 좌표 2개, 복원 셀 1개 | GameControllerTest#storeKeepsDuplicateCoordinatesAndRoundTrip |
+| EXT-A05 | 정상 | 실제 파일 경로의 중복 없는 저장과 복원 유지 | 셀 하나 저장 → Clear → Load | 파일 좌표 1개, 복원 셀 1개 | GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip |
 | EXT-A06 | 예외 | 출력 파일 열기 실패 시 기존 보드 유지 | 디렉터리를 저장 경로로 전달 | IOException, 기존 셀 유지 | GameControllerTest#invalidOutputDoesNotClearBoard |
 
 | EXT-N01 | 정상/경계/예외 | 실제 Swing 연결의 전후 동작 보존 | 메뉴 10개, 클릭, Tick, Store, Clear, Load, 취소, 잘못된 파일, Exit | 원본/변경본 모두 같은 검증 통과 및 Exit 코드 0 | NativeUiSmoke#main |

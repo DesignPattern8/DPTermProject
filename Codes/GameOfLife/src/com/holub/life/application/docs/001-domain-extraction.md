@@ -20,3 +20,7 @@ GameController 1개 추가, 기존 Clock 이동. UI에서 제어 메서드 호�
 
 ## 후속 작업
 Undo/Redo·새 명령·TickSource 인터페이스·Swing Timer·스냅샷·안전한 로딩은 추가하지 않았다. 기존 실행 동작을 바꾸는 작업은 별도 이슈/PR로 진행한다.
+
+## 2026-11-04 병합 반영
+
+위 내용은 최초 추출 시점의 결정이다. main의 #16·#17 병합 후 중복 저장과 형식 오류 계약은 [현재 인터페이스](interfaces.md) 및 [CI 복구 기록](../../application/docs/verification.md)에 맞게 갱신했다(#29).

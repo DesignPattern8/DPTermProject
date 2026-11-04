@@ -63,7 +63,6 @@ final class ClassicBoard {
   /** Grid &gt; Store (Universe.java:180-182). 파일 대신 바이트 배열에 쓴다. */
   byte[] store() throws IOException {
     NeighborhoodState memento = outermost.createMemento();
-    outermost.transfer(memento, new Point(0, 0), Cell.STORE);
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     LegacyLifeCodec.flush(memento, out);
     return out.toByteArray();

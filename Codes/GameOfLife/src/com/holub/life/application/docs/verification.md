@@ -55,3 +55,17 @@ java -ea -Djava.awt.headless=false \
 
 ## 범위와 한계
 원본의 알려진 잘못된 동작을 고정했으며 개선하지 않았다. 기존 동시성 보장도 확대하지 않았다. 성능을 측정하지 않아 속도 개선은 주장하지 않는다. API의 패키지/메서드 위치는 바뀌었으므로 저장소 외부 호출자의 소스 호환성은 보장하지 않는다.
+
+## 2026-11-04 main 병합 후 CI 복구 (#29)
+
+관련: [이슈 #29](https://github.com/DesignPattern8/DPTermProject/issues/29), [실패 실행](https://github.com/DesignPattern8/DPTermProject/actions/runs/41780756517).
+위 2026-11-03 결과는 최초 추출 시점의 기록이다. 현재 저장·오류 계약은 main의 #16·#17을 따른다.
+
+- 병합 커밋 `1d7cf76`에서 테스트 컴파일 오류 4건을 로컬에서도 재현했다. `ClassicMementoTest`가 삭제된 `NeighborhoodState.load`를 호출하고, `ClassicCellTest`가 이동한 모델 패키지의 내부 계측 필드에 접근했다.
+- 직접 load 호출을 `LegacyLifeCodec.load`로 이전하고, CL-C-08을 모델 패키지의 `NeighborhoodRecomputationTest`로 옮겼다. 기존 입력, tick 범위, 검증식은 유지했다.
+- 공개 카운터 추가(A) 대신 동일 패키지 테스트 이동(B)을 선택했다. A는 기존 클래스 1개 필드의 접근 범위를 확대한다. B는 테스트 클래스 1개를 추가하고 테스트 메서드 1개를 옮기며 운영 API 변화와 운영 호출 간접성 증가는 0이다. 두 안 모두 Swing 창 없이 실행 가능하며 계측 비용은 동일하다. B는 모델 내부 계측 테스트를 같은 패키지에 추가할 수 있다.
+- 컴파일 복구 및 main 계약으로 테스트 정렬 후 55개 중 6개 실패를 확인했다. 새 Codec에 #17의 Collection/Point 검증이 빠졌고, GameController와 ClassicBoard에는 #16에서 제거한 추가 STORE transfer가 남아 있었다.
+- main에서 이미 확정된 검증을 Codec에 반영하고 중복 transfer를 제거했다. 과거 버그를 기대하던 추출 테스트와 NativeUiSmoke의 저장 개수도 해당 계약으로 갱신했다. 테스트 삭제·비활성화는 없다.
+- `./gradlew clean test build --no-daemon`: **55개 통과, 실패 0, 오류 0, skipped 0**, BUILD SUCCESSFUL. 환경은 macOS arm64 / 저장소 로컬 JDK 26.0.2.1 / Gradle 9.8.2이다.
+- 렌더링 픽셀, 세대 진행, 기존 중복 파일 호환, 메뉴·Clock headless 테스트도 통과했다. 이번에는 실제 Swing 창 smoke를 실행하지 않았으며 GitHub Actions의 재실행 결과는 아직 없다.
+- 클래스 관계와 공개 시그니처는 그대로여서 기존 클래스 다이어그램은 변경하지 않았다. Docker는 사용하지 않았다. 후속 작업은 수정사항 push 후 원격 CI 확인이다.

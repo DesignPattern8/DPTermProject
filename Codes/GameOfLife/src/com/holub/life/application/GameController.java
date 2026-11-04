@@ -54,7 +54,6 @@ public final class GameController {
     OutputStream out = BoardFileStore.openForStore(file);
     clock.stop();
     NeighborhoodState memento = outermostCell.createMemento();
-    outermostCell.transfer(memento, new Point(0, 0), Cell.STORE);
     LegacyLifeCodec.flush(memento, out);
     out.close();
   }

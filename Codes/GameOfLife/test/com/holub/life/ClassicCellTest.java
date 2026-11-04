@@ -86,21 +86,4 @@ class ClassicCellTest {
     // When / Then
     assertThrows(AssertionError.class, () -> block.edge(3, 3));
   }
-
-  @Test
-  @DisplayName("CL-C-08 glider 하나만 움직일 때는 그 근처의 하위 블록만 다시 계산한다 (tick마다 Neighborhood 5개 이하)")
-  void onlyBlocksNearChangesAreRecomputed() {
-    // Given: 64×64 보드에 glider 하나, 첫 tick은 클릭으로 생긴 활성 표시를 소화한다
-    ClassicBoard board =
-        new ClassicBoard().clickAll(new int[][] {{1, 2}, {2, 3}, {3, 1}, {3, 2}, {3, 3}}).tick();
-    for (int tick = 2; tick <= 10; tick++) {
-      // When
-      Neighborhood.recomputedNeighborhoods = 0;
-      board.tick();
-      // Then: 바깥 블록 1 + glider가 걸친 하위 블록과 그 이웃만 (수정 전에는 64 + 1 = 65)
-      assertTrue(
-          Neighborhood.recomputedNeighborhoods <= 5,
-          "tick " + tick + ": " + Neighborhood.recomputedNeighborhoods + "개 다시 계산");
-    }
-  }
 }

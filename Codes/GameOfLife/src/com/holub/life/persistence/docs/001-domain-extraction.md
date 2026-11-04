@@ -23,3 +23,7 @@ B. 기존 load/flush 본문만 구체 클래스 LegacyLifeCodec으로 추출: �
 
 ## 파일 경로 추출 결과
 Universe의 FileInputStream/FileOutputStream 생성을 구체 BoardFileStore로 이동했다. 스트림 close는 복원/저장 성공 뒤 수행하는 원본 위치인 GameController에 남겼다. 파일 열기 단계가 구체 함수 1단계를 거친다.
+
+## 2026-11-04 병합 반영
+
+위 내용은 최초 추출 시점의 결정이다. main의 #16·#17 병합 후 중복 저장과 형식 오류 계약은 [현재 인터페이스](interfaces.md) 및 [CI 복구 기록](../../application/docs/verification.md)에 맞게 갱신했다(#29).

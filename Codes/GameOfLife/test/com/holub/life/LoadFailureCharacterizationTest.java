@@ -15,17 +15,18 @@ class LoadFailureCharacterizationTest {
   }
 
   @Test
-  void nonPointElementsRemainIgnored() throws Exception {
+  void nonPointElementsThrowIOException() throws Exception {
     ClassicBoard board = new ClassicBoard().click(5, 5);
-    board.load(serialized(List.of("not a Point")));
+    byte[] bytes = serialized(List.of("not a Point"));
+    assertThrows(IOException.class, () -> board.load(bytes));
     assertTrue(board.liveCells().isEmpty());
   }
 
   @Test
-  void nullCollectionStillFailsDuringRestore() throws Exception {
+  void nullCollectionThrowsIOException() throws Exception {
     ClassicBoard board = new ClassicBoard().click(5, 5);
     byte[] bytes = serialized(null);
-    assertThrows(NullPointerException.class, () -> board.load(bytes));
+    assertThrows(IOException.class, () -> board.load(bytes));
     assertTrue(board.liveCells().isEmpty());
   }
 
