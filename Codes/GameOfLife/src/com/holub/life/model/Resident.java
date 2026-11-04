@@ -70,7 +70,7 @@ public final class Resident implements Cell {
   }
 
   public boolean transition() {
-    boolean changed = isStable();
+    boolean changed = !isStable();
     amAlive = willBeAlive;
     return changed;
   }

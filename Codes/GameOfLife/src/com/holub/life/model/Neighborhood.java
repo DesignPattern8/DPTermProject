@@ -92,6 +92,13 @@ public final class Neighborhood implements Cell {
    * @return true if this neighborhood (i.e. any of it's cells) will change state in the next
    *     transition.
    */
+  /**
+   * Instrumentation for tests only (#12): the number of neighborhoods, at every nesting level, that
+   * recomputed their cells in figureNextState() since the counter was last reset. Package-private
+   * on purpose; not part of the public API.
+   */
+  static int recomputedNeighborhoods = 0;
+
   public boolean figureNextState(
       Cell north,
       Cell south,
@@ -115,6 +122,7 @@ public final class Neighborhood implements Cell {
         || northwest.isDisruptiveTo().the(Direction.SOUTHEAST)
         || southeast.isDisruptiveTo().the(Direction.NORTHWEST)
         || southwest.isDisruptiveTo().the(Direction.NORTHEAST)) {
+      ++recomputedNeighborhoods;
       Cell northCell,
           southCell,
           eastCell,
