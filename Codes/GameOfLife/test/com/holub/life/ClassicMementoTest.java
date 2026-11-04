@@ -5,6 +5,9 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Resident;
+import com.holub.life.persistence.LegacyLifeCodec;
 import java.awt.Point;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -139,9 +142,10 @@ class ClassicMementoTest {
     return bytes.toByteArray();
   }
 
-  /** NeighborhoodState.load()를 직접 호출한다 (createMemento()가 NeighborhoodState를 돌려준다). */
+  /** 추출된 파일 Codec을 직접 호출한다. */
   private static void loadDirectly(byte[] bytes) throws IOException {
-    new ClassicBoard().cell().createMemento().load(new ByteArrayInputStream(bytes));
+    LegacyLifeCodec.load(
+        new ClassicBoard().cell().createMemento(), new ByteArrayInputStream(bytes));
   }
 
   @Test
