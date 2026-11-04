@@ -20,7 +20,7 @@
 | 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ 통합 브랜치) | 머지됨. 이슈는 다이어그램 PR 머지 후 직접 닫음 |
 | 통합 브랜치에 main 동기화 | — | `chore/sync-main-into-2p` | #26 (→ 통합 브랜치) | 머지됨 (squash) |
 | 통합 브랜치에 main 동기화 2차 (#25 포함) | — | `chore/sync-main-into-2p-2` | #32 (→ 통합 브랜치) | merge commit으로 머지 예정 |
-| 클래식 test-cases.md 경로 갱신 (CL-M-06 정리) | #33 | `docs/classic-test-cases-paths` | (이 기록 갱신 후 개설) | 리뷰 대기 |
+| 클래식 test-cases.md 경로 갱신 (CL-M-06 정리) | #33 | `docs/classic-test-cases-paths` | #34 | 리뷰 대기 |
 | #5 회의 자료 경로 수정 (001, core interfaces.md) | #5 | (#32 머지 후) | — | 대기 |
 | #6 다이어그램 (상태 렌더링, 클래스·시퀀스) | #6 | (경로 수정 다음) | — | 대기 |
 | 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | #23 | 머지됨 |
