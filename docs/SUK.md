@@ -217,13 +217,13 @@
 
 **버그 수정이 #25 이후에도 남았는지**: #25 머지 전 #25에 확인 요청 댓글을 남겼고, 머지 후 main에서 확인했다. #16 중복 `transfer` 없음, #17 형식 검사는 `persistence/LegacyLifeCodec.load()`로 이동, #18 `!isStable()`과 계측 카운터는 `model/`에, CL-C-08은 `model/NeighborhoodRecomputationTest`로 이동.
 
-**CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. (a)안과 `GameControllerTest`의 케이스 ID·`@DisplayName`은 #9 담당에게 제안 예정.
+**CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. (a)안과, `GameControllerTest` 등 #25 테스트에 `@DisplayName`(케이스 ID와 목적)을 붙이는 것은 #9 담당에게 제안 예정. 케이스 정의는 #25가 `life/docs/domain-extraction-tests.md`에 EXT-A01~A06 등으로 이미 써 두었다(실제 저장 경로 검증은 EXT-A05).
 
 ## 남은 일
 
 - #32(main 동기화 2차) merge commit으로 머지 → #5 회의 자료 경로 수정(001, core `interfaces.md`, Refs #5) → #6 다이어그램 PR → #6 닫기
 - #25는 머지됨. 회의 자료의 클래스 경로·파일·줄 근거를 #25 이후 코드로 고치고, 바뀐 구조 때문에 제안 내용 자체가 달라지는 부분은 따로 정리
-- #9 담당에게 제안: CL-M 테스트를 `GameController` 경로로 옮기는 안, `GameControllerTest`에 케이스 ID·`@DisplayName` 붙이기
+- #9 담당에게 제안: CL-M 테스트를 `GameController` 경로로 옮기는 안, #25 테스트(`GameControllerTest` 등)에 케이스 ID가 드러나는 `@DisplayName` 붙이기
 - `life/docs/measurement-resident-transition.md`도 옛 `Neighborhood.java` 줄 번호(121-129, 240)가 남아 있음 → 별도 확인
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현 (#25 이후)
 - #7 UI 통합: #25가 나눈 UI 구조(`BoardPanel`, `GameMenu`, `GameController`) 위에서 설계

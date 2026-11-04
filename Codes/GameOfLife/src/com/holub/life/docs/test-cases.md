@@ -100,7 +100,7 @@ CL-E-07: 실제 화면에서는 `BoardPanel`이 패널 크기를 보드 크기�
 | CL-M-13 | 경계 | 빈 `Collection` 파일을 불러오면 빈 보드가 된다 | 빈 `LinkedList`를 직렬화한 바이트, blinker가 있던 보드 | 빈 보드, 예외 없음 | `#loadingEmptyCollectionGivesEmptyBoard` |
 
 - CL-M-06: #10에서 수정. 수정 전에는 `Universe.doStore()`(e38ce7a `Universe.java:180-181`)가 `createMemento()`(내부에서 이미 `transfer(STORE)`, 지금은 `model/Neighborhood.java:356-359`) 뒤에 `transfer(STORE)`를 한 번 더 불러서 각 칸이 두 번씩 기록됐다(이전 기대값: 크기 4, 메서드 `#storeRecordsEachLiveCellTwice`). 중복 호출을 지워 한 번씩만 기록한다.
-  - 실제 저장 경로는 #25 이후 `GameController.store()`(`GameController.java:53-59`)이고, **`GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 직접 검증한다**(1칸을 임시 파일에 저장해 파일 안의 `Collection`이 정확히 `[Point(6,5)]`인지 확인, 다시 불러와 같은지 확인). 중복 기록이 다시 생기면 이 테스트가 실패한다.
+  - 실제 저장 경로는 #25 이후 `GameController.store()`(`GameController.java:53-59`)이고, **`GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`(EXT-A05, [domain-extraction-tests.md](domain-extraction-tests.md))이 직접 검증한다**(1칸을 임시 파일에 저장해 파일 안의 `Collection`이 정확히 `[Point(6,5)]`인지 확인, 다시 불러와 같은지 확인). 중복 기록이 다시 생기면 이 테스트가 실패한다.
   - CL-M-06은 같은 호출 순서(`createMemento()` → `LegacyLifeCodec.flush`)를 재현한 `ClassicBoard#store()`로 2칸 저장을 확인한다.
   - 남은 한계: 메뉴에서 시작하는 경로 `GameMenu.store` → `FileDialogs.userSelected` → `GameController.store` (`GameMenu.java:65-72`)는 파일 선택 대화상자 때문에 화면 없이 테스트할 수 없다.
 - CL-M-10, CL-M-11: #10에서 추가. CL-M-11은 수정 전에 저장한 파일과의 호환을 확인한다(불러올 때는 `contains()`로만 확인하므로 중복이 있어도 결과가 같다).
