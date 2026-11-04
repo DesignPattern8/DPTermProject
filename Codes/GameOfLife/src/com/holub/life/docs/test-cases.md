@@ -5,11 +5,11 @@
 - 원칙
   - 기대값은 "옳은 동작"이 아니라 **현재 코드가 실제로 하는 동작**이다. 버그로 보이는 동작도 그대로 고정하고, 고치지 않고 별도 이슈로 남긴다(강령 2). 이런 케이스는 분류 옆에 `현재 동작`이라고 표시했다.
   - 프로덕션 코드는 바꾸지 않는다. 테스트 코드만 추가한다.
-  - Swing 없이 돈다. 보드는 `Universe`와 같은 구성(`new Neighborhood(8, new Neighborhood(8, new Resident()))`, 64×64, `Universe.java:42-43`)으로 테스트에서 직접 만든다.
+  - Swing 없이 돈다. 보드는 실제 프로그램과 같은 구성(`new Neighborhood(8, new Neighborhood(8, new Resident()))`, 64×64, `Life.java:15`. 원본 e38ce7a에서는 `Universe.java:42-43`)으로 테스트에서 직접 만든다.
 
 ## 도메인 추출 이후 (#24)
 
-아래 원본 파일명·줄 번호와 "Swing 없이 테스트할 수 없는 것"은 e38ce7a 시점의 특성 분석 기록이다. 기대값은 변경하지 않았다. 현재 경로와 대체 호출은 다음과 같다.
+아래 문서의 파일·줄 번호는 #25 이후 코드(`main` `b1a1103`) 기준이고, 괄호 안의 `Universe.java` 등은 특성 분석 당시(e38ce7a)의 원본 위치다. 기대값은 변경하지 않았다. 현재 경로와 대체 호출은 다음과 같다.
 
 | 원본 | 현재 |
 | --- | --- |
@@ -26,18 +26,25 @@
 
 | 도우미 | 하는 일 | 원본 코드에서 같은 동작을 하는 곳 |
 | --- | --- | --- |
-| `ClassicBoard#click(row, col)` | 픽셀 1개 = 셀 1개인 64×64 영역으로 `userClicked` 호출 | 마우스 클릭 (`Universe.java:79`) |
-| `ClassicBoard#tick()` | 바깥을 `Cell.DUMMY` 8개로 두고 `figureNextState` → true면 `transition` | Clock 리스너 (`Universe.java:127-141`) |
-| `ClassicBoard#clear()` | `clear()` 호출 | Grid > Clear (`Universe.java:90`) |
-| `ClassicBoard#store()` | `createMemento()` → `flush` | Grid > Store (`Universe.java:180-181`, #10 수정 후) |
-| `ClassicBoard#load(bytes)` | `clear()` → `createMemento()` → `load` → `transfer(LOAD)` | Grid > Load (`Universe.java:159-163`) |
-| `ClassicBoard#liveCells()` | 메모리 안에서 `createMemento().flush()`한 결과를 읽어 살아 있는 칸 집합을 돌려줌 | — (셀 상태를 읽는 공개 API가 없어서 Memento를 씀) |
+| `ClassicBoard#click(row, col)` | 픽셀 1개 = 셀 1개인 64×64 영역으로 `GridCoordinateMapper.userClicked` 호출 → 모델 `toggle` | 마우스 클릭: `ui/BoardPanel.java:46-51`(`GridCoordinateMapper.position` → `GameController.toggle`), 같은 좌표 변환은 `ui/GridCoordinateMapper.java:25-28` (원본 `Universe.java:79`) |
+| `ClassicBoard#tick()` | 바깥을 `Cell.DUMMY` 8개로 두고 `figureNextState` → true면 `transition` | Clock 리스너 `ui/GameMenu.java:35, 46-48` → `application/GameController.tick()` (`GameController.java:28-41`) (원본 `Universe.java:127-141`) |
+| `ClassicBoard#clear()` | `clear()` 호출 | Grid > Clear `ui/GameMenu.java:15-22` → `GameController.clear()` (`GameController.java:24-26`) (원본 `Universe.java:90`) |
+| `ClassicBoard#store()` | `createMemento()` → `LegacyLifeCodec.flush` | Grid > Store `ui/GameMenu.java:24, 65-72` → `GameController.store()` (`GameController.java:53-59`) (원본 `Universe.java:180-181`, #10 수정 후) |
+| `ClassicBoard#load(bytes)` | `clear()` → `createMemento()` → `LegacyLifeCodec.load` → `transfer(LOAD)` | Grid > Load `ui/GameMenu.java:23, 55-63` → `GameController.load()` (`GameController.java:43-51`) (원본 `Universe.java:159-163`) |
+| `ClassicBoard#liveCells()` | 메모리 안에서 `LegacyLifeCodec.flush(createMemento())`한 결과를 읽어 살아 있는 칸 집합을 돌려줌 | — (셀 상태를 읽는 공개 API가 없어서 Memento를 씀) |
 | `ReferenceLife` | 2차원 boolean 배열로 만든 단순 B3/S23 (보드 밖 = 죽은 셀) | — (비교 기준) |
 
 ## Swing 없이 테스트할 수 없는 것
 
-- `Universe`, `Clock`은 생성자에서 `MenuSite.addLine()`을 호출하고, `MenuSite`는 `JFrame`으로 `establish()`돼 있어야 한다(`MenuSite.java:177-178`의 assert). 그래서 headless 환경에서는 두 객체를 만들 수 없다.
-- 따라서 Go 메뉴(속도·Tick), Exit, 파일 선택 대화상자는 이번에 직접 테스트하지 않는다. 대신 각 메뉴가 호출하는 모델 쪽 경로를 위 도우미로 똑같이 재현해 고정한다. 메뉴 자체의 테스트는 Clock·UI 리팩토링으로 의존성을 끊은 뒤 추가한다.
+- 원본(e38ce7a)에서는 `Universe`, `Clock`이 생성자에서 `MenuSite.addLine()`을 호출하고, `MenuSite`가 `JFrame`으로 `establish()`돼 있어야 해서(`com/holub/ui/MenuSite.java:177-178`의 assert) headless 환경에서 두 객체를 만들 수 없었다. 그래서 이 문서의 도우미는 각 메뉴가 모델에 하는 호출을 똑같이 재현해 고정했다.
+- #25 이후에는 모델 쪽 작업이 화면 없이 테스트된다.
+  - `application/Clock`은 `Clock(Timer)` 생성자로 만들 수 있다(`ClockTest`).
+  - `application/GameController`는 `Cell`과 `Clock`만으로 만들 수 있고, 저장·불러오기는 `GameControllerTest`가 임시 파일로 직접 검증한다.
+  - Go 메뉴의 속도·Tick 대응과 "메뉴가 열려 있으면 tick 무시"는 `ui/GameMenuTest`가 `GameMenu.go`·`GameMenu.onTick`으로 검증한다(`GameMenu.java:38-48`).
+- 아직 화면 없이 테스트할 수 없는 것
+  - 메뉴 등록 `GameMenu.install` (`GameMenu.java:14-36`): `MenuSite.addLine`이 위 assert에 걸린다.
+  - Exit (`GameMenu.java:25`, `System.exit(0)`)
+  - 파일 선택 대화상자와 실패 대화상자: `GameMenu.load`·`GameMenu.store` → `FileDialogs.userSelected`, "Read Failed!"·"Write Failed!" (`GameMenu.java:55-72`)
 
 ## 1. 세대 진행 (Tick)
 
@@ -70,7 +77,7 @@
 | CL-E-06 | 경계 | Clear 뒤 tick을 해도 아무것도 살아나지 않는다 | blinker → Clear → 1 tick | 빈 보드 | `#nothingRevivesAfterClear` |
 | CL-E-07 | 예외 (`현재 동작`) | 보드 밖 좌표로 클릭하면 예외가 난다 | (64,0), (-1,0) | `ArrayIndexOutOfBoundsException` | `#clickOutsideBoardThrows` |
 
-CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 맞추므로(`Universe.java:49-64`) 이 좌표가 들어오기 어렵다. 버그로 보지 않고 현재 동작으로만 기록한다.
+CL-E-07: 실제 화면에서는 `BoardPanel`이 패널 크기를 보드 크기에 맞추므로(`ui/BoardPanel.java:23-34`, 원본 `Universe.java:49-64`) 이 좌표가 들어오기 어렵다. 버그로 보지 않고 현재 동작으로만 기록한다.
 
 ## 3. 저장·불러오기 (Store / Load, Memento)
 
@@ -83,7 +90,7 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-M-03 | 정상 | 불러온 보드도 tick하면 규칙대로 진행한다 | blinker 저장 → 불러오기 → 1 tick | CL-G-02의 1 tick 결과와 같음 | `#loadedBoardEvolvesOnTick` |
 | CL-M-04 | 정상 | 저장 형식은 `java.awt.Point`(x=열, y=행)의 직렬화된 `Collection`이다 | (5,6) 하나 저장 | 파일을 읽으면 `Collection`이고 원소가 `Point(6,5)` | `#storedFormatIsSerializedPointCollection` |
 | CL-M-05 | 경계 | 빈 보드를 저장·불러오기 할 수 있다 | 빈 보드 저장 → 불러오기 | 빈 보드, 예외 없음 | `#emptyBoardRoundTrip` |
-| CL-M-06 | 정상 | Store는 살아 있는 칸을 한 번씩만 기록한다 | 2칸 저장 (`Universe.doStore`와 같은 순서) | 저장된 `Collection` 크기 2, 각 칸이 1번씩 | `#storeRecordsEachLiveCellOnce` |
+| CL-M-06 | 정상 | Store는 살아 있는 칸을 한 번씩만 기록한다 | 2칸 저장 (`GameController.store`와 같은 순서) | 저장된 `Collection` 크기 2, 각 칸이 1번씩 | `#storeRecordsEachLiveCellOnce` |
 | CL-M-07 | 예외 | 직렬화 형식이 아닌 파일을 불러오면 `IOException` | `"garbage"` 바이트 | `IOException`(실제 `StreamCorruptedException`) | `#loadingGarbageThrowsIOException` |
 | CL-M-08 | 예외 | `Collection`이 아닌 객체가 든 파일을 불러오면 `IOException`이 난다 | 직렬화된 `String`, 직렬화된 `null` | 둘 다 `IOException` | `#loadingNonCollectionThrowsIOException` |
 | CL-M-09 | 예외 | 단일 셀과 `DUMMY`는 Memento를 만들 수 없다 | `new Resident().createMemento()`, `Cell.DUMMY.createMemento()` | 둘 다 `UnsupportedOperationException` | `#unitaryCellsCannotCreateMemento` |
@@ -92,15 +99,17 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-M-12 | 예외 | `Point`가 아닌 원소가 든 `Collection` 파일을 불러오면 `IOException`이 난다 | `Point(1,1)`과 `String`이 든 `LinkedList` | `IOException` | `#loadingCollectionWithNonPointThrowsIOException` |
 | CL-M-13 | 경계 | 빈 `Collection` 파일을 불러오면 빈 보드가 된다 | 빈 `LinkedList`를 직렬화한 바이트, blinker가 있던 보드 | 빈 보드, 예외 없음 | `#loadingEmptyCollectionGivesEmptyBoard` |
 
-- CL-M-06: #10에서 수정. 수정 전에는 `Universe.doStore()`가 `createMemento()`(내부에서 이미 `transfer(STORE)`, `Neighborhood.java:400`) 뒤에 `transfer(STORE)`를 한 번 더 불러서 각 칸이 두 번씩 기록됐다(이전 기대값: 크기 4, 메서드 `#storeRecordsEachLiveCellTwice`). 중복 호출을 지워 한 번씩만 기록한다.
-  - **한계**: Universe를 화면 없이 띄울 수 없어서 doStore 자체의 회귀는 테스트로 잡지 못함. `Universe` 클래스를 불러오기만 해도 `MenuSite not established` assert가 실패한다. 그래서 CL-M-06은 `doStore()`와 같은 순서로 호출하는 `ClassicBoard#store()`를 검증한다. UI 분리(#9) 뒤 저장 경로를 화면 없이 호출할 수 있게 되면 `doStore()`를 직접 검증하도록 바꾼다.
+- CL-M-06: #10에서 수정. 수정 전에는 `Universe.doStore()`(e38ce7a `Universe.java:180-181`)가 `createMemento()`(내부에서 이미 `transfer(STORE)`, 지금은 `model/Neighborhood.java:356-359`) 뒤에 `transfer(STORE)`를 한 번 더 불러서 각 칸이 두 번씩 기록됐다(이전 기대값: 크기 4, 메서드 `#storeRecordsEachLiveCellTwice`). 중복 호출을 지워 한 번씩만 기록한다.
+  - 실제 저장 경로는 #25 이후 `GameController.store()`(`GameController.java:53-59`)이고, **`GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 직접 검증한다**(1칸을 임시 파일에 저장해 파일 안의 `Collection`이 정확히 `[Point(6,5)]`인지 확인, 다시 불러와 같은지 확인). 중복 기록이 다시 생기면 이 테스트가 실패한다.
+  - CL-M-06은 같은 호출 순서(`createMemento()` → `LegacyLifeCodec.flush`)를 재현한 `ClassicBoard#store()`로 2칸 저장을 확인한다.
+  - 남은 한계: 메뉴에서 시작하는 경로 `GameMenu.store` → `FileDialogs.userSelected` → `GameController.store` (`GameMenu.java:65-72`)는 파일 선택 대화상자 때문에 화면 없이 테스트할 수 없다.
 - CL-M-10, CL-M-11: #10에서 추가. CL-M-11은 수정 전에 저장한 파일과의 호환을 확인한다(불러올 때는 `contains()`로만 확인하므로 중복이 있어도 결과가 같다).
-- CL-M-08: #11에서 수정. 수정 전에는 `NeighborhoodState.load()`가 읽은 객체를 확인 없이 `Collection`으로 캐스팅해서(`Neighborhood.java:421`) `ClassCastException`이 났고, `Universe.doLoad()`는 `IOException`만 잡으므로(`Universe.java:166`) "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라갔다(이전 기대값: `ClassCastException`, 메서드 `#loadingNonCollectionThrowsClassCastException`). 이제 `load()`가 형식을 확인하고 `IOException`으로 바꿔 던지므로 `doLoad()`의 기존 catch가 받는다. `Universe`는 바꾸지 않았다.
-- CL-M-12, CL-M-13: #11에서 추가. 테스트는 `createMemento()`로 얻은 `NeighborhoodState`의 `load()`를 직접 호출한다.
+- CL-M-08: #11에서 수정. 수정 전에는 `NeighborhoodState.load()`(e38ce7a `Neighborhood.java:421`)가 읽은 객체를 확인 없이 `Collection`으로 캐스팅해서 `ClassCastException`이 났고, `Universe.doLoad()`는 `IOException`만 잡으므로(e38ce7a `Universe.java:166`) "Read Failed!" 대화상자 없이 이벤트 스레드까지 올라갔다(이전 기대값: `ClassCastException`, 메서드 `#loadingNonCollectionThrowsClassCastException`). 지금은 형식 검사가 `persistence/LegacyLifeCodec.load()`(`LegacyLifeCodec.java:12-25`)에 있고, 형식이 맞지 않으면 `IOException`을 던진다. 이를 `GameController.load()`(`GameController.java:43-51`)를 거쳐 `GameMenu.load()`의 `catch (IOException)`(`GameMenu.java:55-63`)가 받아 "Read Failed!"를 띄운다. 대화상자 표시는 화면 없이 테스트할 수 없다.
+- CL-M-12, CL-M-13: #11에서 추가. 테스트는 `createMemento()`로 얻은 `NeighborhoodState`에 `LegacyLifeCodec.load()`를 직접 호출한다.
 
 ## 4. 셀 단위 동작
 
-예정 클래스: `ClassicCellTest`
+클래스: `ClassicCellTest` (CL-C-08은 #25에서 `model/NeighborhoodRecomputationTest`로 이동. package-private 계측 카운터를 읽기 위해 `com.holub.life.model` 패키지에 있다)
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
@@ -109,12 +118,12 @@ CL-E-07: 실제 화면에서는 `Universe`가 패널 크기를 보드 크기에 
 | CL-C-03 | 정상 | `Resident.transition()`은 상태가 바뀐 셀에 true, 안 바뀐 셀에 false를 반환한다 | CL-C-02의 셀 / 계속 죽어 있는 셀 | 바뀐 셀은 true, 안 바뀐 셀은 false | `#residentTransitionReportsChange` |
 | CL-C-04 | 정상 | `DUMMY`는 항상 죽어 있고 가장자리 요청에 자기 자신을 돌려준다 | `Cell.DUMMY` | `isAlive()` = false, `edge(0,0)`과 `edge(5,5)`가 `DUMMY` | `#dummyIsAlwaysDead` |
 | CL-C-05 | 경계 (`현재 동작`) | `Neighborhood.isAlive()`는 빈 보드에서도 true다 | 빈 64×64 보드 | `isAlive()` = true | `#neighborhoodIsAliveIsAlwaysTrue` |
-| CL-C-06 | 정상 | 보드 폭은 64칸이다 | `Universe`와 같은 구성 | `widthInCells()` = 64 | `#boardIs64CellsWide` |
+| CL-C-06 | 정상 | 보드 폭은 64칸이다 | 실제 프로그램과 같은 구성(`Life.java:15`) | `widthInCells()` = 64 | `#boardIs64CellsWide` |
 | CL-C-07 | 예외 | `Neighborhood.edge()`에 가운데 칸을 요청하면 assert가 실패한다 | 8×8 `Neighborhood`의 `edge(3,3)` | `AssertionError` (테스트는 `-ea`로 실행) | `#edgeRejectsCentralCell` |
-| CL-C-08 | 정상 | 움직이는 패턴 근처의 하위 블록만 다시 계산한다 (활성 블록 최적화) | 64×64, CL-G-03 glider, tick 2~10 | tick마다 셀을 다시 계산한 `Neighborhood` 수(바깥 블록 1 포함)가 5 이하 (수정 전에는 65) | `#onlyBlocksNearChangesAreRecomputed` |
+| CL-C-08 | 정상 | 움직이는 패턴 근처의 하위 블록만 다시 계산한다 (활성 블록 최적화) | 64×64, CL-G-03 glider, tick 2~10 | tick마다 셀을 다시 계산한 `Neighborhood` 수(바깥 블록 1 포함)가 5 이하 (수정 전에는 65) | `model/NeighborhoodRecomputationTest#onlyBlocksNearChangesAreRecomputed` |
 
-- CL-C-03: #12에서 수정. 수정 전에는 반환값이 뒤집혀 있었다(`Resident.java:79-83`, 이전 기대값: 바뀐 셀 false·안 바뀐 셀 true, 메서드 `#residentTransitionReturnsInvertedFlag`). 이 값은 `Neighborhood.transition()`(`Neighborhood.java:240`, 계측 카운터 추가 전에는 232)에서 하위 블록의 가장자리 활성 표시(`activeEdges`)와 상위 반환값에 쓰인다. 보드 결과·다시 그리기·`refreshNow()` 호출은 수정 전후가 같다(CL-G-07~10이 그대로 통과).
-- CL-C-08: #12에서 추가. 이 수정의 효과를 보여주는 테스트다. 재계산 수는 `Neighborhood`의 package-private 계측 카운터로 센다. 수정 전후 실측값: [measurement-resident-transition.md](measurement-resident-transition.md)
+- CL-C-03: #12에서 수정. 수정 전에는 반환값이 뒤집혀 있었다(지금 `model/Resident.java:72-76`, e38ce7a `Resident.java:79-83`, 이전 기대값: 바뀐 셀 false·안 바뀐 셀 true, 메서드 `#residentTransitionReturnsInvertedFlag`). 이 값은 `Neighborhood.transition()`(지금 `model/Neighborhood.java:235`, e38ce7a `Neighborhood.java:232`)에서 하위 블록의 가장자리 활성 표시(`activeEdges`)와 상위 반환값에 쓰인다. 보드 결과·다시 그리기·`refreshNow()` 호출은 수정 전후가 같다(CL-G-07~10이 그대로 통과).
+- CL-C-08: #12에서 추가. 이 수정의 효과를 보여주는 테스트다. 재계산 수는 `Neighborhood`의 package-private 계측 카운터(`model/Neighborhood.java:100, 125`)로 센다. 수정 전후 실측값: [measurement-resident-transition.md](measurement-resident-transition.md)
 - CL-C-05: 이 메서드를 호출하는 곳은 저장소에 없다. Cell 인터페이스 회의 안건(`docs/001-cell-state-representation.md`, `feature/two-player-mode` 브랜치)에 포함돼 있다.
 
 ## 사전 확인 기록

@@ -15,10 +15,14 @@
 | 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | 머지됨 (#16 머지 후 rebase) |
 | 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 머지됨 |
 | 작업 기록 갱신 | #19 | `docs/suk-update` | #20 | 머지됨 |
+| 작업 기록 갱신 (머지 반영, 통합 브랜치 규칙) | #27 | `docs/suk-update-2` | #28 | 머지됨 |
 | 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
 | 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ 통합 브랜치) | 머지됨. 이슈는 다이어그램 PR 머지 후 직접 닫음 |
-| 통합 브랜치에 main 동기화 | — | `chore/sync-main-into-2p` | #26 (→ 통합 브랜치) | 리뷰 대기 |
-| #6 다이어그램 (상태 렌더링, 클래스·시퀀스) | #6 | (#26 머지 후) | — | 대기 |
+| 통합 브랜치에 main 동기화 | — | `chore/sync-main-into-2p` | #26 (→ 통합 브랜치) | 머지됨 (squash) |
+| 통합 브랜치에 main 동기화 2차 (#25 포함) | — | `chore/sync-main-into-2p-2` | #32 (→ 통합 브랜치) | merge commit으로 머지 예정 |
+| 클래식 test-cases.md 경로 갱신 (CL-M-06 정리) | #33 | `docs/classic-test-cases-paths` | (이 기록 갱신 후 개설) | 리뷰 대기 |
+| #5 회의 자료 경로 수정 (001, core interfaces.md) | #5 | (#32 머지 후) | — | 대기 |
+| #6 다이어그램 (상태 렌더링, 클래스·시퀀스) | #6 | (경로 수정 다음) | — | 대기 |
 | 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | #23 | 머지됨 |
 | 4. 2인용 UI 통합 | #7 | — | — | 대기 |
 | 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
@@ -203,15 +207,24 @@
 - `feature/two-player-mode`로 가는 PR은 본문에 `Closes #번호` 대신 **`Refs #번호`**를 쓴다.
 - 머지한 뒤 이슈에 **PR 링크를 댓글로 남기고 직접 닫는다.** (GitHub는 기본 브랜치로 머지될 때만 `Closes`로 이슈를 닫는다.)
 - `main`으로 가는 PR은 그대로 `Closes #번호`.
+- **main 동기화 PR은 반드시 merge commit으로 머지한다(squash 금지).** 이유: 히스토리가 끊기면 다음 동기화에서 충돌한다. #26을 squash로 머지했더니 main의 커밋이 통합 브랜치의 조상이 아니게 돼, 다음 동기화(#32)의 merge base가 오래된 `e38ce7a`로 잡히고 이미 반영된 변경 6개 파일이 다시 충돌했다(+ 충돌 표시 없이 잘못 합쳐진 파일 1개).
 
 **통합 브랜치 동기화**: main의 버그 수정·렌더링 작업을 2인용 쪽에 넣기 위해 `feature/two-player-mode`에서 `chore/sync-main-into-2p`를 따서 main만 merge했다(#26). 충돌은 없었고 81개 테스트 통과(클래식 39 + 2인용 42). 이 PR에는 새 코드·문서를 넣지 않았다.
 
 **#6 다이어그램 순서**: #26 머지 → 다이어그램 PR(게임 단계 상태 다이어그램 렌더링, 클래스 다이어그램, 한 라운드 시퀀스 다이어그램, `Refs #6`) → 머지 후 #6에 #21과 다이어그램 PR 링크를 남기고 닫는다.
 
+**통합 브랜치 동기화 2차 (#32)**: #25(도메인 구조 변경)가 main에 머지된 뒤 다시 main을 merge했다. 충돌 6개(`Universe` 삭제, `model/Neighborhood`·`model/Resident`, `ClassicBoard`, `ClassicMementoTest`, `SUK.md`)와 자동 병합 오류 1개(`ClassicCellTest`에 #25가 다른 파일로 옮긴 CL-C-08이 남아 컴파일 실패)를 모두 main 쪽으로 해결했다. 근거: 통합 브랜치는 이 파일들을 직접 바꾼 적이 없다(지난 동기화 때의 main `7f10a65`와 파일별로 같음). 2인용 코드는 core 클래스를 import하지 않아 #25의 경로 이동(`com.holub.life.model`)에 영향이 없었다. 97개 통과(클래식·core 55 + 2인용 42), main CI도 55개 통과.
+
+**버그 수정이 #25 이후에도 남았는지**: #25 머지 전 #25에 확인 요청 댓글을 남겼고, 머지 후 main에서 확인했다. #16 중복 `transfer` 없음, #17 형식 검사는 `persistence/LegacyLifeCodec.load()`로 이동, #18 `!isStable()`과 계측 카운터는 `model/`에, CL-C-08은 `model/NeighborhoodRecomputationTest`로 이동.
+
+**CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. (a)안과 `GameControllerTest`의 케이스 ID·`@DisplayName`은 #9 담당에게 제안 예정.
+
 ## 남은 일
 
-- #26(main 동기화) 머지 → #6 다이어그램 PR → #6 닫기
-- #25(팀원의 도메인 구조 변경)가 main에 머지되면: 001 문서와 core `interfaces.md`의 경로 수정부터(`Cell`·`Neighborhood`·`Resident`가 `com.holub.life.model`로 이동), 통합 브랜치 재동기화
+- #32(main 동기화 2차) merge commit으로 머지 → #5 회의 자료 경로 수정(001, core `interfaces.md`, Refs #5) → #6 다이어그램 PR → #6 닫기
+- #25는 머지됨. 회의 자료의 클래스 경로·파일·줄 근거를 #25 이후 코드로 고치고, 바뀐 구조 때문에 제안 내용 자체가 달라지는 부분은 따로 정리
+- #9 담당에게 제안: CL-M 테스트를 `GameController` 경로로 옮기는 안, `GameControllerTest`에 케이스 ID·`@DisplayName` 붙이기
+- `life/docs/measurement-resident-transition.md`도 옛 `Neighborhood.java` 줄 번호(121-129, 240)가 남아 있음 → 별도 확인
 - Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현 (#25 이후)
 - #7 UI 통합: #25가 나눈 UI 구조(`BoardPanel`, `GameMenu`, `GameController`) 위에서 설계
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
