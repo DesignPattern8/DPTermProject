@@ -1,5 +1,11 @@
 package com.holub.life;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Neighborhood;
+import com.holub.life.model.NeighborhoodState;
+import com.holub.life.model.Resident;
+import com.holub.life.persistence.LegacyLifeCodec;
+import com.holub.life.ui.GridCoordinateMapper;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.io.ByteArrayInputStream;
@@ -11,8 +17,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * 테스트용 클래식 보드. {@link Universe}와 같은 셀 구성을 Swing 없이 만들고, Universe의 메뉴·마우스·Clock 리스너가 모델에 하는
- * 호출을 그대로 재현한다. 좌표는 (행, 열)이고, 반환하는 {@link Point}는 원본 Memento 형식과 같이 x = 열, y = 행이다.
+ * 테스트용 클래식 보드. 원본 Universe(e38ce7a)와 같은 셀 구성을 Swing 없이 만들고, Universe의 메뉴·마우스·Clock 리스너가 모델에 하는 호출을
+ * 그대로 재현한다. 좌표는 (행, 열)이고, 반환하는 {@link Point}는 원본 Memento 형식과 같이 x = 열, y = 행이다.
  */
 final class ClassicBoard {
   static final int SIZE = 64;
@@ -26,7 +32,8 @@ final class ClassicBoard {
 
   /** 마우스 클릭 (Universe.java:79). 픽셀 1개 = 셀 1개인 영역으로 클릭한다. */
   ClassicBoard click(int row, int column) {
-    outermost.userClicked(new Point(column, row), new Rectangle(0, 0, SIZE, SIZE));
+    GridCoordinateMapper.userClicked(
+        outermost, new Point(column, row), new Rectangle(0, 0, SIZE, SIZE));
     return this;
   }
 
@@ -53,22 +60,19 @@ final class ClassicBoard {
     return this;
   }
 
-  /**
-   * Grid &gt; Store (Universe.java:180-181, #10 수정 후). 파일 대신 바이트 배열에 쓴다. Universe를 화면 없이 띄울 수 없어서
-   * doStore()를 직접 부르지 못하고 같은 순서로 호출한다.
-   */
+  /** Grid &gt; Store (Universe.java:180-182). 파일 대신 바이트 배열에 쓴다. */
   byte[] store() throws IOException {
-    Storable memento = outermost.createMemento();
+    NeighborhoodState memento = outermost.createMemento();
     ByteArrayOutputStream out = new ByteArrayOutputStream();
-    memento.flush(out);
+    LegacyLifeCodec.flush(memento, out);
     return out.toByteArray();
   }
 
   /** Grid &gt; Load (Universe.java:159-163). 파일 대신 바이트 배열에서 읽는다. */
   ClassicBoard load(byte[] bytes) throws IOException {
     outermost.clear();
-    Storable memento = outermost.createMemento();
-    memento.load(new ByteArrayInputStream(bytes));
+    NeighborhoodState memento = outermost.createMemento();
+    LegacyLifeCodec.load(memento, new ByteArrayInputStream(bytes));
     outermost.transfer(memento, new Point(0, 0), Cell.LOAD);
     return this;
   }
@@ -77,7 +81,7 @@ final class ClassicBoard {
   Set<Point> liveCells() {
     try {
       ByteArrayOutputStream out = new ByteArrayOutputStream();
-      outermost.createMemento().flush(out);
+      LegacyLifeCodec.flush(outermost.createMemento(), out);
       Set<Point> live = new HashSet<>();
       for (Object o : readStoredCollection(out.toByteArray())) live.add((Point) o);
       return live;
@@ -86,7 +90,8 @@ final class ClassicBoard {
     }
   }
 
-  static Collection<?> readStoredCollection(byte[] bytes) throws IOException, ClassNotFoundException {
+  static Collection<?> readStoredCollection(byte[] bytes)
+      throws IOException, ClassNotFoundException {
     return (Collection<?>) new ObjectInputStream(new ByteArrayInputStream(bytes)).readObject();
   }
 

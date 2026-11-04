@@ -2,6 +2,8 @@ package com.holub.life;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
+import com.holub.life.model.Cell;
+import com.holub.life.model.Resident;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
