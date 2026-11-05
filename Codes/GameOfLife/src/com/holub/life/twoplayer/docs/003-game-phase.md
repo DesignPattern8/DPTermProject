@@ -95,6 +95,12 @@ A와 구조는 같지만, 다음 단계를 정하는 일을 `TwoPlayerGame`이 �
 - 이번(#6 1차): 단계 전환, 차례, 선공 교대, 임시 배치·확정, 패스·자동 패스, 남은 개수, 라운드, tick, 설정값.
 - 다음(#6 2차): 시뮬레이션 중 매 세대 전멸 검사와 승패 판정(rules.md 6장, TP-E). 셀 수 집계(`count(owner)`)가 필요해서 [005](005-cell-count-and-judge.md) 설계 결정과 함께 한다.
 
+## 다이어그램
+
+- 상태 다이어그램: [diagrams/twoplayer-game-phase-state.png](diagrams/twoplayer-game-phase-state.png) ([.puml](diagrams/twoplayer-game-phase-state.puml))
+- 클래스 다이어그램: [diagrams/twoplayer-class.png](diagrams/twoplayer-class.png) ([.puml](diagrams/twoplayer-class.puml))
+- 한 라운드 시퀀스 다이어그램: [diagrams/twoplayer-round-sequence.png](diagrams/twoplayer-round-sequence.png) ([.puml](diagrams/twoplayer-round-sequence.puml))
+
 ## 구현 후 실측
 
 #6 1차 구현 기준(2026-11-03). LOC는 빈 줄과 주석을 뺀 줄 수.

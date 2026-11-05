@@ -1,0 +1,195 @@
+@startuml twoplayer-class
+' 2인용 게임 진행 모델 클래스 다이어그램 (#6)
+' 근거: com.holub.life.twoplayer (feature/two-player-mode 86bda26), 003-game-phase.md, 004-player-input.md, 005-cell-count-and-judge.md
+' 공개(public) 타입은 흰색, package-private 타입은 회색. 필드·메서드는 실제 코드 이름 그대로.
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+set separator none
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam class<<package-private>> {
+  BackgroundColor #EEEEEE
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title 2인용 게임 진행 모델 (com.holub.life.twoplayer)
+
+package com.holub.life.twoplayer {
+
+  class TwoPlayerGame {
+    - board : TwoPlayerBoard
+    - settings : GameSettings
+    - phase : Phase
+    - round : int
+    - generationInRound : int
+    + TwoPlayerGame(board : TwoPlayerBoard, settings : GameSettings)
+    + select(who : Player, row : int, column : int) : Response
+    + confirm(who : Player) : Response
+    + pass(who : Player) : Response
+    + tick() : boolean
+    + phase() : PhaseKind
+    + currentPlayer() : Player
+    + remaining(player : Player) : int
+    + round() : int
+    + generationInRound() : int
+    + tentative() : Optional<Coordinate>
+    + score(player : Player) : int
+    + result() : Optional<GameResult>
+    ~ board() : TwoPlayerBoard
+    ~ settings() : GameSettings
+    ~ countGeneration()
+    ~ startSimulation(newRound : int)
+    ~ endSimulation(finishedRound : int, scoreA : int, scoreB : int)
+    ~ endGame(result : GameResult)
+    ~ endIntervention(finishedRound : int)
+  }
+
+  interface TwoPlayerBoard {
+    + rows() : int
+    + columns() : int
+    + isEmpty(row : int, column : int) : boolean
+    + hasEmptyCell() : boolean
+    + place(row : int, column : int, owner : Player)
+    + advanceGeneration()
+    + count(owner : Player) : int
+  }
+
+  class GameSettings {
+    - placements : int
+    - generationsPerRound : int
+    - interventions : int
+    - rounds : int
+    + GameSettings(placements : int, generationsPerRound : int, interventions : int, rounds : int)
+    + {static} defaults() : GameSettings
+    + placements() : int
+    + generationsPerRound() : int
+    + interventions() : int
+    + rounds() : int
+  }
+
+  interface Phase <<package-private>> {
+    kind() : PhaseKind
+    select(who : Player, row : int, column : int) : Response
+    confirm(who : Player) : Response
+    pass(who : Player) : Response
+    tick() : boolean
+    currentPlayer() : Player
+    remaining(player : Player) : int
+    tentative() : Optional<Coordinate>
+    result() : Optional<GameResult>
+  }
+
+  abstract class PlacingPhase <<package-private>> {
+    # game : TwoPlayerGame
+    # current : Player
+    - remaining : Map<Player, Integer>
+    - tentative : Coordinate
+    # {abstract} allowsColumn(who : Player, column : int) : boolean
+    # {abstract} afterConfirm()
+    # clearTentative()
+  }
+
+  class InitialPlacementPhase <<package-private>>
+  class InterventionPhase <<package-private>> {
+    - round : int
+    - consecutivePasses : int
+    ~ begin()
+    - nextTurn()
+    - skipPlayersWhoCannotPlace()
+    - canPlace(player : Player) : boolean
+  }
+  class SimulationPhase <<package-private>> {
+    - game : TwoPlayerGame
+    - round : int
+  }
+  class GameOverPhase <<package-private>> {
+    - result : GameResult
+  }
+
+  class GameJudge <<package-private>> {
+    ~ {static} afterGeneration(scoreA : int, scoreB : int) : Optional<GameResult>
+    ~ {static} afterLastRound(scoreA : int, scoreB : int) : GameResult
+  }
+
+  enum Player {
+    A
+    B
+    + opponent() : Player
+  }
+  enum PhaseKind {
+    PLACEMENT
+    SIMULATION
+    INTERVENTION
+    GAME_OVER
+  }
+  enum Response {
+    ACCEPTED
+    WRONG_PHASE
+    NOT_YOUR_TURN
+    OUT_OF_BOARD
+    CELL_NOT_EMPTY
+    OPPONENT_HALF
+    NO_TENTATIVE_PLACEMENT
+    PASS_NOT_ALLOWED
+  }
+  class Coordinate <<record>> {
+    + row : int
+    + column : int
+  }
+  class GameResult <<record>> {
+    + outcome : Outcome
+    + reason : EndReason
+    + scoreA : int
+    + scoreB : int
+  }
+  enum Outcome {
+    A_WINS
+    B_WINS
+    DRAW
+  }
+  enum EndReason {
+    WIPE_OUT
+    ROUNDS_COMPLETED
+  }
+}
+
+TwoPlayerGame o--> "1" TwoPlayerBoard
+TwoPlayerGame o--> "1" GameSettings
+TwoPlayerGame *--> "1" Phase : 현재 단계
+
+Phase <|.. PlacingPhase
+PlacingPhase <|-- InitialPlacementPhase
+PlacingPhase <|-- InterventionPhase
+Phase <|.. SimulationPhase
+Phase <|.. GameOverPhase
+
+PlacingPhase --> TwoPlayerGame : game
+SimulationPhase --> TwoPlayerGame : game
+SimulationPhase ..> GameJudge : afterGeneration
+TwoPlayerGame ..> GameJudge : afterLastRound
+GameOverPhase --> GameResult
+GameResult --> Outcome
+GameResult --> EndReason
+
+note right of Phase
+  State 패턴 (003).
+  TwoPlayerGame의 입력 메서드는
+  모두 phase에 위임한다.
+end note
+
+note bottom of TwoPlayerBoard
+  셀 상태(#5)를 숨기는 인터페이스.
+  구현은 #5 이후. 테스트는 StubBoard 대역.
+end note
+
+note left of GameJudge
+  판정 규칙만 하는 순수 함수 (005).
+end note
+@enduml
