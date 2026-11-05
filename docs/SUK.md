@@ -148,6 +148,39 @@
 - 결과 파일 이름은 파일명이 아니라 `@startuml <이름>`을 따른다. 그래서 `@startuml` 이름을 파일명과 같게 쓴다.
 - 처음 쓴 `val plantuml by configurations.creating`이 Gradle 9에서 deprecated 경고를 내서 `configurations.create("plantuml")`로 바꿨다.
 
+### 렌더링 범위 지정 (#39)
+
+**문제**: #6 다이어그램(PR #36)을 렌더링하면서 #25의 `application/docs/diagrams/before.svg`·`after.svg`도 다시 만들어졌다. `.puml`은 그대로였는데 결과 파일 내용이 달라져서, 그 파일들을 경로를 지정해 되돌렸다.
+
+**원인**: `.puml`을 내 환경(Graphviz 없음, PlantUML 1.2026.9)에서 다시 렌더링해 커밋된 파일과 비교했다. 버전별 결과를 보려고 Maven Central의 다른 버전 jar로도 렌더링했다.
+
+| 확인한 것 | 결과 |
+| --- | --- |
+| 커밋된 svg 안의 소스 인코딩 | 다시 렌더링한 결과와 같다. 소스는 그대로다 |
+| SVG 형식 | 커밋된 파일은 `<!--SRC=[…]-->` 주석과 `data-entity`·`data-uid` 속성을 쓴다. 1.2025.4·1.2025.10과 같은 형식이다. 1.2026.2부터는 `<?plantuml-src …?>`와 `data-qualified-name`·`data-link-type`을 쓴다 |
+| 레이아웃 | `after.svg` 크기가 커밋본은 1414×931, 내 결과는 1296×837이다. 내 환경의 기본 결과는 `!pragma layout smetana`를 넣은 결과와 같다(소스 줄 번호 속성만 다름). 커밋본은 smetana 결과와 크기가 달라서 Graphviz로 렌더링한 것으로 보인다(추정) |
+| Graphviz 없이 클래스 다이어그램 | 1.2025.0 ~ 1.2026.5는 오류 이미지(280×208 등)를 만든다. 1.2026.8·1.2026.9는 smetana로 렌더링한다 |
+| 폰트 | 글자 폭(`textLength`)이 같다(69.8496 → 69.85처럼 반올림 자릿수만 다름). 폰트는 원인이 아니다 |
+| 같은 환경에서 두 번 렌더링 | svg·png 모두 바이트까지 같다 |
+
+**한 것**
+- `./gradlew renderDiagrams -Pdir=<폴더>`로 그 폴더 아래의 `docs/diagrams/*.puml`만 렌더링한다. `docs/diagrams` 폴더 자체를 줘도 된다.
+- 없는 폴더, `src` 밖의 폴더(루트 `diagrams/` 포함), `.puml`이 없는 폴더를 주면 실패하고 이유를 출력한다.
+- `-Pdir`가 없으면 지금처럼 전체를 렌더링하고, 다시 만들어질 폴더 목록과 함께 경고를 낸다.
+  - 전체 렌더링을 막지 않은 이유: PlantUML 버전을 올릴 때처럼 전체를 같은 환경에서 다시 만드는 경우가 있다. #22의 사용법도 그대로 쓸 수 있다.
+- 사용법은 `build.gradle.kts`의 렌더링 작업 주석과 AGENTS.md 2-5에 적었다.
+
+**확인** (Graphviz 없는 macOS, JDK 26)
+
+| 경우 | 결과 |
+| --- | --- |
+| `-Pdir`=임시 도메인 폴더 / 그 `docs/diagrams` 폴더 | 그 `.puml`만 렌더링. `application/` 결과 파일은 바뀌지 않음 |
+| `-Pdir` 없음 | 경고 출력, 전체 렌더링 |
+| 없는 폴더 / `../../diagrams` / `.puml` 없는 `model` 폴더 | 실패(각각의 이유 출력) |
+| 문법 오류가 있는 `.puml` | 실패 |
+| `--configuration-cache` | 성공 |
+| `./gradlew test` | 영향 없음 (55개 통과) |
+
 ## 2인용 모드 (`feature/two-player-mode`)
 
 ### 규칙 명세
