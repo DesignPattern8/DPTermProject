@@ -41,20 +41,20 @@ public final class GameController {
   }
 
   public void load(File file) throws IOException {
-    InputStream in = BoardFileStore.openForLoad(file);
-    clock.stop();
-    outermostCell.clear();
-    NeighborhoodState memento = outermostCell.createMemento();
-    LegacyLifeCodec.load(memento, in);
-    outermostCell.transfer(memento, new Point(0, 0), Cell.LOAD);
-    in.close();
+    try (InputStream in = BoardFileStore.openForLoad(file)) {
+      clock.stop();
+      outermostCell.clear();
+      NeighborhoodState memento = outermostCell.createMemento();
+      LegacyLifeCodec.load(memento, in);
+      outermostCell.transfer(memento, new Point(0, 0), Cell.LOAD);
+    }
   }
 
   public void store(File file) throws IOException {
-    OutputStream out = BoardFileStore.openForStore(file);
-    clock.stop();
-    NeighborhoodState memento = outermostCell.createMemento();
-    LegacyLifeCodec.flush(memento, out);
-    out.close();
+    try (OutputStream out = BoardFileStore.openForStore(file)) {
+      clock.stop();
+      NeighborhoodState memento = outermostCell.createMemento();
+      LegacyLifeCodec.flush(memento, out);
+    }
   }
 }
