@@ -1,30 +1,23 @@
 package com.holub.life.application;
 
-import com.holub.tools.Publisher;
-import java.util.*;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-/** Existing timer and tick publisher, separated from Swing menu code. */
+/**
+ * Game timing. Decides when the game runs and at what speed, and notifies listeners on every tick.
+ * Where the ticks come from is a {@link TickSource}.
+ */
 public class Clock {
-  private final Timer clock;
-  private TimerTask tick = null;
+  private final TickSource ticks;
+  private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
-  private Clock() {
-    this(new Timer());
+  public Clock(TickSource ticks) {
+    this.ticks = ticks;
   }
 
-  public Clock(Timer timer) {
-    clock = timer;
-  }
-
-  private static Clock instance;
-
-  /**
-   * Return the existing application-wide clock. Tests may supply their own Timer to the
-   * constructor.
-   */
-  public static synchronized Clock instance() {
-    if (instance == null) instance = new Clock();
-    return instance;
+  /** Run at one of the Go menu speeds. If the clock is already running, only the speed changes. */
+  public void start(Speed speed) {
+    startTicking(speed.millis());
   }
 
   /**
@@ -34,44 +27,21 @@ public class Clock {
    *     indicates that the clock should be stopped.
    */
   public void startTicking(int millisecondsBetweenTicks) {
-    if (tick != null) {
-      tick.cancel();
-      tick = null;
-    }
-
-    if (millisecondsBetweenTicks > 0) {
-      tick =
-          new TimerTask() {
-            public void run() {
-              tick();
-            }
-          };
-      clock.scheduleAtFixedRate(tick, 0, millisecondsBetweenTicks);
-    }
+    if (millisecondsBetweenTicks > 0) ticks.start(millisecondsBetweenTicks, this::tick);
+    else ticks.stop();
   }
 
   /** Stop the clock */
   public void stop() {
-    startTicking(0);
+    ticks.stop();
   }
 
-  private Publisher publisher = new Publisher();
-
   /**
-   * Add a listener that's notified every time the clock ticks:
-   *
-   * <PRE>
-   *  Clock.instance().addClockListener
-   *  (	new Clock.Listener()
-   *  	{	public void tick()
-   *  		{	System.out.println("tick!");
-   *  		}
-   * 	}
-   *  );
-   *  </PRE>
+   * Add a listener that's notified every time the clock ticks. As with the original Publisher, the
+   * most recently added listener is notified first.
    */
   public void addClockListener(Listener observer) {
-    publisher.subscribe(observer);
+    listeners.add(0, observer);
   }
 
   /**
@@ -88,11 +58,6 @@ public class Clock {
    * clock is stopped. (Life uses this for single stepping.)
    */
   public void tick() {
-    publisher.publish(
-        new Publisher.Distributor() {
-          public void deliverTo(Object subscriber) {
-            ((Listener) subscriber).tick();
-          }
-        });
+    for (Listener listener : listeners) listener.tick();
   }
 }

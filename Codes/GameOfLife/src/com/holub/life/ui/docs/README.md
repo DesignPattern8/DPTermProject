@@ -8,3 +8,5 @@
 
 - [전체 이전 구조·전후 UML](../../application/docs/002-domain-layout.md)
 - [검증 결과](../../application/docs/verification.md)
+
+- B 리팩토링(#44)으로 `GameMenu`·`BoardPanel`의 화면 갱신 호출이 `GameListener` 구독 한 곳으로 모였다: [application/003](../../application/docs/003-pattern-analysis.md#8-1-구현-결과-44)
