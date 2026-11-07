@@ -20,7 +20,7 @@ class GameControllerTest {
   void setUp() {
     timer = new Timer(true);
     board = new Neighborhood(8, new Neighborhood(8, new Resident()));
-    controller = new GameController(board, new Clock(timer));
+    controller = new GameController(board, new Clock(new UtilTimerTickSource(timer)));
   }
 
   @AfterEach
@@ -126,6 +126,93 @@ class GameControllerTest {
     controller.store(file.toFile());
 
     assertFileReleased(file, before);
+  }
+
+  private List<GameListener.Change> recordChanges() {
+    List<GameListener.Change> changes = new ArrayList<>();
+    controller.addGameListener(changes::add);
+    return changes;
+  }
+
+  @Test
+  @DisplayName("APP-R04 셀 편집 후 전체 갱신을 알린다")
+  void toggleNotifiesEdited() {
+    List<GameListener.Change> changes = recordChanges();
+
+    controller.toggle(5, 5);
+
+    assertEquals(List.of(GameListener.Change.EDITED), changes);
+  }
+
+  @Test
+  @DisplayName("APP-R05 Clear 후 전체 갱신을 알린다")
+  void clearNotifiesEdited() {
+    board.toggle(5, 5);
+    List<GameListener.Change> changes = recordChanges();
+
+    controller.clear();
+
+    assertEquals(List.of(GameListener.Change.EDITED), changes);
+  }
+
+  @Test
+  @DisplayName("APP-R06 세대가 바뀐 tick 후 부분 갱신을 알린다")
+  void changingTickNotifiesGeneration() {
+    board.toggle(10, 9);
+    board.toggle(10, 10);
+    board.toggle(10, 11);
+    List<GameListener.Change> changes = recordChanges();
+
+    assertTrue(controller.tick());
+
+    assertEquals(List.of(GameListener.Change.GENERATION), changes);
+  }
+
+  @Test
+  @DisplayName("APP-R07 바뀐 칸이 없는 tick은 알리지 않는다")
+  void unchangedTickDoesNotNotify() {
+    List<GameListener.Change> changes = recordChanges();
+
+    assertFalse(controller.tick());
+
+    assertTrue(changes.isEmpty());
+  }
+
+  @Test
+  @DisplayName("APP-R08 불러오기 성공 후 전체 갱신을 알린다")
+  void loadNotifiesEdited() throws Exception {
+    board.toggle(5, 6);
+    Path file = directory.resolve("board.life");
+    controller.store(file.toFile());
+    List<GameListener.Change> changes = recordChanges();
+
+    controller.load(file.toFile());
+
+    assertEquals(List.of(GameListener.Change.EDITED), changes);
+  }
+
+  @Test
+  @DisplayName("APP-R09 불러오기에 실패해도 전체 갱신을 알린다")
+  void failedLoadStillNotifiesEdited() throws Exception {
+    board.toggle(5, 5);
+    Path file = directory.resolve("bad.life");
+    Files.write(file, new byte[] {1, 2, 3, 4});
+    List<GameListener.Change> changes = recordChanges();
+
+    assertThrows(IOException.class, () -> controller.load(file.toFile()));
+
+    assertEquals(List.of(GameListener.Change.EDITED), changes);
+  }
+
+  @Test
+  @DisplayName("APP-R10 저장은 보드를 바꾸지 않으므로 알리지 않는다")
+  void storeDoesNotNotify() throws Exception {
+    board.toggle(5, 6);
+    List<GameListener.Change> changes = recordChanges();
+
+    controller.store(directory.resolve("board.life").toFile());
+
+    assertTrue(changes.isEmpty());
   }
 
   /** Open file descriptors on Unix-like systems; -1 where the JVM cannot report it (Windows). */

@@ -31,7 +31,7 @@ class GameMenuTest {
   void goCommandsKeepOriginalActions() {
     RecordingTimer timer = new RecordingTimer();
     try {
-      Clock clock = new Clock(timer);
+      Clock clock = new Clock(new UtilTimerTickSource(timer));
       String[] names = {"Agonizing", "Slow", "Medium", "Fast"};
       long[] periods = {500, 150, 70, 30};
       for (int i = 0; i < names.length; i++) {
@@ -58,13 +58,13 @@ class GameMenuTest {
       board.toggle(10, 9);
       board.toggle(10, 10);
       board.toggle(10, 11);
-      Clock clock = new Clock(timer);
+      Clock clock = new Clock(new UtilTimerTickSource(timer));
       GameController controller = new GameController(board, clock);
       menus.setSelectedPath(new MenuElement[] {new JMenu("Go")});
-      GameMenu.onTick(controller, () -> {});
+      GameMenu.onTick(controller);
       assertTrue(board.createMemento().isAlive(new Point(9, 10)));
       menus.clearSelectedPath();
-      GameMenu.onTick(controller, () -> {});
+      GameMenu.onTick(controller);
       assertFalse(board.createMemento().isAlive(new Point(9, 10)));
       assertTrue(board.createMemento().isAlive(new Point(10, 9)));
     } finally {
