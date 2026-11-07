@@ -1,6 +1,7 @@
 package com.holub.life.ui;
 
 import com.holub.life.application.GameController;
+import com.holub.life.application.GameListener;
 import com.holub.life.model.Cell;
 import java.awt.*;
 import java.awt.event.*;
@@ -49,8 +50,14 @@ public final class BoardPanel extends JPanel {
             bounds.y = 0;
             Point position = GridCoordinateMapper.position(outermostCell, e.getPoint(), bounds);
             controller.toggle(position.y, position.x);
-            repaint();
           }
+        });
+
+    // Edits redraw the whole board; generations redraw only the changed blocks, as before.
+    controller.addGameListener(
+        change -> {
+          if (change == GameListener.Change.GENERATION) refreshNow();
+          else repaint();
         });
   }
 
