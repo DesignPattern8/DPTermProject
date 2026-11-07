@@ -1,6 +1,6 @@
 # [003] B 도메인 기존 패턴 분석과 GoF 리팩토링 방향
 
-- 상태: 제안 (초안, 팀 검토 전)
+- 상태: 채택 (D1~D6, 2026-11-07). 구현: [#44](https://github.com/DesignPattern8/DPTermProject/issues/44)
 - 작성: 시형 / 2026-11-07 / [#43](https://github.com/DesignPattern8/DPTermProject/issues/43)
 - 기준 코드: `main` `4afc828` (#25 도메인 추출 이후). 줄 번호는 이 커밋 기준이다.
 - 범위: `application/Clock`, `application/GameController`, 그리고 B의 실행 정책이 아직 남아 있는 `ui/GameMenu`의 Go·tick 부분. 코드는 바꾸지 않는다. 기능 추가(Undo/Redo 등)는 다루지 않는다.
@@ -158,7 +158,7 @@ AGENTS.md 1-1("리팩토링은 GoF 패턴을 최대한 많이 비교")에 따라
 | Visitor | 유지 여부만 판단 | `Publisher.Distributor`가 Visitor 형태다. D4-B-2를 고르면 `Publisher`와 함께 B에서 사라진다 |
 | Strategy / State / Command / Observer / Facade / Mediator / Memento / Singleton / Template Method / Bridge | 4장 | D1~D6에서 비교 |
 
-## 6. 제안 (팀 검토 전)
+## 6. 결정
 
 | 결정 | 제안 | 근거 요약 |
 | --- | --- | --- |
@@ -174,7 +174,7 @@ AGENTS.md 1-1("리팩토링은 GoF 패턴을 최대한 많이 비교")에 따라
 | 요청 | 의견 |
 | --- | --- |
 | `TickSource.start(int, Runnable)` / `stop()` | 수락 (D2-B와 같음) |
-| `GameListener.boardChanged(BoardSnapshot)` | 방향은 수락. `BoardSnapshot`은 A가 아직 만들지 않았으므로, 그 전까지는 기존 부분 갱신 조건(`tick()`의 boolean)을 담는 인자로 시작할지 A·D와 정해야 한다 |
+| `GameListener.boardChanged(BoardSnapshot)` | 방향은 수락. `BoardSnapshot`은 A가 아직 만들지 않았으므로 지금은 `boardChanged(Change)`로 시작한다. `Change.EDITED`는 기존 전체 다시 그리기(`repaint`), `Change.GENERATION`은 기존 부분 갱신(`refreshNow`)에 대응한다. `BoardSnapshot`이 생기면 인자를 추가한다 |
 | `GameController`를 인터페이스로 | 보류. 구현이 하나뿐이라 지금은 구체 클래스로 두고, 대역이 필요한 쪽(UI 테스트)이 생기면 추출한다 |
 | `start(intervalMillis)` / `stop()` / `step()` | D3 결과(`Speed` enum)에 맞춰 `start(Speed)`를 제안. 정지는 `stop()`으로 분리 (요청과 같음) |
 | `toggleCell(CellPosition)` | A의 `CellPosition` 도입 후 반영 |
@@ -191,7 +191,13 @@ AGENTS.md 1-1("리팩토링은 GoF 패턴을 최대한 많이 비교")에 따라
 
 ## 8. 전/후 다이어그램
 
-TODO: `diagrams/003-before.puml`, `003-after.puml` (Clock·GameController·GameMenu·Publisher 범위) 작성 후 `./gradlew renderDiagrams -Pdir=src/com/holub/life/application`.
+범위는 B와 B를 호출하는 UI 연결부(`GameMenu`, `BoardPanel`, `Life`)다. #25의 `before.puml`/`after.puml`(도메인 추출 전후)과는 별개다.
+
+| 전 (main `4afc828` + #42) | 후 (#44) |
+| --- | --- |
+| ![전](diagrams/003-before.svg) | ![후](diagrams/003-after.svg) |
+
+원본: [003-before.puml](diagrams/003-before.puml), [003-after.puml](diagrams/003-after.puml). `./gradlew renderDiagrams -Pdir=src/com/holub/life/application`으로 렌더링했다(PlantUML 1.2026.9, Graphviz 없음, Windows 11). 같은 폴더의 #25 결과 파일이 함께 다시 그려져서 되돌렸다.
 
 ## 9. 후속 작업 / 열린 질문
 
