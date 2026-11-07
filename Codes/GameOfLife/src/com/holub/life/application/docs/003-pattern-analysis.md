@@ -199,9 +199,49 @@ AGENTS.md 1-1("리팩토링은 GoF 패턴을 최대한 많이 비교")에 따라
 
 원본: [003-before.puml](diagrams/003-before.puml), [003-after.puml](diagrams/003-after.puml). `./gradlew renderDiagrams -Pdir=src/com/holub/life/application`으로 렌더링했다(PlantUML 1.2026.9, Graphviz 없음, Windows 11). 같은 폴더의 #25 결과 파일이 함께 다시 그려져서 되돌렸다.
 
+## 8-1. 구현 결과 (#44)
+
+7장의 1~4단계를 한 PR에서 적용했다. 5단계(`SwingTickSource` 교체)는 하지 않았다.
+
+### 바뀐 코드
+
+| 결정 | 코드 |
+| --- | --- |
+| D1 | `Clock.instance()`·정적 필드 삭제. `Life.java`가 `new Clock(new UtilTimerTickSource(new Timer()))`로 하나 만든다 |
+| D2 | `TickSource`(인터페이스), `UtilTimerTickSource`(기존 `scheduleAtFixedRate(task, 0, ms)` 그대로). `Clock`은 `TickSource`만 안다. 시그니처는 D의 요청안과 같다 |
+| D3 | `Speed` enum(500/150/70/30). `Clock.start(Speed)` 추가. `GameMenu.go`는 메뉴 이름 전체로 분기한다 |
+| D4 | `GameListener.boardChanged(Change)`. `GameController`가 toggle·clear·load 뒤 `EDITED`, 세대가 바뀐 tick 뒤 `GENERATION`을 알린다. `BoardPanel`이 구독해 기존처럼 `repaint()`/`refreshNow()`를 부른다. `Clock`의 `Publisher` 대신 `CopyOnWriteArrayList` |
+
+### 실측 (기준 `bdf3f52` = main `4afc828` + #42, 물리 행 수)
+
+| 항목 | 전 | 후 | 변화 |
+| --- | --- | --- | --- |
+| `application` 최상위 타입 | 2 (`Clock`, `GameController`) | 6 | +4 (`TickSource`, `UtilTimerTickSource`, `Speed`, `GameListener`). 중첩 타입 `GameListener.Change` +1 |
+| 변경 파일 (src) | | | 9 (새 4, 수정 5: `Clock`, `GameController`, `GameMenu`, `BoardPanel`, `Life`) |
+| `Clock.java` | 98 | 63 | -35 |
+| `GameController.java` | 60 | 86 | +26 |
+| 새 파일 4개 | 0 | 92 | +92 |
+| `GameMenu.java` / `BoardPanel.java` / `Life.java` | 73 / 87 / 20 | 74 / 94 / 22 | +1 / +7 / +2 |
+| 합계 (위 9개 파일) | 338 | 431 | +93 (git: +169 / -76) |
+| tick 경로의 간접 단계 (`TimerTask.run` → `Clock.Listener.tick`) | 5 (`Clock.tick` → `publish` → `Node.accept` → `deliverTo` → `Listener.tick`) | 3 (`Runnable`(`Clock::tick`) → `Clock.tick` → `Listener.tick`) | -2 |
+| 화면 갱신 호출 위치 | 4곳 (`BoardPanel.java:52`, `GameMenu.java:21,47,62`) | 1곳 (`BoardPanel`의 리스너) | -3 |
+| `Clock`의 의존 | `com.holub.tools.Publisher`, `java.util.Timer`/`TimerTask` | `TickSource`(같은 패키지), `java.util` 컬렉션 | `Publisher`의 제품 코드 사용처 0 (파일은 보조 라이브러리라 유지) |
+| `application`의 Swing·`java.awt` UI 의존 | 없음 (`java.awt.Point`만) | 같음 | 0 |
+| 테스트 | 59 | 69 | +10 (APP-R01~R10) |
+| 런타임 | 미측정 | 미측정 | tick마다 리스너 순회가 `Publisher` 연결 리스트 → `CopyOnWriteArrayList`로 바뀜. 개선을 주장하지 않는다 |
+
+### 동작 보존 확인
+
+- 기존 테스트의 기대값은 바꾸지 않았다. 바뀐 것은 `Clock` 생성 4곳(`ClockTest`, `GameControllerTest`, `GameMenuTest` 2곳)과 `GameMenu.onTick` 인자 2곳이다.
+- `NativeUiSmoke`(EXT-N01): 수정하지 않고 리팩토링 전(`bdf3f52`)과 후 모두 Windows 11 + Temurin 26.0.2에서 통과했다(메뉴 10개, 마우스, Tick, Store, Clear, Load, 취소, 잘못된 파일, Exit 0).
+- 스레드는 그대로다. tick은 여전히 `java.util.Timer` 스레드에서 돌고, 부분 갱신은 `refreshNow()`가 `invokeLater`로 넘긴다.
+- 리스너 순서: `Publisher`는 마지막에 등록한 구독자부터 알렸다. `Clock.addClockListener`는 앞에 넣어 같은 순서를 유지한다.
+- 달라진 점 1개: 파일 선택창에서 **취소**하면 원본은 보드를 바꾸지 않고 `repaint()`를 한 번 더 불렀다. 지금은 `GameController.load`가 호출되지 않으므로 다시 그리지 않는다. 보드가 그대로라 화면 결과는 같다.
+
 ## 9. 후속 작업 / 열린 질문
 
 - A에 요청: 한 세대 진행 API(P8), `BoardSnapshot` 도입 시점
 - D와 합의: `GameListener` 알림 인자, `Life.java` 수정 담당, `SwingTickSource` 도입 시점
+- 7장 5단계: `SwingTickSource`로 바꿀지 D와 결정한다. 바꾸면 tick이 Swing 이벤트 스레드로 옮겨가 P3가 사라지지만 스레드가 바뀌므로 별도 PR로 한다
 - 기능 담당자의 새 기능(2인용 등)이 들어온 뒤 2차 리팩토링에서 D3(State)·D5(Mediator) 판단을 다시 한다
 - 불러오기 실패 시 보드가 비워지는 동작(`GameController.java:45-48`)은 동작 변경이라 이 분석 범위 밖이다
