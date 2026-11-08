@@ -129,6 +129,10 @@ diagrams/                         # 리팩토링 전 원본 UML (수정하지 �
 - PlantUML(`.puml`) 원본을 커밋하고, 렌더링한 png/svg를 함께 둡니다.
 - 코드를 바꾸면 관련 다이어그램도 **같은 PR에서** 고칩니다.
 - 리팩토링 결과는 **전/후 다이어그램을 나란히** 남깁니다. 원본(`diagrams/`)은 "전" 기준으로 보존합니다.
+- 렌더링은 `Codes/GameOfLife`에서 **작업한 도메인 폴더만** 지정해서 합니다.
+  - 예: `./gradlew renderDiagrams -Pdir=src/com/holub/life/twoplayer`
+  - `-Pdir` 없이 실행하면 `src/**/docs/diagrams/*.puml`을 전부 렌더링하고 경고를 냅니다.
+  - PlantUML 버전이나 Graphviz 설치 여부가 다르면 `.puml`이 같아도 png/svg 내용이 달라집니다. 그래서 다른 도메인의 결과 파일이 바뀌었으면 커밋하지 않습니다.
 
 ---
 

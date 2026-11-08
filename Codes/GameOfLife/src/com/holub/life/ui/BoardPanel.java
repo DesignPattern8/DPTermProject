@@ -2,86 +2,93 @@ package com.holub.life.ui;
 
 import com.holub.life.application.GameController;
 import com.holub.life.application.GameListener;
-import com.holub.life.model.BoardSnapshot;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.Rectangle;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import javax.swing.JPanel;
+import com.holub.life.model.Cell;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
 
-/**
- * The board view. It draws whatever snapshot the controller last published and turns mouse clicks
- * into cell requests. It never computes the next generation or touches the model directly.
- *
- * <p>Replaces the drawing and mouse-handling half of the original Universe.
- */
-public final class BoardPanel extends JPanel implements GameListener {
-  /** Pixel size of one cell at the preferred size (the original DEFAULT_CELL_SIZE). */
+/** Universe's existing panel, input and redraw code. */
+public final class BoardPanel extends JPanel {
   private static final int DEFAULT_CELL_SIZE = 8;
+  private final Cell outermostCell;
 
-  private final GameController controller;
-  private final BoardRenderer renderer;
-  private final GridCoordinateMapper mapper;
-  private volatile BoardSnapshot snapshot;
-
-  public BoardPanel(GameController controller, BoardRenderer renderer) {
-    this.controller = controller;
-    this.renderer = renderer;
-    this.snapshot = controller.snapshot();
-    this.mapper = GridCoordinateMapper.forSnapshot(snapshot);
-
-    final Dimension preferredSize =
+  public BoardPanel(Cell outermostCell, GameController controller) {
+    this.outermostCell = outermostCell;
+    final Dimension PREFERRED_SIZE =
         new Dimension(
-            snapshot.columns() * DEFAULT_CELL_SIZE, snapshot.rows() * DEFAULT_CELL_SIZE);
-    setBackground(Color.white);
-    setPreferredSize(preferredSize);
-    setMaximumSize(preferredSize);
-    setMinimumSize(preferredSize);
-    setOpaque(true);
+            outermostCell.widthInCells() * DEFAULT_CELL_SIZE,
+            outermostCell.widthInCells() * DEFAULT_CELL_SIZE);
 
     addComponentListener(
         new ComponentAdapter() {
-          @Override
           public void componentResized(ComponentEvent e) {
-            // Keep every cell the same size: the side must be a
-            // multiple of the number of cells across.
+            // Make sure that the cells fit evenly into the
+            // total grid size so that each cell will be the
+            // same size. For example, in a 64x64 grid, the
+            // total size must be an even multiple of 63.
+
             Rectangle bounds = getBounds();
-            bounds.height = GridCoordinateMapper.snapToCells(bounds.height, snapshot.rows());
+            bounds.height /= outermostCell.widthInCells();
+            bounds.height *= outermostCell.widthInCells();
             bounds.width = bounds.height;
             setBounds(bounds);
           }
         });
 
-    addMouseListener(
+    setBackground(Color.white);
+    setPreferredSize(PREFERRED_SIZE);
+    setMaximumSize(PREFERRED_SIZE);
+    setMinimumSize(PREFERRED_SIZE);
+    setOpaque(true);
+
+    addMouseListener // {=Universe.mouse}
+        (
         new MouseAdapter() {
-          @Override
           public void mousePressed(MouseEvent e) {
-            mapper.toCell(e.getPoint(), surface()).ifPresent(controller::toggleCell);
+            Rectangle bounds = getBounds();
+            bounds.x = 0;
+            bounds.y = 0;
+            Point position = GridCoordinateMapper.position(outermostCell, e.getPoint(), bounds);
+            controller.toggle(position.y, position.x);
           }
         });
 
-    controller.addListener(this);
+    // Edits redraw the whole board; generations redraw only the changed blocks, as before.
+    controller.addGameListener(
+        change -> {
+          if (change == GameListener.Change.GENERATION) refreshNow();
+          else repaint();
+        });
   }
 
-  /** Called by the controller after the board has changed. Safe to call from any thread. */
-  @Override
-  public void boardChanged(BoardSnapshot newSnapshot) {
-    snapshot = newSnapshot;
-    repaint();
+  /** Paint the original cell and block outlines through the extracted renderer. */
+  public void paint(Graphics g) {
+    Rectangle panelBounds = getBounds();
+
+    // The panel bounds is relative to the upper-left
+    // corner of the screen. Pretend that it's at (0,0)
+    panelBounds.x = 0;
+    panelBounds.y = 0;
+    BoardRenderer.redraw(outermostCell, g, panelBounds, true); // {=Universe.redraw1}
   }
 
-  @Override
-  protected void paintComponent(Graphics g) {
-    super.paintComponent(g);
-    renderer.render(g, snapshot, surface());
-  }
-
-  /** The panel's own area, with the origin at (0,0). */
-  private Rectangle surface() {
-    return new Rectangle(0, 0, getWidth(), getHeight());
+  /** Queue the original partial redraw on the Swing event queue. */
+  public void refreshNow() {
+    SwingUtilities.invokeLater(
+        new Runnable() {
+          public void run() {
+            Graphics g = getGraphics();
+            if (g == null) // Panel not displayable
+            return;
+            try {
+              Rectangle panelBounds = getBounds();
+              panelBounds.x = 0;
+              panelBounds.y = 0;
+              BoardRenderer.redraw(outermostCell, g, panelBounds, false); // {=Universe.redraw2}
+            } finally {
+              g.dispose();
+            }
+          }
+        });
   }
 }

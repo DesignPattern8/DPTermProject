@@ -1,56 +1,72 @@
 package com.holub.life.ui;
 
-import java.awt.Component;
-import java.io.File;
-import java.util.Optional;
-import javax.swing.JFileChooser;
-import javax.swing.JOptionPane;
-import javax.swing.filechooser.FileFilter;
+import java.io.*;
+import javax.swing.*;
+import javax.swing.filechooser.FileFilter; // disambiguate from java.io version
 
-/**
- * File selection and error display for the Life window. Moved from com.holub.io.Files, whose only
- * real job was showing a JFileChooser. Reading and writing the chosen file is not done here.
+/*** A utility that handles various File-related operations.
+ *
+ * @include /etc/license.txt
  */
+
 public class FileDialogs {
-  private static final String START_DIRECTORY = ".";
-  private static final String EXTENSION = ".life";
-  private static final String DESCRIPTION = "Life File";
-  private static final String TITLE = "The Game of Life";
+  /**
+   * Throw up a file choser and return the file that the user selects.
+   *
+   * @param extension File extension (text following the rightmost dot in the name) that you're
+   *     looking for. Use null if any will do.
+   * @param description the description of what the extension means. Not used if "extension" is
+   *     null.
+   * @param selectButtonText Replaces the "Open" on the chooser button.
+   * @param startHere Name of initial directory in which to look.
+   * @return a {@link File} representing the selected file.
+   * @throws FileNotFoundException if the user didn't select a file. An exception toss (as compared
+   *     to a null return value) makes it easy to do the following:
+   *     <PRE>
+   *  FileInputStream in =
+   *  	new FileInputStream(
+   * 					 FileDialogs.userSelected(".",".txt","Text File","Open"));
+   *  </PRE>
+   */
+  public static File userSelected(
+      final String startHere,
+      final String extension,
+      final String description,
+      final String selectButtonText)
+      throws FileNotFoundException {
+    FileFilter filter =
+        new FileFilter() {
+          public boolean accept(File f) {
+            return f.isDirectory() || (extension != null && f.getName().endsWith(extension));
+          }
 
-  private final Component parent;
+          public String getDescription() {
+            return description;
+          }
+        };
 
-  public FileDialogs(Component parent) {
-    this.parent = parent;
+    JFileChooser chooser = new JFileChooser(startHere);
+    chooser.setFileFilter(filter);
+
+    int result = chooser.showDialog(null, selectButtonText);
+    if (result == JFileChooser.APPROVE_OPTION) return chooser.getSelectedFile();
+
+    throw new FileNotFoundException("No file selected by user");
   }
 
   /**
-   * Lets the user pick a .life file.
-   *
-   * @param selectButtonText text on the approve button ("Load" or "Write").
-   * @return the chosen file, or empty if the user cancelled.
+   * A unit test class for the methods in this class. Run with java
+   * com.holub.life.ui.FileDialogs\$Test
    */
-  public Optional<File> chooseLifeFile(String selectButtonText) {
-    JFileChooser chooser = new JFileChooser(START_DIRECTORY);
-    chooser.setFileFilter(
-        new FileFilter() {
-          @Override
-          public boolean accept(File f) {
-            return f.isDirectory() || f.getName().endsWith(EXTENSION);
-          }
-
-          @Override
-          public String getDescription() {
-            return DESCRIPTION;
-          }
-        });
-
-    int result = chooser.showDialog(parent, selectButtonText);
-    return result == JFileChooser.APPROVE_OPTION
-        ? Optional.of(chooser.getSelectedFile())
-        : Optional.empty();
-  }
-
-  public void showError(String message) {
-    JOptionPane.showMessageDialog(null, message, TITLE, JOptionPane.ERROR_MESSAGE);
+  static class Test {
+    public static void main(String[] args) {
+      try {
+        File f = FileDialogs.userSelected(".", ".test", "Test File", "Select!");
+        System.out.println("Selected " + f.getName());
+      } catch (FileNotFoundException e) {
+        System.out.println("No file selected");
+      }
+      System.exit(0); // Required to stop AWT thread & shut down.
+    }
   }
 }
