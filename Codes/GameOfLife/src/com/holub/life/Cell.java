@@ -93,6 +93,10 @@ public interface Cell {
 
     /** On restoration of a cell from a memento, indicate that a cell is alive. */
     boolean isAlive(Point location);
+
+    void markAsCancer(Point location);
+
+    boolean isCancer(Point location);
   }
 
   /**
@@ -114,6 +118,12 @@ public interface Cell {
    * implementions should throw an UnsupportedOperationException when this method is called.
    */
   Storable createMemento();
+
+  boolean isCancer();
+
+  void setCancer();
+
+  void cureCancer();
 
   /**
    * The DUMMY Singleton represents a permanently dead (thus stable) cell. It's used for the edges
@@ -165,5 +175,13 @@ public interface Cell {
         public Storable createMemento() {
           throw new UnsupportedOperationException("Cannot create memento of dummy block");
         }
+
+        public boolean isCancer() {
+          return false;
+        }
+
+        public void setCancer() {}
+
+        public void cureCancer() {}
       };
 }
