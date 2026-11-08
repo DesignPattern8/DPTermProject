@@ -1,6 +1,6 @@
 # [001] 화면 갱신 방식: 스냅샷 Observer + repaint
 
-- 상태: 제안 (실측 후 채택 여부 결정)
+- 상태: 대체됨(→ application/003 D4). B가 #44에서 `GameListener.boardChanged(Change)`로 구현했다. `BoardSnapshot` 인자는 A가 만든 뒤 다시 논의한다.
 - 작성자: 병국 / 11/3 / 브랜치 `refactor/D-ui`
 
 ## 문제

@@ -1,6 +1,6 @@
 # [004] 타이머 구현: `javax.swing.Timer` 기반 `SwingTickSource`
 
-- 상태: 제안 (B와 함께 결정)
+- 상태: 보류. 스레드가 바뀌는 변경이라 B(#45 후속 작업)와 함께 별도 이슈·PR로 한다. 이 문서의 `SwingTickSource` 초안 코드는 #45 병합 때 제거했다(커밋 `4eeaa8b`에 남아 있음).
 - 작성자: 병국 / 11/3 / 브랜치 `refactor/D-ui`
 
 ## 문제
