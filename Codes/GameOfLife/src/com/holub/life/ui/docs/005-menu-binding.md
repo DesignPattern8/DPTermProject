@@ -63,7 +63,23 @@ A를 채택한다. 지금 메뉴 동작은 모두 `GameController`나 `Clock` �
 
 ## 구현 결과
 
-(구현 후 실측값을 채운다)
+005·006을 한 커밋에서 적용했다. 실측 기준: 전 = `refactor/44-b-application` `b543703`, 후 = 이 브랜치. 물리 행 수는 `wc -l`.
+
+| 항목 | 전 | 후 | 증감 |
+| --- | --- | --- | --- |
+| `ui` 최상위 타입 | 6 | 8 (`UserDialogs`, `SwingUserDialogs`) | +2, 중첩 `GameMenu.Entry` +1 |
+| `GameMenu.java` 행 수 | 74 | 95 | +21 |
+| `ui` 소스 전체 행 수 | 341 | 401 | +60 (새 파일 2개 39행 포함) |
+| 수정한 소스 파일 | — | `GameMenu.java` 1개 + 새 파일 2개 | `Life`·`LifeFrame`·`BoardPanel`·`application/*` 0 |
+| 라벨 문자열이 두 곳에 있는 Go 항목 | 5 | 0 | −5 |
+| `GameMenu`의 직접 의존: `FileDialogs`·`JOptionPane`·`System.exit` | 3 | 0 (→ `SwingUserDialogs`, `install`의 기본값) | −3 |
+| Go 항목 클릭 → `Clock` 호출 경로 | 공용 리스너 → `go` switch → `Clock` | 항목 람다 → `Clock` | −1단계 |
+| Load·Store 클릭 → 파일 선택 경로 | `load` → `FileDialogs` | `load` → `UserDialogs` → `FileDialogs` | +1단계 |
+| `GameMenu` 동작을 보는 headless JUnit | 2 (EXT-U01·U02) | 11 (+ UI-R01~R09) | +9 |
+
+- 테스트: `./gradlew test` 78개 통과(기존 69 + 새 9). 기존 69개는 수정하지 않았다. 환경: Linux, OpenJDK 21.0.12. 저장소 설정은 toolchain 26이라, 이 환경에서는 toolchain만 21로 바꾸는 Gradle init 스크립트(`allprojects { afterEvaluate { java { toolchain { languageVersion = JavaLanguageVersion.of(21) } } } }`)로 실행했다. 저장소 파일은 바꾸지 않았다. CI(JDK 26)에서 다시 확인한다.
+- `NativeUiSmoke`(EXT-N01, 실제 `JFrame`·`JFileChooser`·`JOptionPane`): 수정 없이 전(`63d6e53`, #45 병합 직후)과 후 모두 `xvfb-run`(Xvfb) 아래에서 통과, 종료 코드 0. 출력: `PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel error, invalid-load clear`.
+- 런타임 비용은 메뉴 클릭 1회당 호출 1단계 차이라 측정하지 않았다.
 
 ## 후속 작업
 
