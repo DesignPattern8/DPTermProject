@@ -4,6 +4,7 @@
 
 - [설계 결정](001-domain-extraction.md)
 - [계약](interfaces.md)
+- [클래식 보드 연동 기준](../../model/docs/interfaces.md#후속-작업-인계)
 - [테스트](test-cases.md)
 
 - [전체 이전 구조·전후 UML](../../application/docs/002-domain-layout.md)
