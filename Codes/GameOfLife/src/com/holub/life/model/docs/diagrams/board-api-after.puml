@@ -1,0 +1,64 @@
+@startuml board-api-after
+title 공통 보드 API 도입 후 (#49)
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+package "model (A)" {
+  interface Board {
+    +rows() : int
+    +columns() : int
+    +step() : boolean
+    +toggle(position : CellPosition) : void
+    +clear() : void
+    +snapshot() : BoardSnapshot
+    +restore(snapshot : BoardSnapshot) : void
+  }
+  class CompositeBoard <<Facade>>
+  class CellPosition <<record>> {
+    +row() : int
+    +column() : int
+  }
+  class BoardSnapshot <<record>> {
+    +rows() : int
+    +columns() : int
+    +liveCells() : Set<CellPosition>
+  }
+  interface Cell <<Component>>
+  class Neighborhood <<Composite>>
+  class Resident <<Leaf>>
+  class NeighborhoodState
+
+  CompositeBoard ..|> Board
+  CompositeBoard --> Neighborhood : 기존 보드에 위임
+  Board ..> CellPosition : toggle()
+  Board ..> BoardSnapshot : snapshot(), restore()
+  BoardSnapshot --> "0..*" CellPosition : liveCells
+  Neighborhood ..|> Cell
+  Resident ..|> Cell
+  Neighborhood *-- Cell : grid
+  Cell ..> NeighborhoodState : createMemento()
+}
+
+package "application (B)" {
+  class GameController
+}
+package "persistence (C)" {
+  class LegacyLifeCodec
+}
+package "ui (D)" {
+  class BoardRenderer
+}
+
+GameController --> Cell : outermostCell
+LegacyLifeCodec ..> NeighborhoodState : 파일 변환
+BoardRenderer ..> Cell : 렌더링
+BoardRenderer ..> Neighborhood : 하위 셀과 활성 정보
+
+note top of Board
+  후속 연동
+  B: 보드 조작과 호출 직렬화
+  C: .life와 BoardSnapshot 변환
+  D: 생사 조회에 BoardSnapshot 사용
+end note
+@enduml
