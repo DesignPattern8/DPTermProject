@@ -10,3 +10,5 @@ Clock은 기존 Timer/Publisher를 유지하며 메뉴 코드는 UI로 이동했
 - [검증 결과](verification.md)
 
 - [main 병합 후 CI 복구 (#29)](verification.md#2026-11-04-main-병합-후-ci-복구-29)
+
+- [C 저장·패턴 도메인의 공개 계약 및 도메인 간 변경 제안](../../persistence/docs/002-public-contract-and-refactoring.md)
