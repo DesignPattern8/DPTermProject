@@ -141,9 +141,20 @@ public final class Resident implements Cell {
   public boolean transfer(Storable blob, Point upperLeft, boolean doLoad) {
     Memento memento = (Memento) blob;
     if (doLoad) {
-      if (amAlive = willBeAlive = memento.isAlive(upperLeft)) return true;
-    } else if (amAlive) // store only live cells
-    memento.markAsAlive(upperLeft);
+      boolean wasAlive = amAlive;
+      boolean wasCancer = isCancer;
+      amAlive = willBeAlive = memento.isAlive(upperLeft);
+      isCancer = willBeCancer = memento.isCancer(upperLeft);
+
+      return wasAlive != amAlive || wasCancer != isCancer;
+    }
+    if (amAlive) {
+      if (isCancer) {
+        memento.markAsCancer(upperLeft);
+      } else {
+        memento.markAsAlive(upperLeft);
+      }
+    }
 
     return false;
   }
