@@ -92,8 +92,9 @@ public final class Resident implements Cell {
   }
 
   public boolean transition() {
-    boolean changed = isStable();
+    boolean changed = !isStable() || isCancer != willBeCancer;
     amAlive = willBeAlive;
+    isCancer = willBeCancer;
     return changed;
   }
 
@@ -118,6 +119,7 @@ public final class Resident implements Cell {
 
   public void clear() {
     amAlive = willBeAlive = false;
+    isCancer = willBeCancer = false;
   }
 
   public boolean isAlive() {
