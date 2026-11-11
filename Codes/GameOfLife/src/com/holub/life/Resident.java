@@ -15,6 +15,7 @@ import javax.swing.*;
 public final class Resident implements Cell {
   private static final Color BORDER_COLOR = Colors.DARK_YELLOW;
   private static final Color LIVE_COLOR = Color.RED;
+  private static final Color CANCER_COLOR = Color.magenta;
   private static final Color DEAD_COLOR = Colors.LIGHT_YELLOW;
 
   private boolean amAlive = false;
@@ -98,7 +99,7 @@ public final class Resident implements Cell {
 
   public void redraw(Graphics g, Rectangle here, boolean drawAll) {
     g = g.create();
-    g.setColor(amAlive ? LIVE_COLOR : DEAD_COLOR);
+    g.setColor(amAlive ? (isCancer ? CANCER_COLOR : LIVE_COLOR) : DEAD_COLOR);
     g.fillRect(here.x + 1, here.y + 1, here.width - 1, here.height - 1);
 
     // Doesn't draw a line on the far right and bottom of the
