@@ -28,9 +28,7 @@ B를 채택한다. `step()`은 기존 세대 계산과 반영 순서를 감싼�
 
 ## 전/후 비교
 
-| 도입 전 | 도입 후 |
-| --- | --- |
-| [클래스 다이어그램](diagrams/board-api-before.svg) · [원본](diagrams/board-api-before.puml) | [클래스 다이어그램](diagrams/board-api-after.svg) · [원본](diagrams/board-api-after.puml) |
+전후 클래스 다이어그램은 [Notion 개발 기록의 #49 항목](https://app.notion.com/p/40a61a0bb83480208e4accb053cf40f7)에 이미지로 보관한다. PR #50 시점의 구조와 B·C·D 후속 연동 범위를 함께 확인할 수 있다.
 
 ## 후속 작업
 
