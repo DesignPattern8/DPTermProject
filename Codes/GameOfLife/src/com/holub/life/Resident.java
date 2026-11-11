@@ -19,6 +19,8 @@ public final class Resident implements Cell {
 
   private boolean amAlive = false;
   private boolean willBeAlive = false;
+  private boolean isCancer = false;
+  private boolean willBeCancer = false;
 
   private boolean isStable() {
     return amAlive == willBeAlive;
@@ -48,17 +50,29 @@ public final class Resident implements Cell {
     verify(southwest, "southwest");
 
     int neighbors = 0;
+    int cancerNeighbors = 0;
+    Cell[] adjacent = {
+      north, south, east, west,
+      northeast, northwest, southeast, southwest
+    };
 
-    if (north.isAlive()) ++neighbors;
-    if (south.isAlive()) ++neighbors;
-    if (east.isAlive()) ++neighbors;
-    if (west.isAlive()) ++neighbors;
-    if (northeast.isAlive()) ++neighbors;
-    if (northwest.isAlive()) ++neighbors;
-    if (southeast.isAlive()) ++neighbors;
-    if (southwest.isAlive()) ++neighbors;
+    for (Cell cell : adjacent) {
+      if (cell.isAlive()) {
+        neighbors++;
+        if (cell.isCancer()) cancerNeighbors++;
+      }
+    }
 
-    willBeAlive = (neighbors == 3 || (amAlive && neighbors == 2));
+    if (isCancer) {
+      willBeAlive = neighbors >= 1 && neighbors <= 5;
+      willBeCancer = willBeAlive;
+    } else {
+      willBeAlive = neighbors == 3 || (amAlive && neighbors == 2);
+      willBeCancer =
+          !amAlive && cancerNeighbors >= 3 && cancerNeighbors <= 4; // 암세포가 3~4개 인접한 빈칸에는 암세포가 태어남
+      if (willBeCancer) willBeAlive = true; // 암세포 출생이면 생존 상태도 함께 켬
+    }
+
     return !isStable();
   }
 
@@ -137,5 +151,21 @@ public final class Resident implements Cell {
    */
   public Storable createMemento() {
     throw new UnsupportedOperationException("May not create memento of a unitary cell");
+  }
+
+  public boolean isCancer() {
+    return isCancer;
+  }
+
+  public void setCancer() {
+    amAlive = willBeAlive = true;
+    isCancer = willBeCancer = true;
+  }
+
+  public void cureCancer() {
+    if (isCancer) {
+      amAlive = willBeAlive = false;
+      isCancer = willBeCancer = false;
+    }
   }
 }
