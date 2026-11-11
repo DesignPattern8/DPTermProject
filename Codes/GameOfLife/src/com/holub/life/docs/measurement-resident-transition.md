@@ -3,6 +3,7 @@
 - 관련 이슈: #12
 - 측정일 / 측정자: 2026-11-03 / Son2kwon
 - 관련 테스트: `ClassicCellTest#onlyBlocksNearChangesAreRecomputed` (CL-C-08)
+- 줄 번호는 측정 시점 커밋(`db637eb` 수정 전, `94cdaa6` 수정 후) 기준이다. #25 이후 현재 위치: `model/Neighborhood.java`
 
 ## 무엇을 쟀나
 

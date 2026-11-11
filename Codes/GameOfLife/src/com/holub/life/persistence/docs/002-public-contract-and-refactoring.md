@@ -5,6 +5,15 @@
 - 관련: [#31](https://github.com/DesignPattern8/DPTermProject/issues/31), 최초 추출 #24, CI 정합성 복구 #29. 코드 기준 `19bd091`.
 - 질문: 상태를 어떤 형식으로 보관하며, 누가 C를 호출하고, 어떤 계약과 GoF 패턴이 다음 변경을 감당하는가?
 
+## 2026-11-11 PR 제출 시점의 변경 사항
+
+아래 본문과 다이어그램은 `19bd091`(2026-11-04)의 분석·제안 기록이다. 최신 main의 구현과 구분하기 위해 당시 내용을 보존한다. 후속 구현에는 다음 변경을 우선 적용한다.
+
+- [#42](https://github.com/DesignPattern8/DPTermProject/pull/42) 병합으로 B의 load/store는 try-with-resources를 사용한다. 본문의 스트림 누수 관찰은 해결되었고, 읽기 실패 시 기존 보드가 지워지는 동작과 출력 파일 안전 교체는 후속 과제다.
+- [#50](https://github.com/DesignPattern8/DPTermProject/pull/50) 병합으로 A의 `Board`, `CellPosition`, 불변 `BoardSnapshot`이 구현되었다. C의 스냅샷 연결은 미구현이다. 아래 C 소유 `CellPosition`·`PatternData`는 당시 제안이며, 구현 전에 기존 모델 타입 재사용과 프리셋 데이터의 별도 필요성을 재검토한다.
+- [최신 모델 인계 계약](../../model/docs/interfaces.md#후속-작업-인계)에 따라 `.life`는 `Collection<Point>`와 x=column/y=row 매핑을 유지한다. 크기는 대상 보드에서 받고, 중복은 한 칸으로 처리하며 범위 밖 좌표는 건너뛴다. 파일 출력은 기존 순회 순서를 따른다. 아래 순서·중복 보존 제안과 모델의 집합 스냅샷은 파일 변환 경계에서 구분한다.
+- [#30](https://github.com/DesignPattern8/DPTermProject/issues/30)에서 실제 리팩토링·호출부 이전·테스트를 진행한다. 본 PR의 C-01~08은 예정 케이스이며 실행 결과가 아니다.
+
 ## 1. 현재 구조와 문제
 
 C는 [LegacyLifeCodec](../LegacyLifeCodec.java) 31줄과 [BoardFileStore](../BoardFileStore.java) 16줄, 합계 47줄이다. 공백·주석 포함 `wc -l` 실측값이며 Java 최상위 클래스 2개, Java interface 0개, 공개 작업 메서드 4개다. 프리셋 구현·카탈로그는 현재 src에 없다. 테스트의 BLINKER/BLOCK/GLIDER 배열은 제품 프리셋 API가 아니다.

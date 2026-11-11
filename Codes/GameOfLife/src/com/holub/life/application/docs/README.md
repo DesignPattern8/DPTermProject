@@ -4,6 +4,7 @@ Clock은 기존 Timer/Publisher를 유지하며 메뉴 코드는 UI로 이동했
 
 - [설계 결정](001-domain-extraction.md)
 - [계약](interfaces.md)
+- [클래식 보드 연동 기준](../../model/docs/interfaces.md#후속-작업-인계)
 - [테스트](test-cases.md)
 
 - [전체 이전 구조·전후 UML](002-domain-layout.md)

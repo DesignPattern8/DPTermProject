@@ -6,19 +6,42 @@
 
 ## 한눈에 보기
 
-| 단계 | 이슈 | 브랜치 | PR | 상태 |
+### 머지된 PR (머지 순서, 2026-11-03 ~ 11-04)
+
+| PR | 날짜 | base | 이슈 | 내용 |
 | --- | --- | --- | --- | --- |
-| 0. 테스트 환경 (Gradle + JUnit 5 + CI) | #2 | `chore/test-setup` | #3 | 머지됨 |
-| 1. 클래식 특성 테스트 | #4 | `test/classic-characterization` | #13 | 머지됨 |
-| 작업 기록 정리 | #14 | `docs/suk-worklog` | #15 | 머지됨 |
-| 버그: Store 중복 기록 | #10 | `fix/store-duplicate` | #16 | 머지됨 |
-| 버그: 불러오기 ClassCastException | #11 | `fix/load-class-cast` | #17 | #16 머지 후 rebase 완료, 리뷰 대기 (CI 38개 통과) |
-| 버그: `Resident.transition()` 반환값 뒤집힘 | #12 | `fix/resident-transition` | #18 | 리뷰 대기 (CI 통과), 먼저 머지된 PR 기준 rebase |
-| 2. 2인용 셀 상태·전이 규칙 | #5 | `feature/two-player-mode` | — | Cell 인터페이스 회의 대기 |
-| 3. 2인용 게임 진행 모델 | #6 | `feat/6-game-flow` | #21 (→ `feature/two-player-mode`) | 1차(단계·차례·배치·패스)·2차(승패 판정) 구현 완료, 리뷰 대기 (CI 통과) |
-| 다이어그램 렌더링 작업 (PlantUML) | #22 | `chore/plantuml-render` | #23 | 리뷰 대기 (CI 통과) |
-| 4. 2인용 UI 통합 | #7 | — | — | 대기 |
-| 5. 2인용 문서·다이어그램 정리 | #8 | — | — | 대기 |
+| #3 | 11-03 | main | #2 | 테스트 환경 (Gradle + JUnit 5 + CI) |
+| #13 | 11-03 | main | #4 | 클래식 특성 테스트 33개 (기존 동작 고정) |
+| #15 | 11-03 | main | #14 | 작업 기록 정리 |
+| #16 | 11-03 | main | #10 | 버그: Store 중복 기록 |
+| #17 | 11-03 | main | #11 | 버그: 불러오기 `ClassCastException` (#16 머지 후 rebase) |
+| #18 | 11-03 | main | #12 | 버그: `Resident.transition()` 반환값 뒤집힘 |
+| #20 | 11-03 | main | #19 | 작업 기록 갱신 (버그 3건, #6 1차) |
+| #21 | 11-03 | 통합 브랜치 | #6 (Refs) | 2인용 게임 진행 모델 (단계·배치·패스·승패 판정) |
+| #23 | 11-03 | main | #22 | PlantUML 다이어그램 렌더링 작업 |
+| #25 | 11-04 | main | #24 | (팀원 Lidohyeon) 도메인 구조 변경: `model`·`application`·`persistence`·`ui` |
+| #26 | 11-04 | 통합 브랜치 | — | main 동기화 1차 (squash로 머지됨) |
+| #28 | 11-04 | main | #27 | 작업 기록 갱신 (머지 반영, 통합 브랜치 PR 규칙) |
+| #32 | 11-04 | 통합 브랜치 | — | main 동기화 2차 (#25 포함, merge commit으로 머지) |
+| #34 | 11-04 | main | #33 | 클래식 `test-cases.md`를 #25 이후 경로로 갱신(CL-M-06 정리), 측정 문서 기준 커밋 한 줄 |
+| #35 | 11-04 | 통합 브랜치 | #5 (Refs) | 회의 자료(001, core `interfaces.md`)를 #25 이후 코드로 갱신, 렌더러 문제 반영 |
+
+"통합 브랜치" = `feature/two-player-mode`.
+
+### 진행 중 PR
+
+| PR | base | 이슈 | 내용 | 상태 |
+| --- | --- | --- | --- | --- |
+| #36 | 통합 브랜치 | #6 (Refs) | #6 다이어그램: 상태 다이어그램 렌더링, 클래스·한 라운드 시퀀스 다이어그램 | 리뷰 대기 |
+
+### 다음 작업
+
+| 작업 | 이슈 | 시작 조건 |
+| --- | --- | --- |
+| #6 닫기 (#21, #36 링크 댓글) | #6 | #36 머지 후 |
+| 2인용 셀 상태·전이 규칙 | #5 | Cell 인터페이스 회의 후 |
+| 2인용 UI 통합 | #7 | #5 이후, #25의 UI 구조 위에서 |
+| 2인용 문서·다이어그램 정리 | #8 | #5·#7 이후 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
 
@@ -104,7 +127,7 @@
 | 무작위 5개 (시드 42) | 각 100 | 65.0 | 50.6~55.7 |
 | block (정물) | 10 | 0.2 | 0.2 |
 
-- 전체 표와 측정 방법: [`life/docs/measurement-resident-transition.md`](https://github.com/DesignPattern8/DPTermProject/blob/fix/resident-transition/Codes/GameOfLife/src/com/holub/life/docs/measurement-resident-transition.md)
+- 전체 표와 측정 방법: [`life/docs/measurement-resident-transition.md`](../Codes/GameOfLife/src/com/holub/life/docs/measurement-resident-transition.md)
 - CL-C-08은 glider 보드에서 tick 2~10마다 5개 이하인지 확인한다(수정 전 tick 2에서 65로 실패, 수정 후 매 tick 2).
 
 ## 다이어그램 렌더링 (#22)
@@ -124,6 +147,39 @@
 
 - 결과 파일 이름은 파일명이 아니라 `@startuml <이름>`을 따른다. 그래서 `@startuml` 이름을 파일명과 같게 쓴다.
 - 처음 쓴 `val plantuml by configurations.creating`이 Gradle 9에서 deprecated 경고를 내서 `configurations.create("plantuml")`로 바꿨다.
+
+### 렌더링 범위 지정 (#39)
+
+**문제**: #6 다이어그램(PR #36)을 렌더링하면서 #25의 `application/docs/diagrams/before.svg`·`after.svg`도 다시 만들어졌다. `.puml`은 그대로였는데 결과 파일 내용이 달라져서, 그 파일들을 경로를 지정해 되돌렸다.
+
+**원인**: `.puml`을 내 환경(Graphviz 없음, PlantUML 1.2026.9)에서 다시 렌더링해 커밋된 파일과 비교했다. 버전별 결과를 보려고 Maven Central의 다른 버전 jar로도 렌더링했다.
+
+| 확인한 것 | 결과 |
+| --- | --- |
+| 커밋된 svg 안의 소스 인코딩 | 다시 렌더링한 결과와 같다. 소스는 그대로다 |
+| SVG 형식 | 커밋된 파일은 `<!--SRC=[…]-->` 주석과 `data-entity`·`data-uid` 속성을 쓴다. 1.2025.4·1.2025.10과 같은 형식이다. 1.2026.2부터는 `<?plantuml-src …?>`와 `data-qualified-name`·`data-link-type`을 쓴다 |
+| 레이아웃 | `after.svg` 크기가 커밋본은 1414×931, 내 결과는 1296×837이다. 내 환경의 기본 결과는 `!pragma layout smetana`를 넣은 결과와 같다(소스 줄 번호 속성만 다름). 커밋본은 smetana 결과와 크기가 달라서 Graphviz로 렌더링한 것으로 보인다(추정) |
+| Graphviz 없이 클래스 다이어그램 | 1.2025.0 ~ 1.2026.5는 오류 이미지(280×208 등)를 만든다. 1.2026.8·1.2026.9는 smetana로 렌더링한다 |
+| 폰트 | 글자 폭(`textLength`)이 같다(69.8496 → 69.85처럼 반올림 자릿수만 다름). 폰트는 원인이 아니다 |
+| 같은 환경에서 두 번 렌더링 | svg·png 모두 바이트까지 같다 |
+
+**한 것**
+- `./gradlew renderDiagrams -Pdir=<폴더>`로 그 폴더 아래의 `docs/diagrams/*.puml`만 렌더링한다. `docs/diagrams` 폴더 자체를 줘도 된다.
+- 없는 폴더, `src` 밖의 폴더(루트 `diagrams/` 포함), `.puml`이 없는 폴더를 주면 실패하고 이유를 출력한다.
+- `-Pdir`가 없으면 지금처럼 전체를 렌더링하고, 다시 만들어질 폴더 목록과 함께 경고를 낸다.
+  - 전체 렌더링을 막지 않은 이유: PlantUML 버전을 올릴 때처럼 전체를 같은 환경에서 다시 만드는 경우가 있다. #22의 사용법도 그대로 쓸 수 있다.
+- 사용법은 `build.gradle.kts`의 렌더링 작업 주석과 AGENTS.md 2-5에 적었다.
+
+**확인** (Graphviz 없는 macOS, JDK 26)
+
+| 경우 | 결과 |
+| --- | --- |
+| `-Pdir`=임시 도메인 폴더 / 그 `docs/diagrams` 폴더 | 그 `.puml`만 렌더링. `application/` 결과 파일은 바뀌지 않음 |
+| `-Pdir` 없음 | 경고 출력, 전체 렌더링 |
+| 없는 폴더 / `../../diagrams` / `.puml` 없는 `model` 폴더 | 실패(각각의 이유 출력) |
+| 문법 오류가 있는 `.puml` | 실패 |
+| `--configuration-cache` | 성공 |
+| `./gradlew test` | 영향 없음 (55개 통과) |
 
 ## 2인용 모드 (`feature/two-player-mode`)
 
@@ -164,11 +220,11 @@
 
 | 문서 | 비교한 후보 | 채택 | 이유 |
 | --- | --- | --- | --- |
-| [003 게임 단계](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/003-game-phase.md) | State / enum + switch / Strategy | State | 지금까지 바뀐 규칙(개입 선공, 빈 확정 거부, 자동 패스)이 모두 "한 단계의 규칙"이라, 단계별 클래스면 한 곳에서 끝난다 |
-| [004 플레이어 입력](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/004-player-input.md) | Command / 직접 호출 + 결과 값 / Observer | 직접 호출 + `Response` | Command가 값을 하는 경우(undo, 큐, 재생)가 없다. undo는 규칙으로 금지, hot-seat라 큐도 없다 |
-| [005 셀 수 집계와 승패 판정](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/005-cell-count-and-judge.md) | Phase 안 / 별도 판정 클래스 / Strategy / Observer | 별도 판정 클래스(패턴 없음) | 판정은 셀 수 두 개 → 결과인 순수 함수라 숫자만으로 테스트할 수 있다. 다른 점수 방식은 rules.md에서 기각돼 Strategy로 바꿀 대상이 없다 |
+| [003 게임 단계](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/003-game-phase.md) | State / enum + switch / Strategy | State | 지금까지 바뀐 규칙(개입 선공, 빈 확정 거부, 자동 패스)이 모두 "한 단계의 규칙"이라, 단계별 클래스면 한 곳에서 끝난다 |
+| [004 플레이어 입력](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/004-player-input.md) | Command / 직접 호출 + 결과 값 / Observer | 직접 호출 + `Response` | Command가 값을 하는 경우(undo, 큐, 재생)가 없다. undo는 규칙으로 금지, hot-seat라 큐도 없다 |
+| [005 셀 수 집계와 승패 판정](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/005-cell-count-and-judge.md) | Phase 안 / 별도 판정 클래스 / Strategy / Observer | 별도 판정 클래스(패턴 없음) | 판정은 셀 수 두 개 → 결과인 순수 함수라 숫자만으로 테스트할 수 있다. 다른 점수 방식은 rules.md에서 기각돼 Strategy로 바꿀 대상이 없다 |
 
-**셀 상태와의 분리**: 셀 상태는 회의 전이라, 게임 진행이 보드에 묻는 메서드 6개(크기 `rows`·`columns`, 빈 칸인가, 빈 칸이 있는가, 놓기, 1세대 진행)를 `TwoPlayerBoard` 인터페이스로 숨겼다. 테스트는 대역 `StubBoard`로 돌린다. 계약: [`twoplayer/docs/interfaces.md`](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/interfaces.md)
+**셀 상태와의 분리**: 셀 상태는 회의 전이라, 게임 진행이 보드에 묻는 메서드 6개(크기 `rows`·`columns`, 빈 칸인가, 빈 칸이 있는가, 놓기, 1세대 진행)를 `TwoPlayerBoard` 인터페이스로 숨겼다. 테스트는 대역 `StubBoard`로 돌린다. 계약: [`twoplayer/docs/interfaces.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/interfaces.md)
 
 **구현 범위**
 
@@ -180,7 +236,7 @@
 - 1차: 테스트 32개(TP-F 17, TP-P 15). 골격만 있을 때 32개 모두 실패 → 구현 후 66개 통과(새 32 + 기존 34).
 - 2차: 테스트 10개(TP-E). 대역에 명세 7장 예시의 세대별 셀 수를 주입했다. 골격만 있을 때 10개 모두 실패 → 구현 후 76개 통과.
 - 실측(003·005에 기록): 패키지 `com.holub.life.twoplayer` 파일 17개, 빈 줄·주석 제외 423줄(1차 367줄). 입력 1번에 위임 +1단계, 세대마다 판정 정적 호출 1번. 기존 코드 변경 없음, `java.awt`·Swing 의존 없음.
-- 문서: 게임 단계 상태 다이어그램 원본([`.puml`](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/diagrams/twoplayer-game-phase-state.puml)), [`twoplayer/docs/README.md`](https://github.com/DesignPattern8/DPTermProject/blob/feat/6-game-flow/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/README.md). png/svg는 렌더링 작업(CHORE) 추가 후.
+- 문서: 게임 단계 상태 다이어그램 원본([`.puml`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/diagrams/twoplayer-game-phase-state.puml)), [`twoplayer/docs/README.md`](https://github.com/DesignPattern8/DPTermProject/blob/feature/two-player-mode/Codes/GameOfLife/src/com/holub/life/twoplayer/docs/README.md). png/svg는 렌더링 작업(CHORE) 추가 후.
 - 진행 중 바꾼 것
   - TP-P-10 정의 수정: 남은 개수가 0이면 자동 패스로 차례가 오지 않아서 "남은 개수 없음" 거부는 생길 수 없다 → "차례 아님"으로 거부되는 것으로 정의를 바꾸고 해당 거부 이유를 없앴다.
   - 임시 배치 좌표를 처음에 `java.awt.Point`로 썼다가, 003의 "`java.awt` 의존 없음"과 맞지 않아 `Coordinate` record로 바꿨다.
@@ -188,20 +244,56 @@
   - TP-E에 "마지막 라운드가 아니어도 K번째 세대에 전멸하면 개입 없이 종료"(TP-E-09)와 "판정 규칙만 숫자로 확인"(TP-E-10)을 추가했다.
   - 005의 추정(새 타입 2개)과 달리 실제로는 4개가 생겼다. 결과를 승패(`Outcome`)와 이유(`EndReason`)로 나눴기 때문이다.
 
+## 머지 기록과 통합 브랜치 규칙 (2026-11-03)
+
+**머지된 PR**: #16·#17·#18(버그 3건, main), #20(작업 기록, main), #21(#6 게임 진행 모델, `feature/two-player-mode`), #23(렌더링 작업, main).
+
+- #21은 base가 기본 브랜치가 아니라서 `Closes #6`이 동작하지 않았다. #6은 열려 있다.
+- 리팩토링 담당에게 보낼 요약(버그 3건이 무엇을 바꿨고 어떤 테스트가 고정하는지)을 작성했다. 팀원의 #25(도메인 구조 변경, `Universe`·`Neighborhood`·`Resident` 이동)가 버그 수정 전 main(`e38ce7a`)에서 갈라져 있어서, rebase할 때 세 수정과 CL-C-08의 package-private 계측 카운터가 빠지지 않아야 한다는 점을 담았다.
+
+**통합 브랜치 PR 규칙**
+
+- `feature/two-player-mode`로 가는 PR은 본문에 `Closes #번호` 대신 **`Refs #번호`**를 쓴다.
+- 머지한 뒤 이슈에 **PR 링크를 댓글로 남기고 직접 닫는다.** (GitHub는 기본 브랜치로 머지될 때만 `Closes`로 이슈를 닫는다.)
+- `main`으로 가는 PR은 그대로 `Closes #번호`.
+- **main 동기화 PR은 반드시 merge commit으로 머지한다(squash 금지).** 이유: 히스토리가 끊기면 다음 동기화에서 충돌한다. #26을 squash로 머지했더니 main의 커밋이 통합 브랜치의 조상이 아니게 돼, 다음 동기화(#32)의 merge base가 오래된 `e38ce7a`로 잡히고 이미 반영된 변경 6개 파일이 다시 충돌했다(+ 충돌 표시 없이 잘못 합쳐진 파일 1개).
+
+**통합 브랜치 동기화**: main의 버그 수정·렌더링 작업을 2인용 쪽에 넣기 위해 `feature/two-player-mode`에서 `chore/sync-main-into-2p`를 따서 main만 merge했다(#26). 충돌은 없었고 81개 테스트 통과(클래식 39 + 2인용 42). 이 PR에는 새 코드·문서를 넣지 않았다.
+
+**#6 다이어그램 순서**: #26 머지 → 다이어그램 PR(게임 단계 상태 다이어그램 렌더링, 클래스 다이어그램, 한 라운드 시퀀스 다이어그램, `Refs #6`) → 머지 후 #6에 #21과 다이어그램 PR 링크를 남기고 닫는다.
+
+**통합 브랜치 동기화 2차 (#32)**: #25(도메인 구조 변경)가 main에 머지된 뒤 다시 main을 merge했다. 충돌 6개(`Universe` 삭제, `model/Neighborhood`·`model/Resident`, `ClassicBoard`, `ClassicMementoTest`, `SUK.md`)와 자동 병합 오류 1개(`ClassicCellTest`에 #25가 다른 파일로 옮긴 CL-C-08이 남아 컴파일 실패)를 모두 main 쪽으로 해결했다. 근거: 통합 브랜치는 이 파일들을 직접 바꾼 적이 없다(지난 동기화 때의 main `7f10a65`와 파일별로 같음). 2인용 코드는 core 클래스를 import하지 않아 #25의 경로 이동(`com.holub.life.model`)에 영향이 없었다. 97개 통과(클래식·core 55 + 2인용 42), main CI도 55개 통과.
+
+**버그 수정이 #25 이후에도 남았는지**: #25 머지 전 #25에 확인 요청 댓글을 남겼고, 머지 후 main에서 확인했다. #16 중복 `transfer` 없음, #17 형식 검사는 `persistence/LegacyLifeCodec.load()`로 이동, #18 `!isStable()`과 계측 카운터는 `model/`에, CL-C-08은 `model/NeighborhoodRecomputationTest`로 이동.
+
+**CL-M-06 (#33)**: #25 이후 `GameController`는 화면 없이 만들 수 있고(`Cell` + `Clock(Timer)`), 실제 저장 경로(`GameController.store()`)는 `GameControllerTest#storeWritesEachCoordinateOnceAndRoundTrip`이 이미 직접 검증한다. CL-M 테스트를 이 경로로 옮기는 안(a)과 문서만 고치는 안(b) 중 (b)로 정했다(#9 담당과 겹칠 수 있어서). `life/docs/test-cases.md`에서 "doStore 회귀는 못 잡음"을 지우고, 옛 `Universe.java` 등 줄 번호를 현재 위치로 바꾸고(원본 위치는 괄호), 남은 한계(`GameMenu` → `FileDialogs` 경로, 메뉴 등록, Exit)를 기록했다. 코드는 바꾸지 않았다. 케이스 정의는 #25가 `life/docs/domain-extraction-tests.md`에 EXT-A01~A06 등으로 이미 써 두었다(실제 저장 경로 검증은 EXT-A05). 같은 PR에서 측정 문서(`measurement-resident-transition.md`)는 줄 번호를 측정 기록 그대로 두고, "줄 번호는 측정 시점 커밋(`db637eb` 수정 전, `94cdaa6` 수정 후) 기준, #25 이후 현재 위치: `model/Neighborhood.java`" 한 줄만 추가했다.
+
+**팀원에게 남긴 댓글 2개**: 담당별로 나누고 `@` 멘션은 넣지 않았다. [#9 댓글](https://github.com/DesignPattern8/DPTermProject/issues/9#issuecomment-6629193687), [#25 댓글](https://github.com/DesignPattern8/DPTermProject/pull/25#issuecomment-6629194101).
+
+- #9(UI 분리 담당): CL-M 테스트(`ClassicBoard#store()`/`#load()`)를 `GameController` 경로로 옮기는 (a)안을 #9 작업 때 같이 할지
+- #25(작성자): #25가 추가한 테스트 16개(`GameControllerTest` 5, `ClockTest` 1, `GameMenuTest` 2, `RenderingExtractionTest` 5, `LoadFailureCharacterizationTest` 3)에 케이스 ID와 목적이 드러나는 `@DisplayName`을 붙이고, 정의 문서(`domain-extraction-tests.md`)를 각 도메인 `test-cases.md`에서 찾을 수 있게 연결해 달라는 요청. 바쁘면 별도 PR로 붙여도 될지 함께 물었다.
+
+**회의 자료 갱신 (#5, 통합 브랜치)**: #32 머지 후 001과 core `interfaces.md`의 경로·줄 번호를 #25 이후 코드(`life/model`, `life/ui`)로 고쳤다. #25에서 그리기가 `ui/BoardRenderer`로 옮겨지면서 제안 내용에 영향이 생겼다.
+
+- `BoardRenderer`는 `instanceof Neighborhood`/`instanceof Resident`로 셀 종류를 고르고, 색은 `isAlive()`만 본다. 두 조건에 맞지 않는 셀은 그려지지 않으므로, 2인용 셀을 새 클래스로 만들면 화면에 나오지 않고 A·B 색을 고를 정보도 없다.
+- 오버헤드 표에 렌더러 항목(고칠 파일, 그리는 셀 1개당 간접성, 새 셀 종류를 빠뜨렸을 때, 충돌 대상)을 추가했다. 네 후보 모두 렌더러(#9 담당 영역)를 한 번 고쳐야 한다.
+- D(Visitor)를 다시 평가했다. 렌더러·셀 수 집계까지 쓸 곳이 늘고 새 셀 종류 누락이 컴파일 오류로 잡히는 이점이 생겼지만, 가장 자주 부르는 이웃 조회에서 호출이 2배가 되고 `life/model` ↔ `twoplayer` 패키지 순환이 생긴다. 제안은 C(상태 인터페이스 + 모드별 enum, 렌더러는 상태 → 팔레트 색) 유지, 상태는 "제안".
+- 회의에서 정할 것에 3개를 추가했다: 렌더러가 색을 고르는 방법과 담당, 다른 도메인의 Visitor 계획, `CellState` 패키지 위치와 회의 자료 문서 위치(`life/docs` vs #25의 `life/model/docs`).
+
+**#6 다이어그램 (#36, 통합 브랜치, Refs #6)**: #6 게임 진행 모델의 다이어그램 3개를 `twoplayer/docs/diagrams/`에 원본(`.puml`)과 png·svg로 넣었다. 클래스·필드·메서드 이름은 실제 코드(`86bda26`)와 대조했다.
+
+- 게임 단계 상태 다이어그램: #21에 넣은 원본을 렌더링
+- 클래스 다이어그램: 공개 타입 7개 + package-private 타입(단계 6개, `GameJudge`)과 관계
+- 한 라운드 시퀀스 다이어그램: 시뮬레이션 K세대(마지막 세대의 `tick()` 안에서 `endSimulation`) → 개입(선택·확정·연속 2패스) → `startSimulation(r + 1)`
+- `./gradlew renderDiagrams`는 `src` 아래 모든 `.puml`을 렌더링해서 #25의 `application/docs/diagrams`도 다시 그려진다. 그 파일들은 되돌리고 2인용 파일만 커밋했다.
+
 ## 남은 일
 
-- #17·#18 머지 (#16은 머지됨, #17은 rebase 완료, #18은 현재 main과 충돌 없음)
-- 세 버그 PR 머지 후: 리팩토링 담당에게 보낼 요약(무엇이 바뀌었고 어떤 테스트가 고정하는지)
-- #6 PR #21(`feat/6-game-flow` → `feature/two-player-mode`) 리뷰·머지. base가 기본 브랜치(main)가 아니라서 머지돼도 `Closes #6`으로 이슈가 자동으로 닫히지 않음 → 머지 후 직접 닫기
-- #22 머지 후: `feat/6-game-flow`에서 게임 단계 상태 다이어그램을 렌더링해 png/svg 추가, 2인용 클래스·시퀀스 다이어그램 작성
-- 브랜치 방식(2026-11-03 결정): `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보낸다. `main`으로는 회의 후 #5까지 끝나면 한 번에 PR을 연다
-- Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현
+- #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기
+- #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
+- Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현 (#25 이후)
+- #7 UI 통합: #25가 나눈 UI 구조(`BoardPanel`, `GameMenu`, `GameController`) 위에서 설계
+- 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
-- 도메인 `docs/README.md`: `twoplayer/docs/`는 #6 PR에 넣음. `life/docs/`는 다음 core 도메인 PR에 함께
+- 도메인 `docs/README.md`: `twoplayer/docs/`는 #21에 넣음. `life/docs/README.md`는 #25가 추가함(문서 목록에 001·`interfaces.md`는 통합 브랜치가 main에 머지될 때 반영)
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
-
-## 진행하면서 있었던 실수
-
-- 로컬 테스트 확인 전에 push한 적이 있다(#13). 명령의 `exit=1`이 Gradle이 아니라 `grep`의 종료 코드였고, 다시 돌려 Gradle 종료 코드 0과 34개 통과를 확인했다.
-- 커밋하지 않은 `.gitignore` 수정이 있는 상태에서 `git checkout -- .`가 포함된 명령을 실행하려다 차단됐다. 이후 기존 파일을 건드리지 않는 방식(임시 테스트 파일 추가 후 삭제)으로 확인했다.
-- 테스트 출력 한 번을 scratchpad 대신 `/tmp/x`에 썼다. 바로 지웠다.

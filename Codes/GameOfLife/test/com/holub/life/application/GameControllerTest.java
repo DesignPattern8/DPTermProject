@@ -76,4 +76,76 @@ class GameControllerTest {
     assertThrows(IOException.class, () -> controller.store(directory.toFile()));
     assertTrue(board.createMemento().isAlive(new Point(5, 5)));
   }
+
+  @Test
+  @DisplayName("APP-S01 정상 Load 후 입력 스트림을 닫는다")
+  void successfulLoadReleasesFile() throws Exception {
+    board.toggle(5, 6);
+    Path file = directory.resolve("board.life");
+    controller.store(file.toFile());
+    controller.clear();
+    long before = openFileCount();
+
+    controller.load(file.toFile());
+
+    assertEquals(List.of(new Point(6, 5)), board.createMemento().liveCells());
+    assertFileReleased(file, before);
+  }
+
+  @Test
+  @DisplayName("APP-S02 형식이 잘못된 파일 Load가 실패해도 입력 스트림을 닫는다")
+  void invalidFileLoadReleasesFile() throws Exception {
+    Path file = directory.resolve("bad.life");
+    Files.write(file, new byte[] {1, 2, 3, 4});
+    long before = openFileCount();
+
+    assertThrows(IOException.class, () -> controller.load(file.toFile()));
+
+    assertFileReleased(file, before);
+  }
+
+  @Test
+  @DisplayName("APP-S03 빈 파일 Load가 실패해도 입력 스트림을 닫는다")
+  void emptyFileLoadReleasesFile() throws Exception {
+    Path file = directory.resolve("empty.life");
+    Files.write(file, new byte[0]);
+    long before = openFileCount();
+
+    assertThrows(IOException.class, () -> controller.load(file.toFile()));
+
+    assertFileReleased(file, before);
+  }
+
+  @Test
+  @DisplayName("APP-S04 정상 Store 후 출력 스트림을 닫는다")
+  void successfulStoreReleasesFile() throws Exception {
+    board.toggle(5, 6);
+    Path file = directory.resolve("board.life");
+    long before = openFileCount();
+
+    controller.store(file.toFile());
+
+    assertFileReleased(file, before);
+  }
+
+  /** Open file descriptors on Unix-like systems; -1 where the JVM cannot report it (Windows). */
+  private static long openFileCount() {
+    java.lang.management.OperatingSystemMXBean os =
+        java.lang.management.ManagementFactory.getOperatingSystemMXBean();
+    if (os instanceof com.sun.management.UnixOperatingSystemMXBean unix)
+      return unix.getOpenFileDescriptorCount();
+    return -1;
+  }
+
+  /**
+   * Windows refuses to delete a file that is still open. Unix deletes it anyway, so there the open
+   * descriptor count must not have grown.
+   */
+  private static void assertFileReleased(Path file, long openFilesBefore) throws IOException {
+    if (openFilesBefore >= 0)
+      assertTrue(
+          openFileCount() <= openFilesBefore,
+          "file descriptor left open: before=" + openFilesBefore + ", after=" + openFileCount());
+    Files.delete(file);
+  }
 }
