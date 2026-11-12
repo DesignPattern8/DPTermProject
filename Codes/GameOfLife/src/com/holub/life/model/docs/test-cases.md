@@ -21,3 +21,14 @@ CL-C-08은 모델 내부 계측 필드를 사용하는 `model.NeighborhoodRecomp
 | BOARD-07 | 예외 | 크기 불일치 복원 거부 | 다른 크기의 유효한 스냅샷을 `restore`에 전달 | `IllegalArgumentException`이 발생하고 기존 배치를 유지한다. | `CompositeBoardTest#restoreRejectsSizeMismatchWithoutChangingBoard` |
 | BOARD-08 | 경계 | 캡처의 부수효과 방지 | 보드 내부 하위 블록의 남쪽 경계 (23, 20)를 편집하고 캡처 | 루트 방향은 NONE, 하위 블록 방향은 SOUTH로 유지된다. | `CompositeBoardTest#snapshotDoesNotChangeActiveEdges` |
 | BOARD-09 | 예외 | 스냅샷 생성 시 크기·좌표 검사 | 0인 크기 또는 크기 밖 생존 좌표를 전달 | `IllegalArgumentException`이 발생한다. | `CompositeBoardTest#snapshotRejectsInvalidDimensionsAndCoordinates` |
+
+## 클래식 생사 판정 분리 (#52)
+
+`Resident.figureNextState()`와 `transition()`의 공개 경로로 판정과 반영 시점을 확인한다. 다음 케이스를 함수 추출 전에 작성·실행하고 추출 후 같은 기대값으로 실행한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| RULE-01 | 정상·경계 | Conway 전이표와 반영 시점 | 현재 생사 2가지 × 살아 있는 이웃 수 0~8의 18가지 조합 | 죽은 셀은 이웃 3에서 탄생하고 산 셀은 2·3에서 생존한다. 계산 직후 현재 생사는 그대로이며 `transition()` 후 결과와 변경 여부가 일치한다. | `ResidentRuleTest#conwayTransitionsKeepCalculationSeparateFromCommit` |
+| RULE-02 | 예외 | 잘못된 이웃 타입 검증 | 이웃 하나로 `Neighborhood` 전달, 나머지는 `Cell.DUMMY` | assert가 켜진 기존 테스트 환경에서 `AssertionError`가 발생한다. | `ResidentRuleTest#rejectsNeighborhoodAsResidentNeighbor` |
+
+Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의 참조 모델 비교는 기존 `ClassicGenerationTest`로 회귀 검증한다. 보드 API의 변경 반환값과 복원 경계는 `CompositeBoardTest`를 사용한다.
