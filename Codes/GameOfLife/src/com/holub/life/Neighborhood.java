@@ -7,6 +7,7 @@ import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import javax.swing.*;
+import java.util.List;
 
 /***
  * A group of {@link Cell} objects. Cells are grouped into neighborhoods
@@ -449,6 +450,137 @@ public final class Neighborhood implements Cell {
       for (Iterator i = liveCells.iterator(); i.hasNext(); )
         b.append(((Point) i.next()).toString() + "\n");
       return b.toString();
+    }
+  }
+
+  public boolean isCancer() {
+    return false; // Neighborhood 자체는 개별 세포가 아니므로 암세포가 아님
+  }
+
+  public void setCancer() {
+    // 암세포 전환은 개별 Resident에만 적용
+  }
+
+  public void cureCancer() {
+    // 복합 셀 자체는 치료 대상이 아님
+  }
+
+  /** 중첩된 Neighborhood를 실제 보드 좌표에 맞춰 펼친다. */
+  private void fillResidents(Resident[][] board, int top, int left) {
+    int subcellWidth = grid[0][0].widthInCells();
+
+    for (int row = 0; row < gridSize; row++) {
+      for (int column = 0; column < gridSize; column++) {
+        Cell cell = grid[row][column];
+        int cellTop = top + row * subcellWidth;
+        int cellLeft = left + column * subcellWidth;
+
+        if (cell instanceof Resident) {
+          board[cellTop][cellLeft] = (Resident) cell;
+        } else if (cell instanceof Neighborhood) {
+          ((Neighborhood) cell).fillResidents(board, cellTop, cellLeft);
+        }
+      }
+    }
+  }
+
+  private Resident[][] residentBoard() {
+    int size = widthInCells();
+    Resident[][] board = new Resident[size][size];
+    fillResidents(board, 0, 0);
+
+    return board;
+  }
+
+  public void tryNaturalCancer(double probability, Random random) {
+    if (random.nextDouble() >= probability) return;
+
+    Resident[][] board = residentBoard();
+    List<Resident> candidates = new ArrayList<Resident>();
+
+    for (Resident[] row : board) {
+      for (Resident cell : row) {
+        if (cell != null && cell.isAlive() && !cell.isCancer()) {
+          candidates.add(cell);
+        }
+      }
+    }
+
+    if (!candidates.isEmpty()) {
+      candidates.get(random.nextInt(candidates.size())).setCancer();
+    }
+  }
+
+  public void applyInvasion(double probability, Random random) {
+    Resident[][] board = residentBoard();
+    int size = board.length;
+    List<Resident> infected = new ArrayList<Resident>();
+
+    // 먼저 감염 대상을 모아야 같은 세대에 감염이 연쇄적으로 무한히 번지는 일을 막을 수 있음
+    for (int row = 0; row < size; row++) {
+      for (int column = 0; column < size; column++) {
+        Resident cell = board[row][column];
+        if (cell == null || !cell.isAlive() || cell.isCancer()) continue;
+
+        int cancerNeighbors = 0;
+
+        for (int dr = -1; dr <= 1; dr++) {
+          for (int dc = -1; dc <= 1; dc++) {
+            if (dr == 0 && dc == 0) continue;
+
+            int r = row + dr;
+            int c = column + dc;
+            if (r >= 0 && r < size && c >= 0 && c < size) {
+              Resident neighbor = board[r][c];
+              if (neighbor != null && neighbor.isAlive() && neighbor.isCancer()) {
+                cancerNeighbors++;
+              }
+            }
+          }
+        }
+
+        double combinedProbability =
+            1.0 - Math.pow(1.0 - probability, cancerNeighbors); // 인접한 암세포가 많을수록 감염 확률 증가
+
+        if (cancerNeighbors > 0 && random.nextDouble() < combinedProbability) {
+          infected.add(cell);
+        }
+      }
+    }
+
+    for (Resident cell : infected) {
+      cell.setCancer();
+    }
+  }
+
+  public int cancerCount() {
+    Resident[][] board = residentBoard();
+    int count = 0;
+
+    for (Resident[] row : board) {
+      for (Resident cell : row) {
+        if (cell != null && cell.isAlive() && cell.isCancer()) count++;
+      }
+    }
+
+    return count;
+  }
+
+  public void treatAt(int row, int column) {
+    Resident[][] board = residentBoard();
+    int size = board.length;
+
+    // 클릭한 칸과 주변 한 칸(대각선 포함)을 치료
+    for (int dr = -1; dr <= 1; dr++) {
+      for (int dc = -1; dc <= 1; dc++) {
+        int r = row + dr;
+        int c = column + dc;
+
+        if (r >= 0 && r < size && c >= 0 && c < size) {
+          Resident cell = board[r][c];
+          if (cell != null) cell.cureCancer();
+        }
+      }
     }
   }
 }
