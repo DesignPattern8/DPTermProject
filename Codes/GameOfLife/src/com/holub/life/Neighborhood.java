@@ -409,6 +409,7 @@ public final class Neighborhood implements Cell {
    */
   private static class NeighborhoodState implements Cell.Memento {
     Collection liveCells = new LinkedList();
+    Collection cancerCells = new LinkedList();
 
     public NeighborhoodState(InputStream in) throws IOException {
       load(in);
@@ -419,37 +420,69 @@ public final class Neighborhood implements Cell {
     public void load(InputStream in) throws IOException {
       try {
         ObjectInputStream source = new ObjectInputStream(in);
-        liveCells = (Collection) (source.readObject());
+        Object stored = source.readObject();
+
+        if (stored instanceof StateData) {
+          StateData data = (StateData) stored;
+          liveCells = data.liveCells;
+          cancerCells = data.cancerCells;
+        } else if (stored instanceof Collection) {
+          liveCells = (Collection<Point>) stored;
+          cancerCells = new HashSet<Point>();
+        } else {
+          throw new IOException("Unrecognized life-file format");
+        }
       } catch (ClassNotFoundException e) { // This exception shouldn't be rethrown as
         // a ClassNotFoundException because the
         // outside world shouldn't know (or care) that we're
         // using serialization to load the object. Nothring
         // wrong with treating it as an I/O error, however.
-
-        throw new IOException("Internal Error: Class not found on load");
+        throw new IOException("Internal Error: Class not found on load", e);
       }
     }
 
     public void flush(OutputStream out) throws IOException {
       ObjectOutputStream sink = new ObjectOutputStream(out);
-      sink.writeObject(liveCells);
+      sink.flush();
     }
 
     public void markAsAlive(Point location) {
       liveCells.add(new Point(location));
     }
 
+    public void markAsCancer(Point location) {
+      Point point = new Point(location);
+      liveCells.add(point);
+      cancerCells.add(new Point(point));
+    }
+
     public boolean isAlive(Point location) {
       return liveCells.contains(location);
     }
 
+    public boolean isCancer(Point location) {
+      return cancerCells.contains(location);
+    }
+
     public String toString() {
-      StringBuffer b = new StringBuffer();
+      StringBuilder b = new StringBuilder();
 
       b.append("NeighborhoodState:\n");
-      for (Iterator i = liveCells.iterator(); i.hasNext(); )
-        b.append(((Point) i.next()).toString() + "\n");
+      b.append("Live cells: ").append(liveCells.size()).append('\n');
+      b.append("Cancer cells: ").append(cancerCells.size()).append('\n');
       return b.toString();
+    }
+
+    private static class StateData implements Serializable {
+      private static final long serialVersionUID = 1L;
+
+      final Collection<Point> liveCells;
+      final Set<Point> cancerCells;
+
+      StateData(Collection<Point> liveCells, Set<Point> cancerCells) {
+        this.liveCells = new LinkedList<Point>(liveCells);
+        this.cancerCells = new HashSet<Point>(cancerCells);
+      }
     }
   }
 
