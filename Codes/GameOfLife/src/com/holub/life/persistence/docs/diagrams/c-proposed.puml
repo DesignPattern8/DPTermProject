@@ -1,0 +1,79 @@
+@startuml c-proposed
+!pragma layout smetana
+left to right direction
+skinparam classAttributeIconSize 0
+title Proposed C domain (not implemented)
+package "D: ui" {
+  class GameMenu
+}
+package "B: application" {
+  class GameController {
+    load(File)
+    store(File)
+  }
+}
+package "C: persistence" {
+  class BoardFileStore <<Facade>> {
+    BoardFileStore(PatternCodec)
+    read(Path): PatternData
+    write(Path, PatternData)
+  }
+  interface PatternCodec <<Strategy>> #FFF2CC {
+    read(InputStream): PatternData
+    write(PatternData, OutputStream)
+  }
+  class LegacyLifeCodec {
+    read(InputStream): PatternData
+    write(PatternData, OutputStream)
+  }
+}
+package "C: pattern (proposed)" {
+  class PatternData <<record>> #FFF2CC {
+    cells: List<CellPosition>
+  }
+  class CellPosition <<record>> #FFF2CC {
+    row: int
+    column: int
+  }
+  class PresetCatalog #FFF2CC {
+    list(): List<PatternPreset>
+    find(id): Optional<PatternPreset>
+  }
+  class PatternPreset <<record>> #FFF2CC {
+    id: String
+    displayName: String
+    data: PatternData
+  }
+}
+package "A: model (unchanged)" {
+  interface Cell
+  class NeighborhoodState <<Memento>>
+}
+GameMenu --> GameController
+GameController --> BoardFileStore : file operations
+GameController --> PresetCatalog : future preset lookup
+GameController --> Cell : capture / restore
+GameController ..> NeighborhoodState : map in B
+GameController ..> PatternData : map in B
+BoardFileStore o--> PatternCodec : injected
+LegacyLifeCodec ..|> PatternCodec
+PatternCodec ..> PatternData
+PatternData *--> CellPosition
+PresetCatalog o--> PatternPreset
+PatternPreset --> PatternData
+note bottom of BoardFileStore
+Owns file streams with try-with-resources.
+Failure policy must be agreed before migration.
+Life assembles Store + LegacyLifeCodec.
+end note
+note bottom of LegacyLifeCodec
+Only legacy encoding uses java.awt.Point.
+Codec borrows streams; it does not close them.
+end note
+legend bottom
+Yellow: proposed new types.
+PatternCodec is conditional on a second format
+or an injectable failing codec test.
+Preset types belong to a later feature step.
+endlegend
+@enduml

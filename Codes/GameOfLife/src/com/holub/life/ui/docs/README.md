@@ -9,3 +9,5 @@
 
 - [전체 이전 구조·전후 UML](../../application/docs/002-domain-layout.md)
 - [검증 결과](../../application/docs/verification.md)
+
+- [C 저장·패턴 도메인의 공개 계약 및 도메인 간 변경 제안](../../persistence/docs/002-public-contract-and-refactoring.md)

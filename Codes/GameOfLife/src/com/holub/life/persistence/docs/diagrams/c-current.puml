@@ -1,0 +1,50 @@
+@startuml c-current
+!pragma layout smetana
+left to right direction
+skinparam classAttributeIconSize 0
+title Current C domain (19bd091)
+package "D: ui" {
+  class GameMenu
+  class FileDialogs
+}
+package "B: application" {
+  class GameController
+}
+package "C: persistence" {
+  class BoardFileStore {
+    {static} openForLoad(File): InputStream
+    {static} openForStore(File): OutputStream
+  }
+  class LegacyLifeCodec {
+    {static} load(NeighborhoodState, InputStream)
+    {static} flush(NeighborhoodState, OutputStream)
+  }
+}
+package "A: model" {
+  interface Cell {
+    createMemento(): NeighborhoodState
+    transfer(Memento, Point, boolean)
+  }
+  interface "Cell.Memento" as Memento
+  class NeighborhoodState {
+    liveCells(): Collection
+    replaceCells(Collection)
+  }
+}
+GameMenu --> FileDialogs : select path
+GameMenu --> GameController : load / store
+GameController --> BoardFileStore : open
+GameController --> LegacyLifeCodec : decode / encode
+GameController --> Cell : capture / restore
+LegacyLifeCodec --> NeighborhoodState : read / replace
+NeighborhoodState ..|> Memento
+Cell ..> NeighborhoodState
+note bottom of GameController
+Owns stop / clear / restore and close.
+Close is currently on success path only.
+end note
+note bottom of LegacyLifeCodec
+Java serialized Collection<Point>.
+No preset API in current code.
+end note
+@enduml
