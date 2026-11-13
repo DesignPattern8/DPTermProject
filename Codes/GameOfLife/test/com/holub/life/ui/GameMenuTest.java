@@ -114,10 +114,11 @@ class GameMenuTest {
   }
 
   @TempDir Path directory;
-  private final Cell board = new Neighborhood(8, new Neighborhood(8, new Resident()));
+  private final Neighborhood board = new Neighborhood(8, new Neighborhood(8, new Resident()));
   private final RecordingTickSource ticks = new RecordingTickSource();
   private final Clock clock = new Clock(ticks);
-  private final GameController controller = new GameController(board, clock);
+  private final GameController controller =
+      new GameController(new CompositeBoard(board), board, clock);
   private final RecordingDialogs dialogs = new RecordingDialogs();
   private final int[] exits = {0};
   private final List<GameMenu.Entry> entries =
