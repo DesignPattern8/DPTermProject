@@ -616,4 +616,76 @@ public final class Neighborhood implements Cell {
       }
     }
   }
+
+  /** 살아 있는 일반 세포 하나를 무작위로 골라, 대각선을 포함해 연결된 살아 있는 일반 세포만 암세포로 바꾼다. */
+  public void tryCancerOutbreak(double probability, Random random) {
+    if (random.nextDouble() >= probability) return;
+
+    int boardWidth = widthInCells();
+    Resident[][] board = new Resident[boardWidth][boardWidth];
+    fillResidents(board, 0, 0);
+    List<CellPosition> candidates =
+        new ArrayList<CellPosition>(); // 암 발생 시작점은 살아 있는 일반 세포 중에서 무작위로 고름
+
+    for (int row = 0; row < boardWidth; row++) {
+      for (int column = 0; column < boardWidth; column++) {
+        Resident cell = board[row][column];
+        if (cell != null && cell.isAlive() && !cell.isCancer()) {
+          candidates.add(new CellPosition(cell, row, column));
+        }
+      }
+    }
+
+    if (candidates.isEmpty()) return;
+
+    CellPosition start = candidates.get(random.nextInt(candidates.size()));
+    boolean[][] visited = new boolean[boardWidth][boardWidth];
+    ArrayDeque<CellPosition> queue = new ArrayDeque<CellPosition>();
+
+    queue.add(start);
+    visited[start.row][start.column] = true;
+
+    while (!queue.isEmpty()) {
+      CellPosition position = queue.removeFirst();
+      Resident cell = board[position.row][position.column];
+
+      cell.setCancer(); // Neighborhood 전체가 아니라, 연결 탐색으로 찾은 Resident 하나만 변경
+
+      for (int dr = -1; dr <= 1; ++dr) {
+        for (int dc = -1; dc <= 1; ++dc) {
+          if (dr == 0 && dc == 0) continue;
+
+          int nextRow = position.row + dr;
+          int nextColumn = position.column + dc;
+
+          if (nextRow < 0
+              || nextRow >= boardWidth
+              || nextColumn < 0
+              || nextColumn >= boardWidth
+              || visited[nextRow][nextColumn]) {
+            continue;
+          }
+
+          Resident neighbor = board[nextRow][nextColumn];
+
+          if (neighbor != null && neighbor.isAlive() && !neighbor.isCancer()) {
+            visited[nextRow][nextColumn] = true;
+            queue.addLast(new CellPosition(neighbor, nextRow, nextColumn));
+          }
+        }
+      }
+    }
+  }
+
+  private static class CellPosition {
+    final Resident cell;
+    final int row;
+    final int column;
+
+    CellPosition(Resident cell, int row, int column) {
+      this.cell = cell;
+      this.row = row;
+      this.column = column;
+    }
+  }
 }
