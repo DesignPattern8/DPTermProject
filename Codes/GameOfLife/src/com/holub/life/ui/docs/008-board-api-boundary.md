@@ -76,6 +76,18 @@ B를 채택한다.
 - 렌더러의 생사 조회는 활성 테두리·부분 갱신과 같은 순회에 묶여 있어 인계표의 "기존 렌더링 경로"로 본다. 007의 결정(현행 유지)을 이 근거로 유지한다.
 - 렌더러를 스냅샷으로 옮기는 일은 B가 `GameListener`에 스냅샷을 싣거나 `snapshot()`을 제공할 때 다시 본다.
 
+## 구현 결과
+
+| 항목 | 전 | 후 |
+| --- | --- | --- |
+| `GridCoordinateMapper` 공개 메서드 | `position`, `userClicked` | + `cellAt` (`position` 결과를 `CellPosition`으로) |
+| `BoardPanel` 클릭 | `controller.toggle(position.y, position.x)` | `controller.toggle(cell.row(), cell.column())` |
+| `ui` 소스 전체 행 수 | 401 | 412 (+11) |
+| 클릭 경로 headless JUnit | 0 | 4 (UI-R10~R13) |
+
+- 테스트: `./gradlew test` 116개 통과(main 병합 후 112 + 새 4). 기존 테스트는 수정하지 않았다. Linux, OpenJDK 21(toolchain만 21로 바꾸는 init 스크립트).
+- `NativeUiSmoke`(EXT-N01): 수정 없이 Xvfb에서 통과, 종료 코드 0.
+
 ## 후속 작업
 
 - B와 협의: `GameListener.boardChanged`에 `BoardSnapshot`을 실을지(B `003` 후속 작업). 실리면 A안의 시점 문제가 사라지므로 렌더러를 다시 비교한다.

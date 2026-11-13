@@ -33,3 +33,15 @@ public final class SwingUserDialogs implements UserDialogs
 - Load/Store 동작: `dialogs.chooseFile("Load")`/`("Write")`로 고른 파일을 `controller.load`/`store`에 넘긴다. 선택 취소(`FileNotFoundException`)를 포함한 `IOException`은 `dialogs.showError("Read Failed!")`/`("Write Failed!")`로 알린다. 원본 동작이다.
 - Exit 동작: `exit.run()`. `install`은 `() -> System.exit(0)`을 넘긴다.
 - `SwingUserDialogs.chooseFile`: `FileDialogs.userSelected(".", ".life", "Life File", text)`. `showError`: `JOptionPane.showMessageDialog(null, message, "The Game of Life", ERROR_MESSAGE)`. 둘 다 Swing 이벤트 스레드에서 부른다(메뉴 동작에서 부르므로 지금은 항상 그렇다).
+
+# 클릭 → `CellPosition` (#9)
+
+- 제공 D / 사용 `BoardPanel` / 변경 2026-11-13, #9 ([008](008-board-api-boundary.md))
+- 바뀐 것: 추가만 있다.
+
+```java
+public static CellPosition GridCoordinateMapper.cellAt(Cell cell, Point here, Rectangle surface)
+```
+
+- `position(cell, here, surface)`와 같은 계산(블록마다 정수 나눗셈)이고 결과만 `CellPosition(row = y, column = x)`로 돌려준다. 범위 밖 픽셀의 예외(`ArrayIndexOutOfBoundsException`)도 같다.
+- `BoardPanel`은 이 값을 `GameController.toggle(row, column)`에 넘긴다.

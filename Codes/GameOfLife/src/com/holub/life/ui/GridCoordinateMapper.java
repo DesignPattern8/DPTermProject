@@ -1,6 +1,7 @@
 package com.holub.life.ui;
 
 import com.holub.life.model.Cell;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Neighborhood;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -20,6 +21,15 @@ public final class GridCoordinateMapper {
     Point position = position(child, offset, subcell);
     position.translate(column * child.widthInCells(), row * child.widthInCells());
     return position;
+  }
+
+  /**
+   * The row and column under a pixel, as A's {@link CellPosition}. Same calculation and exceptions
+   * as {@link #position}, whose Point holds the column in x and the row in y.
+   */
+  public static CellPosition cellAt(Cell cell, Point here, Rectangle surface) {
+    Point position = position(cell, here, surface);
+    return new CellPosition(position.y, position.x);
   }
 
   public static void userClicked(Cell cell, Point here, Rectangle surface) {
