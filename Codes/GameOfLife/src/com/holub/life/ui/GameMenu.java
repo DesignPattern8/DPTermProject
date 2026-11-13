@@ -2,6 +2,7 @@ package com.holub.life.ui;
 
 import com.holub.life.application.Clock;
 import com.holub.life.application.GameController;
+import com.holub.life.application.Speed;
 import com.holub.ui.MenuSite;
 import java.awt.event.ActionListener;
 import java.io.IOException;
@@ -16,11 +17,8 @@ public final class GameMenu {
         panel,
         "Grid",
         "Clear",
-        e -> {
-          controller.clear();
-          panel.repaint();
-        });
-    MenuSite.addLine(panel, "Grid", "Load", e -> load(panel, controller));
+        e -> controller.clear());
+    MenuSite.addLine(panel, "Grid", "Load", e -> load(controller));
     MenuSite.addLine(panel, "Grid", "Store", e -> store(controller));
     MenuSite.addLine(panel, "Grid", "Exit", e -> System.exit(0));
 
@@ -31,20 +29,24 @@ public final class GameMenu {
     MenuSite.addLine(clock, "Go", "Slow", modifier);
     MenuSite.addLine(clock, "Go", "Medium", modifier);
     MenuSite.addLine(clock, "Go", "Fast", modifier);
-    Runnable refresh = panel::refreshNow;
-    clock.addClockListener(() -> onTick(controller, refresh));
+    clock.addClockListener(() -> onTick(controller));
   }
 
+  /** Map a Go menu item to the clock request. Like the original, any other item stops the clock. */
   static void go(Clock clock, String name) {
-    char toDo = name.charAt(0);
-    if (toDo == 'T') clock.tick();
-    else
-      clock.startTicking(
-          toDo == 'A' ? 500 : toDo == 'S' ? 150 : toDo == 'M' ? 70 : toDo == 'F' ? 30 : 0);
+    switch (name) {
+      case "Tick (Single Step)" -> clock.tick();
+      case "Agonizing" -> clock.start(Speed.AGONIZING);
+      case "Slow" -> clock.start(Speed.SLOW);
+      case "Medium" -> clock.start(Speed.MEDIUM);
+      case "Fast" -> clock.start(Speed.FAST);
+      default -> clock.stop(); // "Halt"
+    }
   }
 
-  static void onTick(GameController controller, Runnable refresh) {
-    if (!menuIsActive() && controller.tick()) refresh.run();
+  /** Advance a generation unless a menu is open. Redrawing is done by the panel's GameListener. */
+  static void onTick(GameController controller) {
+    if (!menuIsActive()) controller.tick();
   }
 
   private static boolean menuIsActive() {
@@ -52,14 +54,13 @@ public final class GameMenu {
     return path != null && path.length > 0;
   }
 
-  private static void load(BoardPanel panel, GameController controller) {
+  private static void load(GameController controller) {
     try {
       controller.load(FileDialogs.userSelected(".", ".life", "Life File", "Load"));
     } catch (IOException e) {
       JOptionPane.showMessageDialog(
           null, "Read Failed!", "The Game of Life", JOptionPane.ERROR_MESSAGE);
     }
-    panel.repaint();
   }
 
   private static void store(GameController controller) {

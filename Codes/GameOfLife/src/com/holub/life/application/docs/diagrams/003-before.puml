@@ -1,0 +1,87 @@
+@startuml 003-before
+' B 도메인 리팩토링 전 (main 4afc828 + #42). 패턴 스테레오타입은 003 2장 기준.
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "com.holub.life" {
+  class Life <<entry>> {
+    + {static} main(String[])
+  }
+}
+
+package "application (B)" {
+  class Clock <<Singleton, Observer: Subject>> {
+    - clock : java.util.Timer
+    - tick : TimerTask
+    - publisher : Publisher
+    - {static} instance : Clock
+    + Clock(Timer)
+    + {static} instance() : Clock
+    + startTicking(millisecondsBetweenTicks : int)
+    + stop()
+    + tick()
+    + addClockListener(Listener)
+  }
+  interface "Clock.Listener" as ClockListener <<Observer>> {
+    + tick()
+  }
+  class GameController <<Facade>> {
+    + toggle(row, column)
+    + clear()
+    + tick() : boolean
+    + load(File)
+    + store(File)
+  }
+}
+
+package "com.holub.tools" {
+  class Publisher {
+    + subscribe(Object)
+    + publish(Distributor)
+  }
+  interface "Publisher.Distributor" as Distributor <<Visitor>> {
+    + deliverTo(Object)
+  }
+}
+
+package "java.util" {
+  class Timer
+  class TimerTask <<Command>>
+}
+
+package "ui (D)" {
+  class GameMenu {
+    ~ {static} go(Clock, name : String)
+    ~ {static} onTick(GameController, refresh : Runnable)
+  }
+  class BoardPanel {
+    + repaint()
+    + refreshNow()
+  }
+}
+
+package "model (A)" {
+  interface Cell
+}
+
+Life ..> Clock : instance()
+Life ..> GameController : <<create>>
+Clock *-- Timer
+Clock --> TimerTask
+Clock *-- Publisher
+Clock +-- ClockListener
+Publisher ..> Distributor
+Clock ..> Distributor : <<anonymous>>\n(Object) 형변환
+GameController --> Cell
+GameController --> Clock : stop()
+GameMenu ..> ClockListener : <<lambda>>
+GameMenu --> Clock : startTicking(\n첫 글자 → ms, 0 = 정지)
+GameMenu --> GameController
+GameMenu --> BoardPanel : repaint() / refreshNow()
+BoardPanel --> GameController : toggle()
+
+note bottom of GameMenu
+  편집·Clear·Load·tick 뒤의 화면 갱신을
+  호출하는 UI 코드가 각자 부른다 (P5)
+end note
+@enduml
