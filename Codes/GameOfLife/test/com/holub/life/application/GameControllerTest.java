@@ -19,8 +19,11 @@ class GameControllerTest {
   @BeforeEach
   void setUp() {
     timer = new Timer(true);
-    board = new Neighborhood(8, new Neighborhood(8, new Resident()));
-    controller = new GameController(board, new Clock(new UtilTimerTickSource(timer)));
+    Neighborhood root = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    board = root;
+    controller =
+        new GameController(
+            new CompositeBoard(root), root, new Clock(new UtilTimerTickSource(timer)));
   }
 
   @AfterEach
@@ -212,6 +215,17 @@ class GameControllerTest {
 
     controller.store(directory.resolve("board.life").toFile());
 
+    assertTrue(changes.isEmpty());
+  }
+
+  @Test
+  @DisplayName("APP-B06 범위 밖 편집은 보드를 바꾸지 않고 거부하며 알리지 않는다")
+  void outOfRangeToggleIsRejected() {
+    List<GameListener.Change> changes = recordChanges();
+
+    assertThrows(IndexOutOfBoundsException.class, () -> controller.toggle(64, 0));
+
+    assertTrue(board.createMemento().liveCells().isEmpty());
     assertTrue(changes.isEmpty());
   }
 

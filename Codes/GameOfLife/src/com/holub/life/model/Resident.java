@@ -51,8 +51,12 @@ public final class Resident implements Cell {
     if (southeast.isAlive()) ++neighbors;
     if (southwest.isAlive()) ++neighbors;
 
-    willBeAlive = (neighbors == 3 || (amAlive && neighbors == 2));
+    willBeAlive = nextAlive(amAlive, neighbors);
     return !isStable();
+  }
+
+  private static boolean nextAlive(boolean alive, int liveNeighbors) {
+    return liveNeighbors == 3 || (alive && liveNeighbors == 2);
   }
 
   private void verify(Cell c, String direction) {
