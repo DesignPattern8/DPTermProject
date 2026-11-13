@@ -12,6 +12,8 @@ import java.awt.Point;
 public final class Resident implements Cell {
   private boolean amAlive = false;
   private boolean willBeAlive = false;
+  private boolean isCancer = false;
+  private boolean willBeCancer = false;
 
   private boolean isStable() {
     return amAlive == willBeAlive;
@@ -41,17 +43,26 @@ public final class Resident implements Cell {
     verify(southwest, "southwest");
 
     int neighbors = 0;
+    int cancerNeighbors = 0;
+    Cell[] adjacent = {north, south, east, west, northeast, northwest, southeast, southwest};
 
-    if (north.isAlive()) ++neighbors;
-    if (south.isAlive()) ++neighbors;
-    if (east.isAlive()) ++neighbors;
-    if (west.isAlive()) ++neighbors;
-    if (northeast.isAlive()) ++neighbors;
-    if (northwest.isAlive()) ++neighbors;
-    if (southeast.isAlive()) ++neighbors;
-    if (southwest.isAlive()) ++neighbors;
+    for (Cell cell : adjacent) {
+      if (cell.isAlive()) {
+        neighbors++;
+        if (cell.isCancer()) cancerNeighbors++;
+      }
+    }
 
-    willBeAlive = nextAlive(amAlive, neighbors);
+    if (isCancer) {
+      willBeAlive = neighbors >= 1 && neighbors <= 5;
+      willBeCancer = willBeAlive;
+    } else {
+      willBeAlive = nextAlive(amAlive, neighbors);
+      willBeCancer =
+          !amAlive && cancerNeighbors >= 3 && cancerNeighbors <= 4; // 암세포가 3~4개 인접한 빈칸에는 암세포가 태어남
+      if (willBeCancer) willBeAlive = true; // 암세포 출생이면 생존 상태도 함께 켬
+    }
+
     return !isStable();
   }
 
@@ -74,8 +85,9 @@ public final class Resident implements Cell {
   }
 
   public boolean transition() {
-    boolean changed = !isStable();
+    boolean changed = !isStable() || isCancer != willBeCancer;
     amAlive = willBeAlive;
+    isCancer = willBeCancer;
     return changed;
   }
 
@@ -85,6 +97,7 @@ public final class Resident implements Cell {
 
   public void clear() {
     amAlive = willBeAlive = false;
+    isCancer = willBeCancer = false;
   }
 
   public boolean isAlive() {
@@ -105,9 +118,20 @@ public final class Resident implements Cell {
 
   public boolean transfer(Memento memento, Point upperLeft, boolean doLoad) {
     if (doLoad) {
-      if (amAlive = willBeAlive = memento.isAlive(upperLeft)) return true;
-    } else if (amAlive) // store only live cells
-    memento.markAsAlive(upperLeft);
+      boolean wasAlive = amAlive;
+      boolean wasCancer = isCancer;
+      amAlive = willBeAlive = memento.isAlive(upperLeft);
+      isCancer = willBeCancer = memento.isCancer(upperLeft);
+
+      return wasAlive != amAlive || wasCancer != isCancer;
+    }
+    if (amAlive) { // store only live cells
+      if (isCancer) {
+        memento.markAsCancer(upperLeft);
+      } else {
+        memento.markAsAlive(upperLeft);
+      }
+    }
 
     return false;
   }
@@ -118,5 +142,21 @@ public final class Resident implements Cell {
    */
   public NeighborhoodState createMemento() {
     throw new UnsupportedOperationException("May not create memento of a unitary cell");
+  }
+
+  public boolean isCancer() {
+    return isCancer;
+  }
+
+  public void setCancer() {
+    amAlive = willBeAlive = true;
+    isCancer = willBeCancer = true;
+  }
+
+  public void cureCancer() {
+    if (isCancer) {
+      amAlive = willBeAlive = false;
+      isCancer = willBeCancer = false;
+    }
   }
 }

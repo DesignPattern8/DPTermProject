@@ -287,6 +287,16 @@
 - 한 라운드 시퀀스 다이어그램: 시뮬레이션 K세대(마지막 세대의 `tick()` 안에서 `endSimulation`) → 개입(선택·확정·연속 2패스) → `startSimulation(r + 1)`
 - `./gradlew renderDiagrams`는 `src` 아래 모든 `.puml`을 렌더링해서 #25의 `application/docs/diagrams`도 다시 그려진다. 그 파일들은 되돌리고 2인용 파일만 커밋했다.
 
+## 팀원 PR #60 충돌 해결과 테스트 (2026-11-14)
+
+PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` 등)를 고쳐서 main과 충돌했다. 사용자 요청으로 작성자 브랜치 `feature/single-player`에 직접 커밋했다.
+
+- **충돌 해결** (`6eb87f0`): main을 merge하고, PR 기능을 새 패키지 구조로 옮겼다. `Universe`의 tick 규칙은 `application/CancerGame`으로 옮겼고, `GameController`에는 이 규칙을 넣을 때만 켜지는 생성자를 추가했다. 기존 3인자 생성자는 고전 규칙 그대로다.
+- **저장 형식**: 암세포가 없으면 기존 `Collection<Point>`, 있을 때만 새 형식으로 저장한다. CL-M-04·10이 기존 형식을 고정하고 있어서다.
+- **테스트** (`8cd3442`): 세 도메인의 `test-cases.md`에 CAN-M01~14, CAN-P01~04, CAN-A01~08, CAN-C01~04를 먼저 정의하고 JUnit을 작성했다. 41개를 추가해 전체 144개가 통과했다(로컬·CI).
+- **버그 의심 2건은 고치지 않고 기록만 했다** (강령 2): 암 연산 뒤 블록이 비활성으로 남는 문제, 토글로 죽인 칸에 암 상태가 남는 문제.
+- **머지 결정**: 설계 결정 문서는 팀원이 작성 중이다. 팀 합의로 머지를 먼저 하고, 대신 변경 요약 [`life/docs/cancer-feature-changes.md`](../Codes/GameOfLife/src/com/holub/life/docs/cancer-feature-changes.md)를 같은 PR에 넣었다.
+
 ## 남은 일
 
 - #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기

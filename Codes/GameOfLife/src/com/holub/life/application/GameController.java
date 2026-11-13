@@ -23,13 +23,20 @@ public final class GameController {
   private final Board board;
   private final Cell fileCells;
   private final Clock clock;
+  private final CancerGame cancerGame; // null: classic Life without cancer rules
   private final Object lock = new Object(); // Board calls must not overlap (model contract)
   private final List<GameListener> listeners = new CopyOnWriteArrayList<>();
 
   public GameController(Board board, Cell fileCells, Clock clock) {
+    this(board, fileCells, clock, null);
+  }
+
+  /** Runs {@code cancerGame} after every generation. It must act on the board that {@code board} wraps. */
+  public GameController(Board board, Cell fileCells, Clock clock, CancerGame cancerGame) {
     this.board = board;
     this.fileCells = fileCells;
     this.clock = clock;
+    this.cancerGame = cancerGame;
   }
 
   public void addGameListener(GameListener listener) {
@@ -56,12 +63,50 @@ public final class GameController {
    * @return true if any cell changed; listeners are notified only in that case.
    */
   public boolean tick() {
+    if (cancerGame == null) {
+      boolean changed;
+      synchronized (lock) {
+        changed = board.step();
+      }
+      if (changed) notifyListeners(GameListener.Change.GENERATION);
+      return changed;
+    }
+
     boolean changed;
+    boolean ended;
     synchronized (lock) {
+      if (cancerGame.isOver()) return false;
       changed = board.step();
+      ended = cancerGame.afterGeneration();
     }
     if (changed) notifyListeners(GameListener.Change.GENERATION);
+    // Cancer rules change cells outside step(), so redraw the whole board as Universe did.
+    notifyListeners(GameListener.Change.EDITED);
+    if (ended) {
+      clock.stop();
+      notifyListeners(GameListener.Change.GAME_OVER);
+    }
     return changed;
+  }
+
+  /**
+   * Treat cancer around (row, column). Does nothing without cancer rules or treatment charges.
+   *
+   * @return true if a treatment was used.
+   */
+  public boolean treat(int row, int column) {
+    if (cancerGame == null) return false;
+    boolean treated;
+    synchronized (lock) {
+      treated = cancerGame.treat(row, column);
+    }
+    if (treated) notifyListeners(GameListener.Change.EDITED);
+    return treated;
+  }
+
+  /** The cancer game's win/lose message, or null if the game is running or has no cancer rules. */
+  public String gameResultMessage() {
+    return cancerGame == null ? null : cancerGame.resultMessage();
   }
 
   /** Listeners are notified even when loading fails, as the original redrew after a failed load. */

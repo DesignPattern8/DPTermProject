@@ -77,6 +77,12 @@ public interface Cell {
 
     /** On restoration of a cell from a memento, indicate that a cell is alive. */
     boolean isAlive(Point location);
+
+    /** On creation of the memento, indicate that a cell is a live cancer cell. */
+    void markAsCancer(Point location);
+
+    /** On restoration of a cell from a memento, indicate that a cell is a cancer cell. */
+    boolean isCancer(Point location);
   }
 
   /**
@@ -98,6 +104,15 @@ public interface Cell {
    * implementions should throw an UnsupportedOperationException when this method is called.
    */
   NeighborhoodState createMemento();
+
+  /** Return true if this cell is a live cancer cell. Composite cells are never cancer cells. */
+  boolean isCancer();
+
+  /** Turn this cell into a live cancer cell. */
+  void setCancer();
+
+  /** Kill this cell if it is a cancer cell. */
+  void cureCancer();
 
   /**
    * The DUMMY Singleton represents a permanently dead (thus stable) cell. It's used for the edges
@@ -147,5 +162,13 @@ public interface Cell {
         public NeighborhoodState createMemento() {
           throw new UnsupportedOperationException("Cannot create memento of dummy block");
         }
+
+        public boolean isCancer() {
+          return false;
+        }
+
+        public void setCancer() {}
+
+        public void cureCancer() {}
       };
 }

@@ -38,7 +38,8 @@ public final class BoardRenderer {
       }
     } else if (cell instanceof Resident) {
       g = g.create();
-      g.setColor(cell.isAlive() ? Color.RED : Colors.LIGHT_YELLOW);
+      g.setColor(
+          cell.isAlive() ? (cell.isCancer() ? Color.MAGENTA : Color.RED) : Colors.LIGHT_YELLOW);
       g.fillRect(here.x + 1, here.y + 1, here.width - 1, here.height - 1);
       g.setColor(Colors.DARK_YELLOW);
       g.drawLine(here.x, here.y, here.x, here.y + here.height);
