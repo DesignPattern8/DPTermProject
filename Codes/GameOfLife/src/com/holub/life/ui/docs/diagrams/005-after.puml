@@ -1,0 +1,70 @@
+@startuml 005-after
+' D 도메인 메뉴 연결 리팩토링 후 (#9, 결정 005·006)
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "ui (D)" {
+  class GameMenu <<final, static>> {
+    + {static} entries(GameController, Clock, UserDialogs, exit : Runnable) : List<Entry>
+    + {static} install(BoardPanel, GameController, Clock)
+    ~ {static} go(Clock, name : String)
+    ~ {static} onTick(GameController)
+    - {static} goEntries(Clock) : List<Entry>
+  }
+  class "GameMenu.Entry" as Entry <<record>> {
+    + menu : String
+    + label : String
+    + action : ActionListener
+  }
+  interface UserDialogs <<Strategy>> {
+    + chooseFile(selectButtonText : String) : File
+    + showError(message : String)
+  }
+  class SwingUserDialogs <<ConcreteStrategy>>
+  class FileDialogs <<static>> {
+    + {static} userSelected(startHere, extension, description, selectButtonText) : File
+  }
+  class BoardPanel
+  class LifeFrame
+}
+
+package "com.holub.ui" {
+  class MenuSite <<static>> {
+    + {static} addLine(requester, menu, name, ActionListener)
+  }
+}
+
+package "application (B)" {
+  class Clock
+  class GameController
+  enum Speed
+}
+
+package "javax.swing" {
+  class JOptionPane
+}
+
+package "test" {
+  class RecordingDialogs <<stub>>
+}
+
+LifeFrame --> GameMenu : install()
+GameMenu *-- "10" Entry : entries()
+GameMenu ..> UserDialogs : load/store
+GameMenu ..> MenuSite : install(): addLine per entry
+GameMenu ..> SwingUserDialogs : install() default
+UserDialogs <|.. SwingUserDialogs
+UserDialogs <|.. RecordingDialogs
+SwingUserDialogs ..> FileDialogs
+SwingUserDialogs ..> JOptionPane
+Entry ..> Clock : Go: stop / tick / start(Speed)
+Entry ..> GameController : Grid: clear / load / store
+GameMenu ..> Speed
+GameMenu ..> BoardPanel : requester (Grid)
+
+note right of Entry
+  라벨과 동작이 한 줄에 있다.
+  Exit는 주입한 Runnable
+  (install 기본값 System.exit(0)).
+end note
+@enduml
