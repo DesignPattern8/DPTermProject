@@ -84,8 +84,22 @@ public class Universe extends JPanel {
             Rectangle bounds = getBounds();
             bounds.x = 0;
             bounds.y = 0;
-            outermostCell.userClicked(e.getPoint(), bounds);
-            repaint();
+
+            if (SwingUtilities.isRightMouseButton(e)) {
+              if (treatmentCharges <= 0) return;
+
+              int size = outermostCell.widthInCells();
+              int cellSize = Math.max(1, bounds.width / size);
+              int row = e.getY() / cellSize;
+              int column = e.getX() / cellSize;
+
+              ((Neighborhood) outermostCell).treatAt(row, column);
+              treatmentCharges--;
+              repaint();
+            } else {
+              outermostCell.userClicked(e.getPoint(), bounds);
+              repaint();
+            }
           }
         });
 
