@@ -54,12 +54,12 @@ class GameMenuTest {
     RecordingTimer timer = new RecordingTimer();
     MenuSelectionManager menus = MenuSelectionManager.defaultManager();
     try {
-      Cell board = new Neighborhood(8, new Neighborhood(8, new Resident()));
+      Neighborhood board = new Neighborhood(8, new Neighborhood(8, new Resident()));
       board.toggle(10, 9);
       board.toggle(10, 10);
       board.toggle(10, 11);
       Clock clock = new Clock(new UtilTimerTickSource(timer));
-      GameController controller = new GameController(board, clock);
+      GameController controller = new GameController(new CompositeBoard(board), board, clock);
       menus.setSelectedPath(new MenuElement[] {new JMenu("Go")});
       GameMenu.onTick(controller);
       assertTrue(board.createMemento().isAlive(new Point(9, 10)));
