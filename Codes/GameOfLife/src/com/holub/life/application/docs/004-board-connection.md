@@ -36,7 +36,7 @@
 
 | 항목 | D7-A | **D7-B** | D7-C |
 | --- | --- | --- | --- |
-| 구조 비용 | 0 | 타입 0, 파일 3(`GameController`, `Life`, 테스트 2), `GameController.java` 86 → 90 | 타입 0, C 작업 포함 (추정 파일 5 이상) |
+| 구조 비용 | 0 | 타입 0, src 파일 2(`GameController.java` 86 → 96, `Life.java` 22 → 22), git +36 / -26. 테스트 파일 3(새 1) | 타입 0, C 작업 포함 (추정 파일 5 이상) |
 | 간접성 | 0 | 편집·진행 +1 (`Board` → `Neighborhood`, A의 Facade 1단계) | 같음 |
 | 결합도 | B → `Cell`, `Cell.DUMMY` | B → `Board`, `CellPosition` + 파일용 `Cell` | B → `Board`만 |
 | 테스트 용이성 | 실제 셀 트리 필요 | `Board` 대역으로 B만 테스트 | 같음 |
@@ -44,7 +44,7 @@
 
 | 항목 | D8-A | **D8-B** | D8-C | D8-D |
 | --- | --- | --- | --- | --- |
-| 구조 비용 | 0 | 타입 0, 잠금 필드 1 | 타입 +2 이상(명령, 실행기) 추정 | 타입 0, D 파일 교체 |
+| 구조 비용 | 0 | 타입 0, 잠금 필드 1, `synchronized` 블록 5개 | 타입 +2 이상(명령, 실행기) 추정 | 타입 0, D 파일 교체 |
 | 간접성 | 0 | 0 (잠금 획득만) | 요청당 +2 (명령 생성, 큐) 추정 | 0 |
 | 런타임 | — | 잠금 경합은 tick과 편집이 겹칠 때만. 측정하지 않음 | 스레드 1개 추가 | — |
 | 동작 변화 | 겹침 가능 | 없음 (겹침만 막힘) | 요청이 비동기가 됨 | tick 스레드 변경 |
@@ -75,6 +75,13 @@ if (changed) notifyListeners(GameListener.Change.GENERATION);
 - `CompositeBoard.step()`은 전의 `tick()` 본문과 같은 호출(`figureNextState(DUMMY×8) && transition()`)이다.
 - 범위 밖 편집: 전에는 `Neighborhood.toggle`이 `ArrayIndexOutOfBoundsException`, 후에는 `CompositeBoard.toggle`이 상태를 바꾸기 전에 `IndexOutOfBoundsException`(상위 타입)을 던진다. 둘 다 보드를 바꾸지 않고 이벤트 스레드로 올라간다. 지금 화면은 512px에서 범위 밖 좌표를 만들지 않는다(EXT-N01).
 - 파일 저장·불러오기는 같은 `Cell` Memento 경로를 그대로 쓴다.
+
+## 검증
+
+- 테스트 97 → 103 (APP-B01~B06). 기존 테스트는 `GameController` 생성자 호출 3곳(`GameControllerTest`, `GameMenuTest`)만 바꿨고 기대값은 그대로다.
+- APP-B05는 잠금을 지운 코드로 돌리면 실패하고(편집이 진행 중인 `step()` 안으로 들어감), 잠금이 있으면 통과하는 것을 확인했다.
+- `NativeUiSmoke`(EXT-N01): 수정 없이 통과 (Windows 11 + Temurin 26.0.2).
+- 다이어그램: [004-after.puml](diagrams/004-after.puml) ([svg](diagrams/004-after.svg)). 렌더링 때 다시 그려진 003·#25 결과 파일은 되돌렸다.
 
 ## 후속 작업
 
