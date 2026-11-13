@@ -23,3 +23,14 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R07 | 예외(특성) | 파일 선택을 취소했을 때 원본처럼 동작하는지 확인 | 대역이 `FileNotFoundException`을 던짐(원본 `FileDialogs`의 취소), Load 후 Store | 보드 그대로, 오류 표시 `["Read Failed!", "Write Failed!"]` (원본 동작. 버그 후보, 006 참고) | `GameMenuTest#cancelKeepsOriginalFailureMessage` |
 | UI-R08 | 정상 | Exit 항목이 종료 동작을 부르는지 확인 (실제 종료 대신 주입) | Exit 실행 | 주입한 `exit` 1회 호출 | `GameMenuTest#exitEntryRunsExitAction` |
 | UI-R09 | 경계 | Go 항목 각각이 맞는 `Clock` 요청을 하고, 표에 없는 이름은 원본처럼 정지하는지 확인 | 기록용 `TickSource` 대역, Go 항목 6개 실행 후 `go(clock, "Unknown")` | Agonizing/Slow/Medium/Fast → `start(500/150/70/30)`, Halt → `stop`, Tick → 리스너 1회, `"Unknown"` → `stop` | `GameMenuTest#goEntriesMapToClockRequests` |
+
+## 클릭 → `CellPosition` (#9, 결정 [008](008-board-api-boundary.md))
+
+구현 전에 정의한다. 계산은 기존 `GridCoordinateMapper.position`을 그대로 쓰므로, 기대값은 `position` 결과(x = 열, y = 행)와 같아야 한다. `BoardPanel`은 headless에서 만들 수 있는 `JPanel`이라 창 없이 `MouseEvent`를 보낸다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R10 | 정상(특성) | `cellAt`이 기존 `position`과 같은 셀을 고르는지 확인 | 64×64 보드, 512px 표면, 0~511 픽셀을 7px 간격으로 모든 (x, y) | 모든 지점에서 `cellAt` = `CellPosition(position.y, position.x)` | `GridCoordinateMapperTest#cellAtMatchesLegacyPosition` |
+| UI-R11 | 경계 | 블록 경계·보드 끝 픽셀의 행·열 | 512px, 픽셀 (x, y) = (0,0), (63,63), (64,64), (511,511), (100,200) | (행, 열) = (0,0), (7,7), (8,8), (63,63), (25,12) | `GridCoordinateMapperTest#cellAtMapsEdgesToRowAndColumn` |
+| UI-R12 | 예외(특성) | 나누어떨어지지 않는 표면에서 범위 밖 예외를 원본과 같게 유지 | 511px 표면, 픽셀 (510, 510) | `ArrayIndexOutOfBoundsException` (EXT-R04와 같음) | `GridCoordinateMapperTest#cellAtKeepsOriginalOutOfRangeException` |
+| UI-R13 | 정상 | 패널 클릭이 행·열을 뒤집지 않고 그 셀을 토글하는지 확인 | 512×512 `BoardPanel`, 픽셀 (x=100, y=200) `MOUSE_PRESSED` | 살아 있는 셀 = {(행 25, 열 12)}, 알림 `EDITED` 1회 | `BoardPanelTest#clickTogglesCellUnderPointer` |

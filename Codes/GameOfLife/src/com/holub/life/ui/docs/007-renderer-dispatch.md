@@ -1,6 +1,6 @@
 # [007] 렌더러의 셀 타입 분기
 
-- 상태: 채택 (현행 유지)
+- 상태: 채택 (현행 유지). A의 `BoardSnapshot`이 생긴 뒤 [008](008-board-api-boundary.md)에서 다시 비교했고 렌더러는 그대로 둔다.
 - 작성자: D 담당 / 2026-11-08 / 이슈 #9, 브랜치 `refactor/D-ui`
 - 기준 코드: `refactor/44-b-application` `b543703` (#45)
 - 대체하는 문서: [002-board-rendering](002-board-rendering.md) (#25 이전 구조 기준 Decorator 초안)
