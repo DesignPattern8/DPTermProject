@@ -443,6 +443,8 @@ public final class Neighborhood implements Cell {
 
     public void flush(OutputStream out) throws IOException {
       ObjectOutputStream sink = new ObjectOutputStream(out);
+      sink.writeObject(
+          new StateData(new LinkedList<Point>(liveCells), new HashSet<Point>(cancerCells)));
       sink.flush();
     }
 
