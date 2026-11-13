@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import javax.swing.*;
+import java.util.Random;
 
 /**
  * The Universe is a mediator that sits between the Swing event model and the Life classes. It is
@@ -30,6 +31,13 @@ public class Universe extends JPanel {
    * Resident (It's passed into the Resident's "draw yourself" method.
    */
   private static final int DEFAULT_CELL_SIZE = 8;
+
+  private int treatmentCharges = 3;
+  private boolean gameOver = false;
+  private int generation = 0;
+  private static final int GENERATIONS_PER_PHASE = 100;
+  private final Random cancerRandom = new Random();
+  private boolean cancerHasAppeared = false;
 
   // The constructor is private so that the universe can be created
   // only by an outer-class method [Neighborhood.createUniverse()].
@@ -128,17 +136,40 @@ public class Universe extends JPanel {
         (
             new Clock.Listener() {
               public void tick() {
-                if (outermostCell.figureNextState(
-                    Cell.DUMMY,
-                    Cell.DUMMY,
-                    Cell.DUMMY,
-                    Cell.DUMMY,
-                    Cell.DUMMY,
-                    Cell.DUMMY,
-                    Cell.DUMMY,
-                    Cell.DUMMY)) {
-                  if (outermostCell.transition()) refreshNow();
+                if (gameOver) return;
+                boolean changed =
+                    outermostCell.figureNextState(
+                        Cell.DUMMY,
+                        Cell.DUMMY,
+                        Cell.DUMMY,
+                        Cell.DUMMY,
+                        Cell.DUMMY,
+                        Cell.DUMMY,
+                        Cell.DUMMY,
+                        Cell.DUMMY);
+                if (changed && outermostCell.transition()) {
+                  refreshNow();
                 }
+
+                generation++;
+                int phase = Math.min(4, (generation - 1) / GENERATIONS_PER_PHASE + 1);
+                Neighborhood board = (Neighborhood) outermostCell;
+                board.tryNaturalCancer(cancerProbabilityForPhase(phase), cancerRandom);
+                board.applyInvasion(0.03, cancerRandom);
+
+                int tumors = board.cancerCount();
+                if (tumors > 0) {
+                  cancerHasAppeared = true;
+                }
+                if (tumors >= 1024) {
+                  finishGame("암세포가 보드의 25% 이상을 차지하였습니다. 패배입니다.");
+                } else if (cancerHasAppeared && tumors == 0) {
+                  finishGame("암세포를 모두 제거하였습니다. 승리입니다.");
+                }
+
+                ((Neighborhood) outermostCell)
+                    .tryCancerOutbreak(cancerProbabilityForPhase(phase), cancerRandom);
+                repaint();
               }
             });
   }
@@ -225,6 +256,32 @@ public class Universe extends JPanel {
             } finally {
               g.dispose();
             }
+          }
+        });
+  }
+
+  private double cancerProbabilityForPhase(int phase) {
+    switch (phase) {
+      case 1:
+        return 0.001;
+      case 2:
+        return 0.005;
+      case 3:
+        return 0.02;
+      default:
+        return 0.05;
+    }
+  }
+
+  private void finishGame(final String message) {
+    gameOver = true;
+    Clock.instance().stop();
+
+    SwingUtilities.invokeLater(
+        new Runnable() {
+          public void run() {
+            JOptionPane.showMessageDialog(
+                Universe.this, message, "Game of Life", JOptionPane.INFORMATION_MESSAGE);
           }
         });
   }
