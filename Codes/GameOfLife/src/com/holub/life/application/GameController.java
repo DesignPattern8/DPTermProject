@@ -1,6 +1,8 @@
 package com.holub.life.application;
 
+import com.holub.life.model.Board;
 import com.holub.life.model.Cell;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.NeighborhoodState;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
@@ -10,16 +12,23 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * Entry point for the UI's board requests (Facade). Runs the existing Universe model operations and
- * tells {@link GameListener}s when the board changed.
+ * Entry point for the UI's board requests (Facade). Runs the existing Universe model operations,
+ * one at a time, and tells {@link GameListener}s when the board changed.
+ *
+ * <p>Editing and generations go through {@link Board}. Load and Store still use the legacy {@link
+ * Cell} memento path that {@code LegacyLifeCodec} reads and writes; {@code fileCells} must be the
+ * same board that {@code board} wraps.
  */
 public final class GameController {
-  private final Cell outermostCell;
+  private final Board board;
+  private final Cell fileCells;
   private final Clock clock;
+  private final Object lock = new Object(); // Board calls must not overlap (model contract)
   private final List<GameListener> listeners = new CopyOnWriteArrayList<>();
 
-  public GameController(Cell outermostCell, Clock clock) {
-    this.outermostCell = outermostCell;
+  public GameController(Board board, Cell fileCells, Clock clock) {
+    this.board = board;
+    this.fileCells = fileCells;
     this.clock = clock;
   }
 
@@ -28,12 +37,16 @@ public final class GameController {
   }
 
   public void toggle(int row, int column) {
-    outermostCell.toggle(row, column);
+    synchronized (lock) {
+      board.toggle(new CellPosition(row, column));
+    }
     notifyListeners(GameListener.Change.EDITED);
   }
 
   public void clear() {
-    outermostCell.clear();
+    synchronized (lock) {
+      board.clear();
+    }
     notifyListeners(GameListener.Change.EDITED);
   }
 
@@ -43,17 +56,9 @@ public final class GameController {
    * @return true if any cell changed; listeners are notified only in that case.
    */
   public boolean tick() {
-    boolean changed = false;
-    if (outermostCell.figureNextState(
-        Cell.DUMMY,
-        Cell.DUMMY,
-        Cell.DUMMY,
-        Cell.DUMMY,
-        Cell.DUMMY,
-        Cell.DUMMY,
-        Cell.DUMMY,
-        Cell.DUMMY)) {
-      changed = outermostCell.transition();
+    boolean changed;
+    synchronized (lock) {
+      changed = board.step();
     }
     if (changed) notifyListeners(GameListener.Change.GENERATION);
     return changed;
@@ -63,10 +68,12 @@ public final class GameController {
   public void load(File file) throws IOException {
     try (InputStream in = BoardFileStore.openForLoad(file)) {
       clock.stop();
-      outermostCell.clear();
-      NeighborhoodState memento = outermostCell.createMemento();
-      LegacyLifeCodec.load(memento, in);
-      outermostCell.transfer(memento, new Point(0, 0), Cell.LOAD);
+      synchronized (lock) {
+        fileCells.clear();
+        NeighborhoodState memento = fileCells.createMemento();
+        LegacyLifeCodec.load(memento, in);
+        fileCells.transfer(memento, new Point(0, 0), Cell.LOAD);
+      }
     } finally {
       notifyListeners(GameListener.Change.EDITED);
     }
@@ -75,7 +82,10 @@ public final class GameController {
   public void store(File file) throws IOException {
     try (OutputStream out = BoardFileStore.openForStore(file)) {
       clock.stop();
-      NeighborhoodState memento = outermostCell.createMemento();
+      NeighborhoodState memento;
+      synchronized (lock) {
+        memento = fileCells.createMemento();
+      }
       LegacyLifeCodec.flush(memento, out);
     }
   }

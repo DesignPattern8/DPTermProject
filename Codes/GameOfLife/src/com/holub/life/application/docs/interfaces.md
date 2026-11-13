@@ -3,7 +3,7 @@
 - 제공 B / 사용 D·Life / 변경 2026-11-03, #24
 
 ```java
-GameController(Cell board, Clock clock)
+GameController(Board board, Cell fileCells, Clock clock)  // fileCells: board가 감싼 같은 Neighborhood (파일 경로용, 과도기)
 void GameController.toggle(int row, int column)
 void GameController.clear()
 boolean GameController.tick()
@@ -31,3 +31,4 @@ GameController.tick의 boolean은 원본 Universe의 refreshNow 조건이며, tr
 - 변경: 2026-11-04, #29. main의 #16·#17 계약 반영. 시그니처 변경 없음.
 - 변경: 2026-11-07, #41. 실패 경로에서도 파일 스트림을 닫도록 수정(`try-with-resources`). 시그니처·보드 상태 계약 변경 없음. 테스트: [APP-S01~04](test-cases.md#불러오기저장-후-파일-스트림-해제-41).
 - 변경: 2026-11-07, #44. `Clock.instance()`·`Clock(Timer)` 삭제(→ `Clock(TickSource)`), `TickSource`·`UtilTimerTickSource`·`Speed`·`GameListener`·`Clock.start(Speed)`·`GameController.addGameListener` 추가. 영향: D(`Life`, `GameMenu`, `BoardPanel` 연결부). 근거: [003](003-pattern-analysis.md)
+- 변경: 2026-11-13, #55. `GameController(Cell, Clock)` → `GameController(Board, Cell, Clock)`. 편집·tick은 A의 `Board`로, Load/Store는 기존 `Cell` Memento 경로. `GameController`의 보드 호출은 잠금 하나로 직렬화하고 알림은 잠금 밖에서 보낸다. 범위 밖 `toggle`은 `IndexOutOfBoundsException`(상태 변경 없음). 영향: D(`Life.java` 조립 1곳). 근거: [004](004-board-connection.md)

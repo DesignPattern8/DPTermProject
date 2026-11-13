@@ -40,3 +40,16 @@ GameControllerTest는 정상 세대, 실제 파일 왕복과 좌표당 1회 기�
 | APP-R08 | 정상 | 불러오기 성공 후 전체 갱신 알림 | 저장한 파일 Load | `EDITED` 1번 | GameControllerTest#loadNotifiesEdited |
 | APP-R09 | 예외 | 불러오기 실패 후에도 전체 갱신 알림 (기존: 실패 후에도 `repaint()`) | garbage 파일 Load | IOException, `EDITED` 1번 | GameControllerTest#failedLoadStillNotifiesEdited |
 | APP-R10 | 경계 | 저장은 보드를 바꾸지 않으므로 알리지 않음 | `store()` | 알림 없음 | GameControllerTest#storeDoesNotNotify |
+
+## Board 연결과 보드 호출 직렬화 (#55)
+
+[004](004-board-connection.md) 적용 후의 계약을 확인한다. `GameController`의 기존 테스트(EXT-A, APP-S, APP-R)는 생성자 호출만 바꾸고 기대값은 그대로 둔다. B만 확인하는 케이스는 `Board` 대역(`RecordingBoard`)을 쓴다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| APP-B01 | 정상 | tick은 `Board.step()` 한 번으로 진행하고, 바뀌었으면 부분 갱신을 알린다 | 대역 `step()` = true | 반환 true, `step` 1번, `GENERATION` 1번 | GameControllerBoardTest#tickStepsBoardOnceAndReportsChange |
+| APP-B02 | 경계 | 바뀐 칸이 없는 세대는 알리지 않는다 | 대역 `step()` = false | 반환 false, `step` 1번, 알림 없음 | GameControllerBoardTest#unchangedStepIsNotReported |
+| APP-B03 | 정상 | 셀 편집은 행·열 그대로 `Board.toggle`에 전달된다 | `toggle(3, 7)` | `CellPosition(3, 7)` 1번, `EDITED` | GameControllerBoardTest#toggleForwardsRowAndColumn |
+| APP-B04 | 정상 | Clear는 `Board.clear`에 전달된다 | `clear()` | `clear` 1번, `EDITED` | GameControllerBoardTest#clearForwardsToBoard |
+| APP-B05 | 경계 | 다른 스레드의 tick이 진행 중이면 편집은 끝날 때까지 보드에 들어가지 않는다 | 대역 `step()`을 래치로 멈춤 → 다른 스레드에서 `toggle` | `step`이 끝나기 전 `toggle` 미호출, 끝난 뒤 호출 | GameControllerBoardTest#editWaitsForRunningStep |
+| APP-B06 | 예외 | 범위 밖 편집은 보드를 바꾸지 않고 거부하며 알리지 않는다 | 실제 64×64 보드, `toggle(64, 0)` | `IndexOutOfBoundsException`, 살아 있는 칸 없음, 알림 없음 | GameControllerTest#outOfRangeToggleIsRejected |

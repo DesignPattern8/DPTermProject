@@ -240,7 +240,7 @@ AGENTS.md 1-1("리팩토링은 GoF 패턴을 최대한 많이 비교")에 따라
 
 ## 9. 후속 작업 / 열린 질문
 
-- A에 요청: 한 세대 진행 API(P8), `BoardSnapshot` 도입 시점
+- ~~A에 요청: 한 세대 진행 API(P8)~~ → A가 #49에서 `Board.step()` 제공, B는 [004](004-board-connection.md)(#55)에서 연결. P3(보드 호출 겹침)도 004에서 잠금으로 해결
 - D와 합의: `GameListener` 알림 인자, `Life.java` 수정 담당, `SwingTickSource` 도입 시점
 - 7장 5단계: `SwingTickSource`로 바꿀지 D와 결정한다. 바꾸면 tick이 Swing 이벤트 스레드로 옮겨가 P3가 사라지지만 스레드가 바뀌므로 별도 PR로 한다
 - 기능 담당자의 새 기능(2인용 등)이 들어온 뒤 2차 리팩토링에서 D3(State)·D5(Mediator) 판단을 다시 한다
