@@ -1,0 +1,96 @@
+@startuml 003-after
+' B 도메인 리팩토링 후 (#44). 003 6장 결정 반영.
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "com.holub.life" {
+  class Life <<entry>> {
+    + {static} main(String[])
+  }
+}
+
+package "application (B)" {
+  interface TickSource <<Strategy>> {
+    + start(intervalMillis : int, onTick : Runnable)
+    + stop()
+  }
+  class UtilTimerTickSource <<ConcreteStrategy>> {
+    - timer : java.util.Timer
+    - task : TimerTask
+    + UtilTimerTickSource(Timer)
+  }
+  enum Speed {
+    AGONIZING(500)
+    SLOW(150)
+    MEDIUM(70)
+    FAST(30)
+    + millis() : int
+  }
+  class Clock <<Observer: Subject>> {
+    - ticks : TickSource
+    - listeners : List<Listener>
+    + Clock(TickSource)
+    + start(Speed)
+    + startTicking(millisecondsBetweenTicks : int)
+    + stop()
+    + tick()
+    + addClockListener(Listener)
+  }
+  interface "Clock.Listener" as ClockListener <<Observer>> {
+    + tick()
+  }
+  interface GameListener <<Observer>> {
+    + boardChanged(Change)
+  }
+  enum "GameListener.Change" as Change {
+    EDITED
+    GENERATION
+  }
+  class GameController <<Facade, Observer: Subject>> {
+    - listeners : List<GameListener>
+    + toggle(row, column)
+    + clear()
+    + tick() : boolean
+    + load(File)
+    + store(File)
+    + addGameListener(GameListener)
+  }
+}
+
+package "ui (D)" {
+  class GameMenu {
+    ~ {static} go(Clock, name : String)
+    ~ {static} onTick(GameController)
+  }
+  class BoardPanel {
+    + repaint()
+    + refreshNow()
+  }
+}
+
+package "model (A)" {
+  interface Cell
+}
+
+UtilTimerTickSource ..|> TickSource
+Life ..> Clock : <<create>>
+Life ..> UtilTimerTickSource : <<create>>
+Life ..> GameController : <<create>>
+Clock o-- TickSource
+Clock ..> Speed
+Clock +-- ClockListener
+GameListener +-- Change
+GameController --> Cell
+GameController --> Clock : stop()
+GameController o-- GameListener
+GameMenu ..> ClockListener : <<lambda>>
+GameMenu --> Clock : start(Speed) / stop() / tick()
+GameMenu --> GameController
+BoardPanel ..> GameListener : <<lambda>>\nEDITED → repaint()\nGENERATION → refreshNow()
+BoardPanel --> GameController : toggle()
+
+note bottom of GameController
+  편집·Clear·Load 뒤 EDITED,
+  세대가 바뀐 tick 뒤 GENERATION을 알린다
+end note
+@enduml

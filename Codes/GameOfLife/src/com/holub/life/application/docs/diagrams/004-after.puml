@@ -1,0 +1,61 @@
+@startuml 004-after
+' #55: GameController가 A의 Board(Facade)로 편집·진행, 파일은 기존 Cell Memento 경로.
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "application (B)" {
+  class GameController <<Facade, Observer: Subject>> {
+    - board : Board
+    - fileCells : Cell
+    - lock : Object
+    + GameController(Board, Cell, Clock)
+    + toggle(row, column)
+    + clear()
+    + tick() : boolean
+    + load(File)
+    + store(File)
+    + addGameListener(GameListener)
+  }
+  class Clock
+  interface GameListener <<Observer>>
+}
+
+package "model (A)" {
+  interface Board <<Facade>> {
+    + step() : boolean
+    + toggle(CellPosition)
+    + clear()
+    + snapshot() : BoardSnapshot
+    + restore(BoardSnapshot)
+  }
+  class CompositeBoard
+  class Neighborhood <<Composite>>
+  interface Cell <<Composite: Component>>
+  class CellPosition <<record>>
+  class NeighborhoodState <<Memento>>
+}
+
+package "persistence (C)" {
+  class LegacyLifeCodec
+}
+
+class "com.holub.life.Life" as Life
+
+CompositeBoard ..|> Board
+CompositeBoard --> Neighborhood
+Neighborhood ..|> Cell
+GameController --> Board : toggle / clear / step\n(synchronized)
+GameController --> Cell : load / store\n(같은 Neighborhood)
+GameController ..> CellPosition
+GameController ..> NeighborhoodState
+GameController ..> LegacyLifeCodec
+GameController --> Clock : stop()
+GameController o-- GameListener
+Life ..> CompositeBoard : <<create>>
+Life ..> GameController : new GameController(\nnew CompositeBoard(root), root, clock)
+
+note right of GameController
+  보드 호출은 lock 하나로 직렬화하고
+  GameListener 알림은 잠금 밖에서 보낸다
+end note
+@enduml

@@ -1,0 +1,54 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+package "com.holub.life (e38ce7a)" {
+ class Life
+ class Universe {
+  doLoad()
+  doStore()
+  paint()
+  refreshNow()
+ }
+ class Clock {
+  startTicking()
+  tick()
+  createMenus()
+  menuIsActive()
+ }
+ interface Cell {
+  figureNextState()
+  transition()
+  redraw()
+  userClicked()
+  transfer()
+  createMemento()
+ }
+ class Resident
+ class Neighborhood
+ class Direction
+ interface Storable {
+  load()
+  flush()
+ }
+ interface "Cell.Memento" as Memento
+ class "Neighborhood.NeighborhoodState" as State
+}
+class "com.holub.io.Files" as Files
+class "com.holub.ui.MenuSite" as MenuSite
+Life --> Universe
+Life --> MenuSite
+Universe --> Cell
+Universe --> Clock
+Universe --> Files
+Universe --> Storable
+Universe --> MenuSite
+Clock --> MenuSite
+Resident ..|> Cell
+Neighborhood ..|> Cell
+Neighborhood *-- Cell : grid
+Cell --> Direction
+Cell --> Storable
+Memento --|> Storable
+State ..|> Memento
+Neighborhood --> State
+@enduml

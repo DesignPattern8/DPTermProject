@@ -1,0 +1,78 @@
+@startuml
+skinparam classAttributeIconSize 0
+left to right direction
+class "com.holub.life.Life" as Life
+package "model (A)" {
+ interface Cell {
+  figureNextState()
+  transition()
+  toggle(row, column)
+  transfer()
+  createMemento()
+ }
+ class Resident
+ class Neighborhood
+ class Direction
+ interface "Cell.Memento" as Memento
+ class NeighborhoodState
+ Resident ..|> Cell
+ Neighborhood ..|> Cell
+ Neighborhood *-- Cell : grid
+ Cell --> Direction
+ Cell --> Memento
+ Neighborhood --> NeighborhoodState
+ NeighborhoodState ..|> Memento
+}
+package "application (B)" {
+ class Clock {
+  startTicking()
+  stop()
+  tick()
+ }
+ class GameController {
+  tick()
+  toggle()
+  clear()
+  load(File)
+  store(File)
+ }
+ GameController --> Clock
+}
+package "persistence (C)" {
+ class LegacyLifeCodec {
+  load(state, stream)
+  flush(state, stream)
+ }
+ class BoardFileStore {
+  openForLoad(File)
+  openForStore(File)
+ }
+}
+package "ui (D)" {
+ class LifeFrame
+ class BoardPanel
+ class BoardRenderer
+ class GridCoordinateMapper
+ class GameMenu
+ class FileDialogs
+ LifeFrame --> BoardPanel
+ LifeFrame --> GameMenu
+ BoardPanel --> BoardRenderer
+ BoardPanel --> GridCoordinateMapper
+ GameMenu --> FileDialogs
+}
+Life --> LifeFrame
+Life --> Neighborhood
+Life --> Clock
+Life --> GameController
+GameController --> Cell
+GameController --> BoardFileStore
+GameController --> LegacyLifeCodec
+LegacyLifeCodec --> NeighborhoodState
+BoardRenderer --> Cell
+BoardRenderer --> Neighborhood
+GridCoordinateMapper --> Neighborhood
+BoardPanel --> GameController
+GameMenu --> GameController
+GameMenu --> Clock
+@enduml
