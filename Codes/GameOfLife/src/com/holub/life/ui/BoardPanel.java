@@ -50,7 +50,8 @@ public final class BoardPanel extends JPanel {
             bounds.x = 0;
             bounds.y = 0;
             CellPosition cell = GridCoordinateMapper.cellAt(outermostCell, e.getPoint(), bounds);
-            controller.toggle(cell.row(), cell.column());
+            if (SwingUtilities.isRightMouseButton(e)) controller.treat(cell.row(), cell.column());
+            else controller.toggle(cell.row(), cell.column());
           }
         });
 
@@ -58,7 +59,7 @@ public final class BoardPanel extends JPanel {
     controller.addGameListener(
         change -> {
           if (change == GameListener.Change.GENERATION) refreshNow();
-          else repaint();
+          else if (change == GameListener.Change.EDITED) repaint();
         });
   }
 

@@ -11,7 +11,9 @@ public interface GameListener {
     /** Toggle, Clear or Load: redraw the whole board. */
     EDITED,
     /** A tick that changed at least one cell: redraw only the changed blocks. */
-    GENERATION
+    GENERATION,
+    /** The cancer game ended; the controller holds the result message. */
+    GAME_OVER
   }
 
   void boardChanged(Change change);
