@@ -6,7 +6,7 @@
 
 ## 문제
 
-`LegacyLifeCodec.java:22`는 `NeighborhoodState`를 직접 변경한다. `GameController.java:117`부터 파일 열기·모델 조작·해석·닫기를 조립한다. #60 이후 파일에는 암세포도 포함되지만 `BoardSnapshot`은 클래식 생사만 표현한다. 스냅샷으로 저장 경로 전체를 교체하면 암세포와 기존 순회 순서를 잃는다.
+`LegacyLifeCodec.java:22`는 `NeighborhoodState`를 직접 변경한다. `GameController.java:113`부터 파일 열기·모델 조작·해석·닫기를 조립한다. #60 이후 파일에는 암세포도 포함되지만 `BoardSnapshot`은 클래식 생사만 표현한다. 스냅샷으로 저장 경로 전체를 교체하면 암세포와 기존 순회 순서를 잃는다.
 
 ## 후보
 
@@ -35,7 +35,7 @@
 
 ## 오버헤드 비교표
 
-구현 전 추정: A +0타입, B +데이터/매핑 2타입, C는 B에 Codec 인터페이스 1개 추가. 프리셋 2타입은 별도 기능이다. 최종 파일·LOC 실측은 검증 후 아래 기록한다.
+구현 전 추정: A +0타입, B +데이터/매핑 2타입, C는 B에 Codec 인터페이스 1개 추가. 프리셋 2타입은 별도 기능이다.
 
 | 항목 | A 정적 유지 | B Facade | C Facade+Strategy |
 | --- | --- | --- | --- |
@@ -45,10 +45,25 @@
 | 테스트 | 모델 Memento 필요 | 메모리 스트림 가능 | 실패 Codec 주입 및 파일 스트림 종료 직접 검증 |
 | 확장 | Codec 분기 | 구체 Codec 수정 | Codec 구현 1개와 조립 지점·테스트 추가 |
 
+### 구현 후 실측
+
+`origin/main`(4435a31) 대비 production Java만 계산했다. 공백·주석 포함이며 테스트·문서·이미지는 제외한다. `git diff --numstat`의 기존 파일과 새 Java 파일 줄 수를 합산했다.
+
+- 변경 9파일: 기존 4파일 + 새 5파일. +240/-53 LOC, 순증 187줄.
+- 최상위 타입 +5/-0: C의 PatternCodec(interface), PatternData/PatternPreset(record), PresetCatalog(class), B의 PersistenceMapper(class). 중첩 CancerStateData는 이름과 타입을 유지한다.
+- 파일 API·모델 연결만은 7파일, +183/-53 LOC. 프리셋 기능은 2파일/+57 LOC다.
+- C의 구체 NeighborhoodState 의존은 1→0. 모델 값 타입 의존은 CellPosition·BoardSnapshot 두 개로 증가한다. Point는 Codec에만 남고 Swing 의존은 없다. B는 기본 생성자 호환을 위해 LegacyLifeCodec 조립 의존을 유지한다.
+- 파일 호출은 B→Store→Codec으로 +1 단계. 좌표 n개와 암 좌표 c개의 왕복 변환에 O(n+c) 값 객체/Point 복사와 목록·집합 복사가 추가된다. 실제 시간·객체 수 벤치마크는 수행하지 않았다.
+- 다음 프리셋은 PresetCatalog의 선언 1곳과 테스트/문서만 추가한다. 다음 Codec은 구현 1개와 선택/조립 지점 및 테스트를 추가한다.
+
 ## 전/후 비교
 
-[변경 전](diagrams/003-before.puml) / [변경 후](diagrams/003-after.puml). 002의 그림은 당시 기록으로 보존한다.
+[변경 전 원본](diagrams/003-before.puml) / [변경 후 원본](diagrams/003-after.puml). 002의 그림은 당시 기록으로 보존한다.
+
+| 변경 전 | 변경 후 |
+| --- | --- |
+| ![이전](diagrams/003-before.png) | ![이후](diagrams/003-after.png) |
 
 ## 후속 작업
 
-Load 실패 보드 보존·파일 안전 교체·역직렬화 제한은 별도 정책/버그 PR이다. 프리셋 화면·배치·겹침 정책은 B/D 연동 이슈에서 다룬다. 외부 과거 파일 전체 호환은 주장하지 않으며 이 PR 이전 Codec으로 만든 고정 fixture를 검증한다.
+완료 범위는 C 파일 API·B 호출 이전·모델 값 변환·프리셋 카탈로그다. 후속 담당 범위: B/D 프리셋 화면·배치·겹침 정책 #62, B/C Load 실패 보드 보존 #63, C/B 출력 파일 안전 교체 #64, C 역직렬화 타입·자원 제한 #65. 각각 별도 이슈·PR로 처리한다. 외부 과거 파일 전체 호환은 주장하지 않으며 이 PR 이전 Codec으로 만든 고정 fixture를 검증한다.
