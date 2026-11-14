@@ -34,3 +34,16 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R11 | 경계 | 블록 경계·보드 끝 픽셀의 행·열 | 512px, 픽셀 (x, y) = (0,0), (63,63), (64,64), (511,511), (100,200) | (행, 열) = (0,0), (7,7), (8,8), (63,63), (25,12) | `GridCoordinateMapperTest#cellAtMapsEdgesToRowAndColumn` |
 | UI-R12 | 예외(특성) | 나누어떨어지지 않는 표면에서 범위 밖 예외를 원본과 같게 유지 | 511px 표면, 픽셀 (510, 510) | `ArrayIndexOutOfBoundsException` (EXT-R04와 같음) | `GridCoordinateMapperTest#cellAtKeepsOriginalOutOfRangeException` |
 | UI-R13 | 정상 | 패널 클릭이 행·열을 뒤집지 않고 그 셀을 토글하는지 확인 | 512×512 `BoardPanel`, 픽셀 (x=100, y=200) `MOUSE_PRESSED` | 살아 있는 셀 = {(행 25, 열 12)}, 알림 `EDITED` 1회 | `BoardPanelTest#clickTogglesCellUnderPointer` |
+
+## 암세포 기능(#60)의 화면 변경 (#67, 결정 [009](009-game-result-dialog.md))
+
+구현 전에 정의한다. #60이 바꾼 D 코드(우클릭 치료, 암세포 색, 결과 메시지)는 지금까지 D 테스트가 없었다. 모두 창 없이 실행한다. 암 규칙은 새 암세포가 생기지 않도록 `nextDouble()`이 항상 0.99인 `Random` 대역을 넣은 `CancerGame`으로 만든다(#60 `CancerGameTest.FixedRandom`과 같은 방식).
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R14 | 정상(특성) | 오른쪽 클릭이 포인터 아래 셀의 치료를 요청하는지 확인 | 암 규칙 컨트롤러, (행 25, 열 12)가 암세포, 512px 패널에서 픽셀 (x=100, y=200) 오른쪽 버튼 `MOUSE_PRESSED` | 그 셀은 더 이상 암세포가 아님, 남은 치료 횟수 3 → 2, 알림 `EDITED` 1회 | `BoardPanelTest#rightClickTreatsCellUnderPointer` |
+| UI-R15 | 경계(특성) | 암 규칙이 있어도 왼쪽 클릭은 치료하지 않고 토글만 하는지 확인 | UI-R14와 같은 컨트롤러, 빈 셀 (25,12)를 왼쪽 클릭 | (25,12)가 살아남(암세포 아님), 남은 치료 횟수 3 그대로 | `BoardPanelTest#leftClickTogglesEvenWithCancerRules` |
+| UI-R16 | 정상(특성) | 암세포는 마젠타, 일반 생존 셀은 빨강, 빈 셀은 연노랑으로 그리는지 확인 | (0,0) 암세포, (0,1) 생존, (0,2) 빈 셀. 512px `BufferedImage`에 전체 그리기 | 각 셀 중앙 픽셀(4,4), (12,4), (20,4)이 `MAGENTA`, `RED`, `Colors.LIGHT_YELLOW` | `BoardRendererTest#cancerCellsAreMagenta` |
+| UI-R17 | 정상 | 게임 종료 알림에 결과 메시지를 한 번 띄우는지 확인 | 이긴 상태의 컨트롤러(#60 CAN-C03과 같은 절차), 기록용 대화상자, 즉시 실행기 | `showMessage` 1회, 내용 = `controller.gameResultMessage()` ("승리" 포함) | `GameResultAnnouncerTest#gameOverShowsResultOnce` |
+| UI-R18 | 예외 | 게임 종료가 아닌 알림에는 메시지를 띄우지 않는지 확인 | 같은 구독자에 `EDITED`, `GENERATION` 전달 | `showMessage` 0회, 실행기에도 작업 0개 | `GameResultAnnouncerTest#otherChangesShowNothing` |
+| UI-R19 | 경계 | 대화상자는 실행기(제품에서는 이벤트 스레드)에서 띄우는지 확인 | `GAME_OVER` 전달, 작업을 모아 두기만 하는 실행기 | 전달 직후 `showMessage` 0회, 모아 둔 작업 실행 후 1회 | `GameResultAnnouncerTest#messageWaitsForExecutor` |
