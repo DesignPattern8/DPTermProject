@@ -1,0 +1,48 @@
+@startuml 009-before
+' D 도메인: 게임 결과 메시지 리팩토링 전 (refactor/base 881819f, #60)
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "ui (D)" {
+  class LifeFrame <<JFrame>> {
+    + LifeFrame(Cell, GameController, Clock)
+  }
+  interface UserDialogs <<Strategy>> {
+    + chooseFile(selectButtonText : String) : File
+    + showError(message : String)
+  }
+  class SwingUserDialogs
+  class GameMenu
+  class BoardPanel
+}
+
+package "application (B)" {
+  class GameController {
+    + addGameListener(GameListener)
+    + gameResultMessage() : String
+  }
+  interface GameListener <<Observer>> {
+    + boardChanged(Change)
+  }
+}
+
+package "javax.swing" {
+  class JOptionPane
+  class SwingUtilities
+}
+
+UserDialogs <|.. SwingUserDialogs
+GameMenu ..> UserDialogs : Load/Store 오류
+SwingUserDialogs ..> JOptionPane
+LifeFrame ..> GameController : addGameListener(람다)
+LifeFrame ..> JOptionPane : GAME_OVER 결과 창
+LifeFrame ..> SwingUtilities : invokeLater
+GameController --> GameListener
+BoardPanel ..|> GameListener : (람다로 구독)
+
+note right of LifeFrame
+  생성자 안의 람다가 GAME_OVER를 받아
+  JOptionPane을 직접 띄운다.
+  창이 있어야 생성 가능 → 테스트 없음.
+end note
+@enduml

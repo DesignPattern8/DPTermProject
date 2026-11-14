@@ -96,6 +96,11 @@ class GameMenuTest {
     public void showError(String message) {
       errors.add(message);
     }
+
+    @Override
+    public void showMessage(String message) {
+      fail("Grid and Go menus never show an information message: " + message);
+    }
   }
 
   /** Records what the clock asked of its tick source instead of scheduling anything. */
