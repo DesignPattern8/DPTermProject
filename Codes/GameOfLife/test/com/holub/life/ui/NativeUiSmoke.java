@@ -42,8 +42,10 @@ public class NativeUiSmoke {
       flush.setAccessible(true);
       flush.invoke(state, bytes);
     } catch (NoSuchMethodException e) {
-      Class<?> codec = Class.forName("com.holub.life.persistence.LegacyLifeCodec");
-      codec.getMethod("flush", state.getClass(), OutputStream.class).invoke(null, state, bytes);
+      Collection<?> points = (Collection<?>) state.getClass().getMethod("liveCells").invoke(state);
+      Set<Point> result = new HashSet<>();
+      for (Object point : points) result.add(new Point((Point) point));
+      return result;
     }
     Collection<?> points =
         (Collection<?>)
@@ -167,8 +169,8 @@ public class NativeUiSmoke {
       fileMenu("Load", bad, false, true);
       check(cells().isEmpty(), "read failure after clear");
       System.out.println(
-          "PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel error,"
-              + " invalid-load clear");
+          "PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel"
+              + " error, invalid-load clear");
       System.out.println("EXIT_MENU_REQUESTED");
       System.out.flush();
       edt(() -> item("Grid", "Exit").doClick());

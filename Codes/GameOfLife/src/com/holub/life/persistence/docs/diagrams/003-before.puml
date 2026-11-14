@@ -1,0 +1,25 @@
+@startuml 003-before
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+title C before (#61, main 4435a31)
+class Life
+class GameController
+interface Board
+class NeighborhoodState
+class BoardFileStore {
+  {static} openForLoad(File): InputStream
+  {static} openForStore(File): OutputStream
+}
+class LegacyLifeCodec {
+  {static} load(NeighborhoodState, InputStream)
+  {static} flush(NeighborhoodState, OutputStream)
+}
+class "LegacyLifeCodec.CancerStateData" as CancerStateData
+Life --> GameController
+GameController --> Board
+GameController --> NeighborhoodState : capture / transfer
+GameController --> BoardFileStore : opens and closes streams
+GameController --> LegacyLifeCodec
+LegacyLifeCodec --> NeighborhoodState : mutates
+LegacyLifeCodec --> CancerStateData : serialized extension
+@enduml

@@ -15,3 +15,5 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 - [main 병합 후 CI 복구 (#29)](verification.md#2026-11-04-main-병합-후-ci-복구-29)
 
 - [C 저장·패턴 도메인의 공개 계약 및 도메인 간 변경 제안](../../persistence/docs/002-public-contract-and-refactoring.md)
+
+- [C 파일 API·모델 값 연동 (#61)](../../persistence/docs/003-file-api-and-model-values.md): 기존 Memento 저장 경로·암세포 보존, 클래식 Snapshot 변환과 C/B 책임 경계.

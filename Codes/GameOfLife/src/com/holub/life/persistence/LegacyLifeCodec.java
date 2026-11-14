@@ -1,57 +1,64 @@
 package com.holub.life.persistence;
 
-import com.holub.life.model.NeighborhoodState;
+import com.holub.life.model.CellPosition;
 import java.awt.Point;
 import java.io.*;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
-/**
- * The original serialized Collection<Point> format, with Collection<Point> validation. A board that
- * has cancer cells is written as {@link CancerStateData} instead; a board without cancer cells is
- * still written in the original format.
- */
-public final class LegacyLifeCodec {
-  private LegacyLifeCodec() {}
-
-  public static void load(NeighborhoodState state, InputStream in) throws IOException {
+/** Reads both legacy Collection<Point> files and the existing cancer extension. */
+public final class LegacyLifeCodec implements PatternCodec {
+  @Override
+  public PatternData read(InputStream in) throws IOException {
     try {
-      ObjectInputStream source = new ObjectInputStream(in);
-      Object loaded = source.readObject();
+      Object loaded = new ObjectInputStream(in).readObject();
       if (loaded instanceof CancerStateData data) {
-        requirePoints(data.liveCells);
-        requirePoints(data.cancerCells);
-        state.replaceCells(new LinkedList<Point>(data.liveCells), new HashSet<Point>(data.cancerCells));
-        return;
+        return new PatternData(
+            positions(data.liveCells), new HashSet<>(positions(data.cancerCells)));
       }
-      if (!(loaded instanceof Collection))
+      if (!(loaded instanceof Collection<?> cells)) {
         throw new IOException("Not a Life file: expected a Collection of cells");
-      requirePoints((Collection<?>) loaded);
-      state.replaceCells((Collection) loaded);
+      }
+      return new PatternData(positions(cells), Set.of());
     } catch (ClassNotFoundException e) {
-      throw new IOException("Internal Error: Class not found on load");
+      throw new IOException("Internal Error: Class not found on load", e);
     }
   }
 
-  public static void flush(NeighborhoodState state, OutputStream out) throws IOException {
+  @Override
+  public void write(PatternData data, OutputStream out) throws IOException {
     ObjectOutputStream sink = new ObjectOutputStream(out);
-    if (state.cancerCells().isEmpty()) {
-      sink.writeObject(state.liveCells());
+    Collection<Point> live = points(data.cells());
+    if (data.cancerCells().isEmpty()) {
+      sink.writeObject(live);
     } else {
-      sink.writeObject(new CancerStateData(state.liveCells(), state.cancerCells()));
+      sink.writeObject(new CancerStateData(live, new HashSet<>(points(data.cancerCells()))));
     }
     sink.flush();
   }
 
-  private static void requirePoints(Collection<?> cells) throws IOException {
+  private static List<CellPosition> positions(Collection<?> cells) throws IOException {
     if (cells == null) throw new IOException("Not a Life file: missing cell collection");
-    for (Object cell : cells)
-      if (!(cell instanceof Point)) throw new IOException("Not a Life file: unexpected cell entry");
+    List<CellPosition> positions = new java.util.ArrayList<>();
+    for (Object cell : cells) {
+      if (!(cell instanceof Point point)) {
+        throw new IOException("Not a Life file: unexpected cell entry");
+      }
+      positions.add(new CellPosition(point.y, point.x));
+    }
+    return positions;
   }
 
-  /** File format for boards with cancer cells. Cancer cells are also listed in liveCells. */
+  private static Collection<Point> points(Collection<CellPosition> cells) {
+    Collection<Point> points = new LinkedList<>();
+    for (CellPosition cell : cells) points.add(new Point(cell.column(), cell.row()));
+    return points;
+  }
+
+  /** Keep this binary name, serialVersionUID and field types compatible with PR #60 files. */
   private static final class CancerStateData implements Serializable {
     private static final long serialVersionUID = 1L;
 
