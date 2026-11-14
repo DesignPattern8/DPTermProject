@@ -111,7 +111,8 @@ class ClassicMementoTest {
   void loadsFileWithDuplicatedCells() throws IOException {
     // Given: #10 수정 전 Store가 만들던 형식
     LinkedList<Point> legacy =
-        new LinkedList<>(List.of(new Point(5, 5), new Point(6, 5), new Point(5, 5), new Point(6, 5)));
+        new LinkedList<>(
+            List.of(new Point(5, 5), new Point(6, 5), new Point(5, 5), new Point(6, 5)));
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
     try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
       out.writeObject(legacy);
@@ -144,8 +145,7 @@ class ClassicMementoTest {
 
   /** 추출된 파일 Codec을 직접 호출한다. */
   private static void loadDirectly(byte[] bytes) throws IOException {
-    LegacyLifeCodec.load(
-        new ClassicBoard().cell().createMemento(), new ByteArrayInputStream(bytes));
+    new LegacyLifeCodec().read(new ByteArrayInputStream(bytes));
   }
 
   @Test
