@@ -1,0 +1,59 @@
+@startuml 009-after
+' D 도메인: 게임 결과 메시지 리팩토링 후 (#67, 결정 009)
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "ui (D)" {
+  class LifeFrame <<JFrame>> {
+    + LifeFrame(Cell, GameController, Clock)
+  }
+  interface UserDialogs <<Strategy>> {
+    + chooseFile(selectButtonText : String) : File
+    + showError(message : String)
+    + showMessage(message : String)
+  }
+  class SwingUserDialogs <<ConcreteStrategy>> {
+    + SwingUserDialogs()
+    + SwingUserDialogs(messageParent : Component)
+  }
+  class GameResultAnnouncer <<Observer>> {
+    + GameResultAnnouncer(GameController, UserDialogs, Executor)
+    + boardChanged(Change)
+  }
+  class GameMenu
+}
+
+package "application (B)" {
+  class GameController {
+    + addGameListener(GameListener)
+    + gameResultMessage() : String
+  }
+  interface GameListener <<Observer>> {
+    + boardChanged(Change)
+  }
+}
+
+package "javax.swing" {
+  class JOptionPane
+}
+
+package "test" {
+  class RecordingDialogs <<stub>>
+}
+
+UserDialogs <|.. SwingUserDialogs
+UserDialogs <|.. RecordingDialogs
+GameListener <|.. GameResultAnnouncer
+GameResultAnnouncer --> UserDialogs : GAME_OVER → showMessage
+GameResultAnnouncer --> GameController : gameResultMessage()
+GameMenu ..> UserDialogs : Load/Store 오류
+SwingUserDialogs ..> JOptionPane
+LifeFrame ..> GameResultAnnouncer : 생성·구독 (invokeLater 실행기)
+LifeFrame ..> SwingUserDialogs : new SwingUserDialogs(this)
+GameController --> GameListener
+
+note right of GameResultAnnouncer
+  실행기를 주입받아 테스트는 즉시 실행,
+  제품은 SwingUtilities::invokeLater.
+end note
+@enduml

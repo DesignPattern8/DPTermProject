@@ -72,7 +72,21 @@ A를 채택한다. 006에서 "대화상자를 띄우는 곳을 하나로"를 근
 
 ## 구현 결과
 
-(구현 후 실측값을 채운다)
+전 = `refactor/base` `881819f`, 후 = 브랜치 `refactor/67-d-cancer-ui`. 행 수는 `wc -l`.
+
+| 항목 | 전 | 후 |
+| --- | --- | --- |
+| `ui` 최상위 타입 | 8 | 9 (`GameResultAnnouncer`) |
+| `UserDialogs` 메서드 | 2 | 3 (`showMessage`) |
+| `LifeFrame.java` 행 수 | 35 | 26 |
+| `LifeFrame`의 `JOptionPane` 의존 | 있음 | 없음 (→ `SwingUserDialogs`) |
+| 대화상자를 직접 띄우는 클래스 | `SwingUserDialogs`, `LifeFrame` | `SwingUserDialogs` |
+| `ui` Java 소스 변경 | — | 4파일(새 파일 1: `GameResultAnnouncer`), +58/−12행 |
+| #60 화면 변경을 보는 headless JUnit | 0 | 6 (UI-R14~R19) |
+
+- 테스트: `./gradlew test` 163개 통과(`refactor/base` 157 + 새 6). 기존 테스트의 기대값은 바꾸지 않았다. `GameMenuTest`는 대역에 새 메서드만 추가했다(메뉴는 정보 메시지를 띄우지 않으므로 호출되면 실패). 환경: Linux, OpenJDK 21(toolchain만 21로 바꾸는 init 스크립트).
+- `NativeUiSmoke`(EXT-N01): 수정 없이 Xvfb에서 통과, 종료 코드 0.
+- 실제 창 확인(저장소에 넣지 않은 임시 프로그램, Xvfb): `LifeFrame`을 띄우고 CAN-C03과 같은 절차로 별도 스레드에서 이기는 tick을 실행했다. 결과 대화상자가 제목 `Game of Life`, `INFORMATION_MESSAGE`, 부모 창 `LifeFrame`으로 떴다(원본 람다와 같은 인자).
 
 ## 후속 작업
 
