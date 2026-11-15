@@ -13,8 +13,12 @@ final class GameScript {
   }
 
   static void place(TwoPlayerGame game, Player who, int row, int column) {
-    assertEquals(Response.ACCEPTED, game.select(who, row, column), who + " select (" + row + "," + column + ")");
-    assertEquals(Response.ACCEPTED, game.confirm(who), who + " confirm (" + row + "," + column + ")");
+    assertEquals(
+        Response.ACCEPTED,
+        game.select(who, row, column),
+        who + " select (" + row + "," + column + ")");
+    assertEquals(
+        Response.ACCEPTED, game.confirm(who), who + " confirm (" + row + "," + column + ")");
   }
 
   static void pass(TwoPlayerGame game, Player who) {

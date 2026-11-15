@@ -14,7 +14,10 @@ import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** 2인용 배치 규칙 (docs/test-cases.md TP-P). 64×64 StubBoard, A 진영 0~31열, B 진영 32~63열. N=2, K=3, M=2, R=2. */
+/**
+ * 2인용 배치 규칙 (docs/test-cases.md TP-P). 64×64 StubBoard, A 진영 0~31열, B 진영 32~63열.
+ * N=2, K=3, M=2, R=2.
+ */
 class PlacementRuleTest {
   private final StubBoard board = StubBoard.size64();
   private final TwoPlayerGame game = new TwoPlayerGame(board, defaultTestSettings());

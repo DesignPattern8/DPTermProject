@@ -13,8 +13,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
- * 실제 보드로 게임 진행 다시 확인 (docs/test-cases.md 1-3장 TP-I). StubBoard 대신 {@link NeighborhoodTwoPlayerBoard}를
- * 넣고 TP-F-13, TP-E-02, TP-E-03을 다시 돌린다.
+ * 실제 보드로 게임 진행 다시 확인 (docs/test-cases.md 1-3장 TP-I). StubBoard 대신
+ * {@link NeighborhoodTwoPlayerBoard}를 넣고 TP-F-13, TP-E-02, TP-E-03을 다시 돌린다.
  */
 class TwoPlayerGameOnRealBoardTest {
   private final NeighborhoodTwoPlayerBoard board = new NeighborhoodTwoPlayerBoard();

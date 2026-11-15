@@ -20,7 +20,8 @@ class GameJudgeTest {
 
   /** 초기 배치를 끝내 라운드 1 시뮬레이션 직전으로 보낸다. */
   private TwoPlayerGame simulating(int generationsPerRound, int rounds) {
-    TwoPlayerGame game = new TwoPlayerGame(board, new GameSettings(2, generationsPerRound, 2, rounds));
+    TwoPlayerGame game =
+        new TwoPlayerGame(board, new GameSettings(2, generationsPerRound, 2, rounds));
     finishPlacement(game, 2, board.columns());
     assertEquals(PhaseKind.SIMULATION, game.phase());
     return game;
@@ -58,7 +59,8 @@ class GameJudgeTest {
     game.tick();
     // Then
     assertEquals(PhaseKind.GAME_OVER, game.phase());
-    assertEquals(Optional.of(new GameResult(Outcome.B_WINS, EndReason.WIPE_OUT, 0, 4)), game.result());
+    assertEquals(
+        Optional.of(new GameResult(Outcome.B_WINS, EndReason.WIPE_OUT, 0, 4)), game.result());
     assertEquals(1, game.generationInRound());
   }
 
@@ -72,7 +74,8 @@ class GameJudgeTest {
     int ticks = tickUntilGameOver(game, 20);
     // Then
     assertEquals(10, ticks);
-    assertEquals(Optional.of(new GameResult(Outcome.DRAW, EndReason.WIPE_OUT, 0, 0)), game.result());
+    assertEquals(
+        Optional.of(new GameResult(Outcome.DRAW, EndReason.WIPE_OUT, 0, 0)), game.result());
   }
 
   @Test
@@ -86,7 +89,8 @@ class GameJudgeTest {
     // Then
     assertEquals(PhaseKind.GAME_OVER, game.phase());
     assertEquals(
-        Optional.of(new GameResult(Outcome.B_WINS, EndReason.ROUNDS_COMPLETED, 3, 4)), game.result());
+        Optional.of(new GameResult(Outcome.B_WINS, EndReason.ROUNDS_COMPLETED, 3, 4)),
+        game.result());
   }
 
   @Test
@@ -138,7 +142,8 @@ class GameJudgeTest {
     board.scriptCounts(counts(6, 4));
     runSimulation(odd, 1);
     assertEquals(
-        Optional.of(new GameResult(Outcome.A_WINS, EndReason.ROUNDS_COMPLETED, 6, 4)), odd.result());
+        Optional.of(new GameResult(Outcome.A_WINS, EndReason.ROUNDS_COMPLETED, 6, 4)),
+        odd.result());
 
     // K=2: 세대 2의 beacon은 8개
     StubBoard second = StubBoard.size64().scriptCounts(counts(6, 4), counts(8, 4));
@@ -146,7 +151,8 @@ class GameJudgeTest {
     finishPlacement(even, 2, second.columns());
     runSimulation(even, 2);
     assertEquals(
-        Optional.of(new GameResult(Outcome.A_WINS, EndReason.ROUNDS_COMPLETED, 8, 4)), even.result());
+        Optional.of(new GameResult(Outcome.A_WINS, EndReason.ROUNDS_COMPLETED, 8, 4)),
+        even.result());
   }
 
   @Test
@@ -191,7 +197,8 @@ class GameJudgeTest {
     // Then
     assertEquals(PhaseKind.GAME_OVER, game.phase());
     assertEquals(1, game.round());
-    assertEquals(Optional.of(new GameResult(Outcome.A_WINS, EndReason.WIPE_OUT, 2, 0)), game.result());
+    assertEquals(
+        Optional.of(new GameResult(Outcome.A_WINS, EndReason.WIPE_OUT, 2, 0)), game.result());
   }
 
   @Test
@@ -199,18 +206,24 @@ class GameJudgeTest {
   void judgeRulesOnNumbersOnly() {
     // 세대 직후 전멸 검사
     assertEquals(
-        Optional.of(new GameResult(Outcome.B_WINS, EndReason.WIPE_OUT, 0, 3)), GameJudge.afterGeneration(0, 3));
+        Optional.of(new GameResult(Outcome.B_WINS, EndReason.WIPE_OUT, 0, 3)),
+        GameJudge.afterGeneration(0, 3));
     assertEquals(
-        Optional.of(new GameResult(Outcome.A_WINS, EndReason.WIPE_OUT, 3, 0)), GameJudge.afterGeneration(3, 0));
+        Optional.of(new GameResult(Outcome.A_WINS, EndReason.WIPE_OUT, 3, 0)),
+        GameJudge.afterGeneration(3, 0));
     assertEquals(
-        Optional.of(new GameResult(Outcome.DRAW, EndReason.WIPE_OUT, 0, 0)), GameJudge.afterGeneration(0, 0));
+        Optional.of(new GameResult(Outcome.DRAW, EndReason.WIPE_OUT, 0, 0)),
+        GameJudge.afterGeneration(0, 0));
     assertEquals(Optional.empty(), GameJudge.afterGeneration(2, 3));
     // 마지막 라운드 종료
     assertEquals(
-        new GameResult(Outcome.A_WINS, EndReason.ROUNDS_COMPLETED, 5, 3), GameJudge.afterLastRound(5, 3));
+        new GameResult(Outcome.A_WINS, EndReason.ROUNDS_COMPLETED, 5, 3),
+        GameJudge.afterLastRound(5, 3));
     assertEquals(
-        new GameResult(Outcome.B_WINS, EndReason.ROUNDS_COMPLETED, 3, 5), GameJudge.afterLastRound(3, 5));
+        new GameResult(Outcome.B_WINS, EndReason.ROUNDS_COMPLETED, 3, 5),
+        GameJudge.afterLastRound(3, 5));
     assertEquals(
-        new GameResult(Outcome.DRAW, EndReason.ROUNDS_COMPLETED, 4, 4), GameJudge.afterLastRound(4, 4));
+        new GameResult(Outcome.DRAW, EndReason.ROUNDS_COMPLETED, 4, 4),
+        GameJudge.afterLastRound(4, 4));
   }
 }
