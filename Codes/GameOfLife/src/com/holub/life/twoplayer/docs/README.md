@@ -7,7 +7,7 @@
 | 부분 | 이슈 | 상태 |
 | --- | --- | --- |
 | 게임 진행 모델 (단계·차례·배치·패스·승패 판정) | #6 | 구현 완료, 보드는 대역으로 테스트 |
-| 셀 상태(DEAD/A/B)와 세대 전이 규칙, `TwoPlayerBoard` 실제 구현 | #5 | Cell 인터페이스 회의 대기 |
+| 셀 상태(DEAD/A/B)와 세대 전이 규칙, `TwoPlayerBoard` 실제 구현 | #5 | 설계 결정 채택([006](006-two-player-cell.md), model 무수정), 구현 대기 |
 | UI 통합 (모드 선택·입력·상태 표시줄) | #7 | 대기 |
 | 문서·다이어그램 정리 | #8 | 대기 |
 
@@ -37,13 +37,14 @@
 | [003-game-phase.md](003-game-phase.md) | 설계 결정: 게임 단계 표현 → State |
 | [004-player-input.md](004-player-input.md) | 설계 결정: 플레이어 입력 전달 → 직접 호출 + `Response` |
 | [005-cell-count-and-judge.md](005-cell-count-and-judge.md) | 설계 결정: 셀 수 집계와 승패 판정 → 별도 판정 클래스 |
+| [006-two-player-cell.md](006-two-player-cell.md) | 설계 결정: 2인용 셀 상태와 `TwoPlayerBoard` 구현 → twoplayer 안의 셀 + `Neighborhood` 재사용(model 무수정), `CompositeBoard`·`Board`는 쓰지 않음. 001 대체 |
 | [interfaces.md](interfaces.md) | `TwoPlayerBoard`, `TwoPlayerGame` 시그니처와 계약 |
 | [test-cases.md](test-cases.md) | 테스트 케이스 정의 (TP-R·TP-F·TP-P·TP-E·TP-U) |
 | [diagrams/twoplayer-game-phase-state.puml](diagrams/twoplayer-game-phase-state.puml) ([png](diagrams/twoplayer-game-phase-state.png), [svg](diagrams/twoplayer-game-phase-state.svg)) | 게임 단계 상태 다이어그램 |
 | [diagrams/twoplayer-class.puml](diagrams/twoplayer-class.puml) ([png](diagrams/twoplayer-class.png), [svg](diagrams/twoplayer-class.svg)) | 게임 진행 모델 클래스 다이어그램 (공개 타입 흰색, package-private 회색) |
 | [diagrams/twoplayer-round-sequence.puml](diagrams/twoplayer-round-sequence.puml) ([png](diagrams/twoplayer-round-sequence.png), [svg](diagrams/twoplayer-round-sequence.svg)) | 한 라운드(시뮬레이션 K세대 → 개입 → 다음 라운드) 시퀀스 다이어그램 |
 
-셀 상태 표현(Cell 인터페이스 변경 제안)은 core 쪽 문서에 있다: [../../docs/001-cell-state-representation.md](../../docs/001-cell-state-representation.md), [../../docs/interfaces.md](../../docs/interfaces.md)
+셀 상태 표현의 이전 제안(Cell 인터페이스 변경, 006으로 대체됨)은 core 쪽 문서에 기록으로 남아 있다: [../../docs/001-cell-state-representation.md](../../docs/001-cell-state-representation.md), [../../docs/interfaces.md](../../docs/interfaces.md)
 
 ## 테스트
 
@@ -55,6 +56,7 @@
 | `PlacementRuleTest` | TP-P 배치 규칙 | 15 |
 | `GameJudgeTest` | TP-E 종료·승패 판정 | 10 |
 | `StubBoard`, `GameScript` | 대역 보드, 게임 진행 도우미 | — |
+| `CellCandidateBenchmark` | 006의 측정·동등성 확인 (`main`으로 실행, `@Test` 없음. 실행 방법은 006 "측정 방법") | — |
 
 실행: `cd Codes/GameOfLife && ./gradlew test` (JDK 26)
 

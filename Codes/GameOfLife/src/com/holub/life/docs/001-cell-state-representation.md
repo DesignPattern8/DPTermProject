@@ -1,10 +1,11 @@
 # [001] 셀 상태 표현과 이웃 상태 조회
 
-- 상태: 제안 (Cell 인터페이스 회의에서 확정 예정)
+- 상태: 대체됨(→ twoplayer/006) — [../twoplayer/docs/006-two-player-cell.md](../twoplayer/docs/006-two-player-cell.md)
 - 작성자: Son2kwon / 2026-11-03 / 관련 이슈: #5
 - 변경 이력
   - 2026-11-03: 최초 작성
   - 2026-11-04: #25(도메인 구조 변경) 이후 코드 기준으로 경로·줄 번호 갱신. 그리기가 `ui/BoardRenderer`로 옮겨진 것을 후보 비교와 오버헤드 표에 반영하고 D(Visitor)를 다시 평가. 제안(C)은 유지
+  - 2026-11-15: 대체됨(→ twoplayer/006). v1.0에서 `Cell`에 암 메서드가 추가되고, model은 리팩토링 팀 영역이라 "현재 `Cell` 구조로 진행하고 필요한 변경은 이슈로 남긴다"로 합의됨. 006에서 A~D와 E(암세포 방식), F·G(twoplayer 안에서 해결)를 다시 비교해 F(model 무수정)를 채택. 아래 내용은 기록으로 남긴다
 - 관련 명세: 2인용 Life Game 규칙 명세(`twoplayer/docs/rules.md`) 3장, 8장 요구사항 1·2
 - 코드 근거: `feature/two-player-mode` `945723d`(= main `b1a1103`의 core 코드). 파일 경로는 `Codes/GameOfLife/src/com/holub/` 아래 기준
 - 이 문서를 core의 `docs/`(`life/docs/`)에 두는 이유: 바뀌는 대상이 `Cell` 인터페이스이고, 2인용 외의 모드도 영향을 받기 때문이다(AGENTS.md 2-2). #25 이후 `Cell`은 `life/model/`에 있다(위치는 "회의에서 정할 것" 7번)
