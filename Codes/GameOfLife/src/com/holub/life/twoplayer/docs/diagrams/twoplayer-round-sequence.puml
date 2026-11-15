@@ -1,0 +1,75 @@
+@startuml twoplayer-round-sequence
+' 2인용 게임 한 라운드(r < R) 시퀀스 다이어그램 (#6)
+' 근거: SimulationPhase.tick, TwoPlayerGame.endSimulation/endIntervention/startSimulation,
+'       InterventionPhase.begin/pass/afterConfirm, PlacingPhase.select/confirm (feature/two-player-mode 86bda26)
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #444444
+  LifeLineBorderColor #444444
+  ParticipantBorderColor #444444
+  ParticipantBackgroundColor #FFFFFF
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title 한 라운드: 시뮬레이션 K세대 → 개입 → 다음 라운드 (r < R, 전멸 없음)
+
+actor "UI / 테스트" as UI
+participant TwoPlayerGame as G
+participant "SimulationPhase\n(round r)" as S
+participant TwoPlayerBoard as B
+participant GameJudge as J
+participant "InterventionPhase\n(round r)" as I
+participant "SimulationPhase\n(round r + 1)" as S2
+
+== 시뮬레이션 (K세대) ==
+loop 1 ~ K-1번째 세대
+  UI -> G : tick()
+  G -> S : tick()
+  S -> B : advanceGeneration()
+  S -> G : countGeneration()
+  S -> B : count(A), count(B)
+  S -> J : afterGeneration(scoreA, scoreB)
+  J --> S : Optional.empty()
+  note right of S : 한쪽이라도 0이면 결과가 오고\nG.endGame(result) → GAME_OVER (K세대 전이라도)
+  S --> UI : true
+end
+UI -> G : tick()
+note left : K번째 세대
+G -> S : tick()
+S -> B : advanceGeneration()
+S -> G : countGeneration()
+S -> B : count(A), count(B)
+S -> J : afterGeneration(scoreA, scoreB)
+J --> S : Optional.empty()
+S -> G : endSimulation(r, scoreA, scoreB)
+note right of G : r = R이면 afterLastRound로 판정 후 endGame
+G -> I ** : new InterventionPhase(G, r)
+G -> I : begin()
+note right of I : 선공: r 홀수 B, r 짝수 A.\n둘 수 없는 선공은 자동 패스
+S --> UI : true
+
+== 개입 (선공 B, r = 1 예) ==
+UI -> G : select(B, row, column)
+G -> I : select(B, row, column)
+I -> B : isEmpty(row, column)
+I --> UI : ACCEPTED (임시 배치, 보드에는 아직 없음)
+UI -> G : confirm(B)
+G -> I : confirm(B)
+I -> B : place(row, column, B)
+I -> I : afterConfirm()\nconsecutivePasses = 0, 차례 A
+I --> UI : ACCEPTED
+UI -> G : pass(A)
+G -> I : pass(A)
+I --> UI : ACCEPTED (consecutivePasses = 1, 차례 B)
+UI -> G : pass(B)
+G -> I : pass(B)
+I -> G : endIntervention(r)
+note right of I : consecutivePasses = 2
+G -> G : startSimulation(r + 1)
+G -> S2 ** : new SimulationPhase(G, r + 1)
+I --> UI : ACCEPTED
+@enduml
