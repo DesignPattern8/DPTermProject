@@ -39,8 +39,8 @@
 | 작업 | 이슈 | 시작 조건 |
 | --- | --- | --- |
 | #6 닫기 (#21, #36 링크 댓글) | #6 | #36 머지 후 |
-| 2인용 셀 상태·전이 규칙 | #5 | Cell 인터페이스 회의 후 |
-| 2인용 UI 통합 | #7 | #5 이후, #25의 UI 구조 위에서 |
+| 2인용 셀 상태·전이 규칙 | #5 | 로컬 구현 완료(`feature/5-two-player-cell`), 확인 후 push·PR |
+| 2인용 UI 통합 | #7 | #5 이후. `GameController` 대신 2인용 진입점(이슈 초안 006d), 2인용 렌더러(006a) |
 | 2인용 문서·다이어그램 정리 | #8 | #5·#7 이후 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
@@ -297,12 +297,70 @@ PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` �
 - **버그 의심 2건은 고치지 않고 기록만 했다** (강령 2): 암 연산 뒤 블록이 비활성으로 남는 문제, 토글로 죽인 칸에 암 상태가 남는 문제.
 - **머지 결정**: 설계 결정 문서는 팀원이 작성 중이다. 팀 합의로 머지를 먼저 하고, 대신 변경 요약 [`life/docs/cancer-feature-changes.md`](../Codes/GameOfLife/src/com/holub/life/docs/cancer-feature-changes.md)를 같은 PR에 넣었다.
 
+## 2인용 셀 상태와 실제 보드 (#5, 2026-11-15)
+
+브랜치: `feature/two-player`(v1.0 + 2인용 커밋 7개)에서 `feature/5-two-player-cell`을 땄다. 로컬 커밋만 했다(push·PR·이슈 생성 안 함).
+
+**배경**: 001(셀 상태 표현, 제안 C = `Cell.state()` 추가)은 #25 직후 코드 기준이었다. 그 뒤 v1.0에서 암세포 기능이 `Cell`에 메서드 3개, `Memento`에 2개를 추가했고, model은 리팩토링 팀 영역이라 "현재 `Cell` 구조로 진행하고 필요한 변경은 이슈로 남긴다"로 합의했다.
+
+**설계 결정** ([`twoplayer/docs/006`](../Codes/GameOfLife/src/com/holub/life/twoplayer/docs/006-two-player-cell.md), 001은 `대체됨(→ twoplayer/006)`)
+
+| 후보 | 내용 | 결과 |
+| --- | --- | --- |
+| A~D | 001의 공용 enum / 하위 인터페이스 / `CellState` + 모드별 enum / Visitor | 기각. A·C·D는 model 변경, B는 F와 같은 일을 하면서 타입만 늘어남 |
+| E | 암세포 방식(`Cell`·`Resident`에 소유자 메서드) | 기각. PR #60이 이 방식으로 model 4개 파일(+294/−14줄)을 고쳤고, `Resident`가 모드별로 분기됨 |
+| **F** | `twoplayer` 안의 `Cell` 구현 + `Neighborhood` 재사용 | **채택.** model·ui·application 수정 0. `Neighborhood`의 프로토타입 교체만으로 활성 블록 계산을 그대로 씀 |
+| G | `twoplayer` 전용 격자 | 기각. 가장 빠르지만(tick당 약 0.03 ms 차이) 세대 진행 엔진을 중복으로 만듦 |
+
+- `model.Board`와의 관계: `CompositeBoard`로 감싸면 `step`·`clear`는 되지만 `toggle`은 칸을 살리지 못하고 `snapshot`/`restore`는 소유자를 잃는다(측정 클래스로 확인). `GameController.tick()`이 `board.step()`을 직접 불러 `TwoPlayerGame`의 단계·판정도 건너뛴다. 그래서 `CompositeBoard`·`Board`를 쓰지 않는다(W3). #7은 `GameController`가 아닌 2인용 진입점이 필요하다.
+- 처음 채팅 보고에서 "F가 클래식보다 약 17% 빠르다"고 했다가, 저장소에 넣은 측정 클래스로 다시 재 보니 약 7% 느렸다(첫 프로토타입과 구현 방식이 달라서). 006에는 후자를 적고, 이 차이는 후보 선택 근거로 쓰지 않았다.
+
+**측정** (`CellCandidateBenchmark`, `main`으로 실행, `@Test` 없음. Apple M4 Pro, JDK 26.0.2.1, `-ea`, 64×64 밀도 0.3 시드 42, 200 tick 10번 중 최소, 3번 실행)
+
+| 보드 | tick당 | `count` 1회 |
+| --- | --- | --- |
+| 클래식 `Resident` | 0.0570~0.0584 ms | — |
+| F 실제 구현 | 0.0591~0.0618 ms | 0.0011~0.0021 ms |
+| G 전용 격자 | 0.0314~0.0359 ms | 0.0009 ms |
+
+동등성: F와 G의 칸별 소유자가 200세대 같고, F의 살아 있는 칸이 클래식과 같다. 명세 예시 4, TP-R-10, TP-R-11 상황도 확인. 구현 뒤 측정 클래스의 F를 실제 클래스로 바꿔 프로토타입 코드를 지웠다.
+
+**테스트** (케이스 정의 → 골격 + 테스트 → 구현, 강령 3)
+
+| 클래스 | 케이스 | 수 |
+| --- | --- | --- |
+| `TwoPlayerRuleTest` | TP-R-01~17 세대 전이 (명세 예시 1~5 포함) | 17 |
+| `NeighborhoodTwoPlayerBoardTest` | TP-B-01~17 `TwoPlayerBoard` 계약과 위반 시 예외 | 17 |
+| `TwoPlayerGameOnRealBoardTest` | TP-I-01~03: TP-F-13, TP-E-02, TP-E-03을 실제 보드로 | 3 |
+
+- 명세 예시는 64×64에서 같은 좌표로 돌려도 결과가 같아서 모두 기본 보드로 확인한다. 예시 3·4는 B의 block이 A 진영에 있어 TP-I에서는 열을 옮겼다.
+- 기대값 출처를 케이스마다 적었다([명세 7-n], [명세 3], [CCB], [계약]). [CCB] 값은 측정 클래스의 F로 계산했고, 리뷰어가 별도 시뮬레이터로 다시 계산해 일치를 확인했다.
+- 계약 위반 시 동작을 새로 정했다: 범위 밖 `IndexOutOfBoundsException`, 살아 있는 칸에 `place` `IllegalArgumentException`(막지 않으면 `Neighborhood.toggle`이 그 셀을 죽임), `null` 소유자 `NullPointerException`. 예외를 던지면 보드는 바뀌지 않는다.
+- 칸 소유자 조회 `owner(row, column)`은 `NeighborhoodTwoPlayerBoard`에만 두고 `TwoPlayerBoard` 인터페이스에는 넣지 않았다(#7에서 결정).
+
+**결과**
+
+- 골격(모든 메서드가 `UnsupportedOperationException`) 단계: 새 37개 실패(모두 골격 생성자에서), 기존 186개 통과. 테스트 자체의 오류가 아닌지 보려고 scratch 복사본에 임시 구현을 넣어 223개 통과를 먼저 확인했다.
+- 구현 후 `./gradlew test --rerun` 223개 통과. `life/model`·`life/ui`·`life/application` diff 없음.
+- 실제 구현: `TwoPlayerResident` 105줄, `NeighborhoodTwoPlayerBoard` 87줄(빈 줄·주석 제외).
+- 같은 브랜치에서 twoplayer 테스트 17줄을 100자 이내로 줄바꿈했다(대부분 #21 때 코드, 동작 변경 없음).
+- 문서: 006, `interfaces.md`(예외 계약, `owner()`, "소유자 지정 → toggle" 규칙), `test-cases.md` 1장, 클래스 다이어그램, core `interfaces.md`에 대체 표시.
+
+**이슈 초안** (`docs/issue-drafts/`, GitHub 이슈는 아직 만들지 않음)
+
+| 파일 | 내용 | 대상 |
+| --- | --- | --- |
+| 006a | `BoardRenderer`가 `Resident`만 그림 → 2인용 셀이 화면에 안 나옴 | ui |
+| 006b | `Cell`에 모드별(암) 메서드가 쌓임 | model |
+| 006c | model API가 `java.awt.Point`를 노출 | model |
+| 006d | 2인용 진입점: `GameController` 대신 `TwoPlayerGame`을 부르는 경로 | application(B 도메인) |
+
 ## 남은 일
 
 - #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기
 - #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
-- Cell 인터페이스 회의 → 001 상태 변경(채택/기각) → #5 구현 → `TwoPlayerBoard` 실제 구현 (#25 이후)
-- #7 UI 통합: #25가 나눈 UI 구조(`BoardPanel`, `GameMenu`, `GameController`) 위에서 설계
+- #5: `feature/5-two-player-cell` 확인 → push·PR(통합 브랜치 규칙에 따라 `Refs #5`) → 이슈 초안 006a~d를 GitHub 이슈로 올리고 006d는 B 도메인 담당에게 알림
+- #7 UI 통합: `GameController`는 쓰지 않고 2인용 진입점을 따로 설계(006 W3). 2인용 렌더러, `owner()`를 인터페이스에 올릴지 결정
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
 - 도메인 `docs/README.md`: `twoplayer/docs/`는 #21에 넣음. `life/docs/README.md`는 #25가 추가함(문서 목록에 001·`interfaces.md`는 통합 브랜치가 main에 머지될 때 반영)

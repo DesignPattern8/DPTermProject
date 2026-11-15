@@ -2,12 +2,12 @@
 
 두 플레이어가 한 화면에서 번갈아 셀을 두고, 클래식 B3/S23 규칙으로 영역을 다투는 승패 모드다. 규칙은 [rules.md](rules.md).
 
-## 현재 상태 (2026-11-03)
+## 현재 상태 (2026-11-15)
 
 | 부분 | 이슈 | 상태 |
 | --- | --- | --- |
 | 게임 진행 모델 (단계·차례·배치·패스·승패 판정) | #6 | 구현 완료, 보드는 대역으로 테스트 |
-| 셀 상태(DEAD/A/B)와 세대 전이 규칙, `TwoPlayerBoard` 실제 구현 | #5 | 설계 결정 채택([006](006-two-player-cell.md), model 무수정), 구현 대기 |
+| 셀 상태(DEAD/A/B)와 세대 전이 규칙, `TwoPlayerBoard` 실제 구현 | #5 | 구현 완료([006](006-two-player-cell.md) 후보 F, model·ui·application 무수정). `NeighborhoodTwoPlayerBoard`로 TP-R·TP-B·TP-I 37개 통과 |
 | UI 통합 (모드 선택·입력·상태 표시줄) | #7 | 대기 |
 | 문서·다이어그램 정리 | #8 | 대기 |
 
@@ -26,8 +26,10 @@
 | `PlacingPhase`, `InitialPlacementPhase`, `InterventionPhase` | package-private | 칸을 고르고 확정하는 단계 |
 | `SimulationPhase`, `GameOverPhase` | package-private | 세대 진행·판정, 종료 |
 | `GameJudge` | package-private | 판정 규칙 (셀 수 → 결과) |
+| `NeighborhoodTwoPlayerBoard` | public | `TwoPlayerBoard` 실제 구현. 64×64 `Neighborhood(8, Neighborhood(8, TwoPlayerResident))`. 칸 소유자 조회 `owner(row, column)` (#5, 006) |
+| `TwoPlayerResident` | package-private | 2인용 셀(`Cell` 구현). 상태는 소유자 `Player`(null = DEAD), rules.md 3장 전이 규칙 |
 
-`java.awt`·Swing에 의존하지 않는다. 기존 `com.holub.life` 클래스도 아직 쓰지 않는다(#5에서 실제 보드를 붙일 때 연결).
+Swing에 의존하지 않는다. #5부터 `com.holub.life.model`의 `Cell`·`Neighborhood`를 쓰고(model은 고치지 않음), `Cell.transfer` 시그니처 때문에 `TwoPlayerResident`가 `java.awt.Point`를 import한다(006 감수하는 비용, 이슈 초안 [006c](../../../../../../../../docs/issue-drafts/006c-model-api-exposes-awt-point.md)). 게임 진행 쪽(`TwoPlayerGame`, 단계, `GameJudge`)은 여전히 보드 구현을 모른다.
 
 ## 문서
 
@@ -55,9 +57,12 @@
 | `TwoPlayerGameFlowTest` | TP-F 게임 진행 | 17 |
 | `PlacementRuleTest` | TP-P 배치 규칙 | 15 |
 | `GameJudgeTest` | TP-E 종료·승패 판정 | 10 |
-| `StubBoard`, `GameScript` | 대역 보드, 게임 진행 도우미 | — |
-| `CellCandidateBenchmark` | 006의 측정·동등성 확인 (`main`으로 실행, `@Test` 없음. 실행 방법은 006 "측정 방법") | — |
+| `TwoPlayerRuleTest` | TP-R 세대 전이 규칙 (실제 보드) | 17 |
+| `NeighborhoodTwoPlayerBoardTest` | TP-B `TwoPlayerBoard` 계약 (실제 보드) | 17 |
+| `TwoPlayerGameOnRealBoardTest` | TP-I 게임 진행을 실제 보드로 다시 확인 | 3 |
+| `StubBoard`, `GameScript`, `RealBoardScript` | 대역 보드, 게임 진행 도우미, 실제 보드 도우미 | — |
+| `CellCandidateBenchmark` | 006의 측정·동등성 확인. F는 실제 `NeighborhoodTwoPlayerBoard` (`main`으로 실행, `@Test` 없음. 실행 방법은 006 "측정 방법") | — |
 
 실행: `cd Codes/GameOfLife && ./gradlew test` (JDK 26)
 
-다이어그램 렌더링: `cd Codes/GameOfLife && ./gradlew renderDiagrams` (원본 `.puml`과 png·svg를 함께 커밋한다, AGENTS.md 2-5)
+다이어그램 렌더링: `cd Codes/GameOfLife && ./gradlew renderDiagrams -Pdir=src/com/holub/life/twoplayer` (원본 `.puml`과 png·svg를 함께 커밋한다, AGENTS.md 2-5)
