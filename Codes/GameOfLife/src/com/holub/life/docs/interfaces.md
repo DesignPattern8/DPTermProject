@@ -1,5 +1,7 @@
 # 공통(core) 인터페이스 변경 제안 (초안)
 
+> **대체됨**: 아래 `CellState`·`Cell#state()` 초안은 채택되지 않았다. 2인용 셀은 model을 고치지 않고 구현한다 → [../twoplayer/docs/006-two-player-cell.md](../twoplayer/docs/006-two-player-cell.md) (2026-11-15). 이 문서는 기록으로 남긴다.
+>
 > 이 문서는 회의 자료용 **초안**이다. 아래 변경은 아직 코드에 반영하지 않았다.
 > 제안 주도: 2인용 모드. `Cell`은 1인용 모드·암세포 모드도 함께 쓰므로 회의에서 확정한다.
 > 근거와 대안 비교: [001-cell-state-representation.md](001-cell-state-representation.md) (후보 C 기준)
