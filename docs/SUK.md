@@ -40,7 +40,7 @@
 | --- | --- | --- |
 | #6 닫기 (#21, #36 링크 댓글) | #6 | #36 머지 후 |
 | 2인용 셀 상태·전이 규칙 | #5 | 로컬 구현 완료(`feature/5-two-player-cell`), 확인 후 push·PR |
-| 2인용 UI 통합 | #7 | #5 이후. `GameController` 대신 2인용 진입점(이슈 초안 006d), 2인용 렌더러(006a) |
+| 2인용 UI 통합 | #7 | #5 이후. `GameController` 대신 2인용 진입점(#72), 2인용 렌더러(#69) |
 | 2인용 문서·다이어그램 정리 | #8 | #5·#7 이후 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
@@ -346,20 +346,20 @@ PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` �
 - 같은 브랜치에서 twoplayer 테스트 17줄을 100자 이내로 줄바꿈했다(대부분 #21 때 코드, 동작 변경 없음).
 - 문서: 006, `interfaces.md`(예외 계약, `owner()`, "소유자 지정 → toggle" 규칙), `test-cases.md` 1장, 클래스 다이어그램, core `interfaces.md`에 대체 표시.
 
-**이슈 초안** (`docs/issue-drafts/`, GitHub 이슈는 아직 만들지 않음)
+**이슈** (006 "리팩토링 팀에 이슈로 남길 것". `docs/issue-drafts/`에 초안을 쓰고 확인받은 뒤 2026-11-15에 올렸다. 올린 뒤 초안 폴더는 실제 이슈와 어긋나지 않도록 지웠다. `@` 멘션 없음)
 
-| 파일 | 내용 | 대상 |
+| 이슈 | 내용 | 대상 |
 | --- | --- | --- |
-| 006a | `BoardRenderer`가 `Resident`만 그림 → 2인용 셀이 화면에 안 나옴 | ui |
-| 006b | `Cell`에 모드별(암) 메서드가 쌓임 | model |
-| 006c | model API가 `java.awt.Point`를 노출 | model |
-| 006d | 2인용 진입점: `GameController` 대신 `TwoPlayerGame`을 부르는 경로 | application(B 도메인) |
+| #69 (a) | `BoardRenderer`가 `Resident`만 그림 → 2인용 셀이 화면에 안 나옴 | ui |
+| #70 (b) | `Cell`에 모드별(암) 메서드가 쌓임 | model |
+| #71 (c) | model API가 `java.awt.Point`를 노출 | model |
+| #72 (d) | 2인용 진입점: `GameController` 대신 `TwoPlayerGame`을 부르는 경로 | application(B 도메인) |
 
 ## 남은 일
 
 - #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기
 - #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
-- #5: `feature/5-two-player-cell` 확인 → push·PR(통합 브랜치 규칙에 따라 `Refs #5`) → 이슈 초안 006a~d를 GitHub 이슈로 올리고 006d는 B 도메인 담당에게 알림
+- #5: `feature/5-two-player-cell` push 완료, 이슈 #69~#72 생성 완료. PR(base `feature/base`, `Closes #5`) 확인 후 열기. `feature/base`는 기본 브랜치가 아니라 머지 후 #5를 직접 닫는다. #72는 B 도메인 담당에게 알림
 - #7 UI 통합: `GameController`는 쓰지 않고 2인용 진입점을 따로 설계(006 W3). 2인용 렌더러, `owner()`를 인터페이스에 올릴지 결정
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)

@@ -29,7 +29,7 @@
 | `NeighborhoodTwoPlayerBoard` | public | `TwoPlayerBoard` 실제 구현. 64×64 `Neighborhood(8, Neighborhood(8, TwoPlayerResident))`. 칸 소유자 조회 `owner(row, column)` (#5, 006) |
 | `TwoPlayerResident` | package-private | 2인용 셀(`Cell` 구현). 상태는 소유자 `Player`(null = DEAD), rules.md 3장 전이 규칙 |
 
-Swing에 의존하지 않는다. #5부터 `com.holub.life.model`의 `Cell`·`Neighborhood`를 쓰고(model은 고치지 않음), `Cell.transfer` 시그니처 때문에 `TwoPlayerResident`가 `java.awt.Point`를 import한다(006 감수하는 비용, 이슈 초안 [006c](../../../../../../../../docs/issue-drafts/006c-model-api-exposes-awt-point.md)). 게임 진행 쪽(`TwoPlayerGame`, 단계, `GameJudge`)은 여전히 보드 구현을 모른다.
+Swing에 의존하지 않는다. #5부터 `com.holub.life.model`의 `Cell`·`Neighborhood`를 쓰고(model은 고치지 않음), `Cell.transfer` 시그니처 때문에 `TwoPlayerResident`가 `java.awt.Point`를 import한다(006 감수하는 비용, #71). 게임 진행 쪽(`TwoPlayerGame`, 단계, `GameJudge`)은 여전히 보드 구현을 모른다.
 
 ## 문서
 

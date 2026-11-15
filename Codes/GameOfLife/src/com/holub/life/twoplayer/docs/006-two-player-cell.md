@@ -181,12 +181,12 @@ java -ea -cp build/classes/java/main:build/classes/java/test \
 
 ## 리팩토링 팀에 이슈로 남길 것
 
-이번 작업에서는 고치지 않는다. (a)~(c)는 model·ui, (d)는 application(B 도메인)에 관한 것이다.
+이번 작업에서는 고치지 않는다. (a)~(c)는 model·ui, (d)는 application(B 도메인)에 관한 것이다. 2026-11-15에 GitHub 이슈로 올렸다: (a) #69, (b) #70, (c) #71, (d) #72.
 
-- **(a) 렌더러가 `Resident`만 그린다.** `BoardRenderer.java:39`의 `instanceof Resident` 분기에 맞지 않는 셀은 조용히 그려지지 않는다. #7에서 2인용 렌더러를 `twoplayer` 안에 따로 만들지(`Neighborhood`의 공개 API `childAt`·`gridSize`·`isActive`·`beginRedraw`, `Neighborhood.java:285-303` 사용), 셀 종류에 의존하지 않는 렌더링을 팀에 요청할지 정해야 한다.
-- **(b) `Cell` 인터페이스가 모드별 메서드로 커진다.** 암 메서드 3개(`Cell.java:108-115`)와 `Memento`의 암 메서드 2개(`Cell.java:81-85`)를 모든 구현이 갖는다. 2인용 셀도 할 일 없는 구현을 3개 둔다(인터페이스 분리 문제).
-- **(d) #7은 `GameController`가 아닌 2인용 진입점이 필요하다 (B 도메인 담당에게 알림).** W2·W3 결과, 2인용 보드는 `Board`를 구현하지 않고 `GameController`를 거치지 않는다. `GameController.tick()`(`GameController.java:65-90`)이 `board.step()`을 직접 부르면 `TwoPlayerGame`의 단계·K세대 카운트·전멸 판정을 건너뛰기 때문이다. #7에서는 `Clock`만 재사용하고 `TwoPlayerGame`의 `select`·`confirm`·`pass`·`tick`을 부르는 진입점을 따로 둔다. `GameController`(application, B 도메인)는 바꾸지 않는다. 다만 메뉴·패널이 컨트롤러를 어떻게 고르는지는 B 도메인 담당과 #7에서 맞춘다.
-- **(c) model API가 `java.awt.Point`를 노출한다.** `Cell.transfer`와 `Cell.Memento`(`Cell.java:3`, `76-93`)가 `Point`를 쓴다. `Cell`을 구현하는 쪽은 모두 `java.awt`에 의존하게 된다.
+- **[#69] (a) 렌더러가 `Resident`만 그린다.** `BoardRenderer.java:39`의 `instanceof Resident` 분기에 맞지 않는 셀은 조용히 그려지지 않는다. #7에서 2인용 렌더러를 `twoplayer` 안에 따로 만들지(`Neighborhood`의 공개 API `childAt`·`gridSize`·`isActive`·`beginRedraw`, `Neighborhood.java:285-303` 사용), 셀 종류에 의존하지 않는 렌더링을 팀에 요청할지 정해야 한다.
+- **[#70] (b) `Cell` 인터페이스가 모드별 메서드로 커진다.** 암 메서드 3개(`Cell.java:108-115`)와 `Memento`의 암 메서드 2개(`Cell.java:81-85`)를 모든 구현이 갖는다. 2인용 셀도 할 일 없는 구현을 3개 둔다(인터페이스 분리 문제).
+- **[#71] (c) model API가 `java.awt.Point`를 노출한다.** `Cell.transfer`와 `Cell.Memento`(`Cell.java:3`, `76-93`)가 `Point`를 쓴다. `Cell`을 구현하는 쪽은 모두 `java.awt`에 의존하게 된다.
+- **[#72] (d) #7은 `GameController`가 아닌 2인용 진입점이 필요하다 (B 도메인 담당에게 알림).** W2·W3 결과, 2인용 보드는 `Board`를 구현하지 않고 `GameController`를 거치지 않는다. `GameController.tick()`(`GameController.java:65-90`)이 `board.step()`을 직접 부르면 `TwoPlayerGame`의 단계·K세대 카운트·전멸 판정을 건너뛰기 때문이다. #7에서는 `Clock`만 재사용하고 `TwoPlayerGame`의 `select`·`confirm`·`pass`·`tick`을 부르는 진입점을 따로 둔다. `GameController`(application, B 도메인)는 바꾸지 않는다. 다만 메뉴·패널이 컨트롤러를 어떻게 고르는지는 B 도메인 담당과 #7에서 맞춘다.
 
 ## 전/후 비교
 
@@ -210,8 +210,8 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 
 - 테스트 케이스: test-cases.md 1장 TP-R-01~18을 이 구조 기준으로 다시 보고(예정 클래스 `TwoPlayerRuleTest`), 보드 계약(`isEmpty`, `hasEmptyCell`, `place`, `count`) 케이스를 추가한 뒤 테스트 → 구현 순서로 진행한다.
 - 게임 진행 테스트(TP-E)의 예시를 실제 보드로 다시 확인한다(005 "구현 후 실측"의 남은 일).
-- 이슈 (a)~(c)를 리팩토링 팀에, (d)를 B 도메인 담당에게 남긴다.
-- #7: 2인용 렌더러, `TwoPlayerGame`을 부르는 2인용 진입점. `GameController`는 쓰지 않는다(W3, 이슈 (d)).
+- ~~이슈 (a)~(c)를 리팩토링 팀에, (d)를 B 도메인 담당에게 남긴다.~~ 올림: #69, #70, #71 (리팩토링 팀), #72 (B 도메인 담당에게 알릴 것).
+- #7: 2인용 렌더러, `TwoPlayerGame`을 부르는 2인용 진입점. `GameController`는 쓰지 않는다(W3, #72). 렌더러는 #69.
 - #7: 렌더러가 `owner()`를 `TwoPlayerBoard` 인터페이스로 읽어야 하는지 정한다(그러면 `StubBoard`에도 필요하다). 지금은 `NeighborhoodTwoPlayerBoard`에만 있다([interfaces.md](interfaces.md)).
 - ~~실제 2인용 셀·보드가 `src`에 들어오면 `CellCandidateBenchmark`의 F 쪽을 실제 클래스로 바꾼다.~~ 완료(2026-11-15). `PrototypeCell`을 지우고 F는 `NeighborhoodTwoPlayerBoard`를 쓴다. G와 클래식 기준선은 비교용으로 남겼다.
 - ~~구현 후 이 문서의 F 열을 실제 클래스의 LOC·tick 시간으로 다시 적는다.~~ 완료(오버헤드 비교표, "측정값 갱신").
