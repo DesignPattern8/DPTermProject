@@ -3,27 +3,24 @@ package com.holub.life.twoplayer;
 import com.holub.life.model.Cell;
 import com.holub.life.model.CellPosition;
 import com.holub.life.model.CompositeBoard;
-import com.holub.life.model.Direction;
 import com.holub.life.model.Neighborhood;
-import com.holub.life.model.NeighborhoodState;
 import com.holub.life.model.Resident;
-import java.awt.Point;
 import java.util.Random;
 
 /**
  * 006 설계 결정의 측정 코드. JUnit 테스트가 아니다({@code @Test} 없음, {@code ./gradlew test}에서 실행되지 않음).
  *
- * <p>후보 F(model 무수정, {@code Neighborhood} 재사용 + 2인용 셀)와 후보 G(twoplayer 전용 격자)를 프로토타입으로 만들어
- * 아래를 확인하고 측정한다.
+ * <p>후보 F는 실제 구현({@link NeighborhoodTwoPlayerBoard}, {@link TwoPlayerResident})을 쓰고, 비교용으로
+ * 후보 G(twoplayer 전용 격자)와 클래식 {@code Resident} 보드를 둔다. 아래를 확인하고 측정한다.
  *
  * <ol>
  *   <li>동등성: 무작위 보드에서 F와 G의 칸별 색이 같고, 살아 있는 칸이 클래식 {@code Resident}와 같다.
  *   <li>명세 예시 4의 세대별 셀 수, Neighborhood 경계를 넘는 탄생(TP-R-10), 정체 뒤 배치(TP-R-11).
- *   <li>{@code CompositeBoard}로 F의 루트를 감쌌을 때 되는 것과 깨지는 것.
+ *   <li>{@code CompositeBoard}로 2인용 셀 보드의 루트를 감쌌을 때 되는 것과 깨지는 것.
  *   <li>tick당 시간(클래식, F, G)과 {@code count(owner)} 1회 시간.
  * </ol>
  *
- * <p>실행 방법은 {@code twoplayer/docs/006-two-player-cell.md}의 "측정 방법". 프로토타입 셀은 측정용이며 실제 구현이 아니다.
+ * <p>실행 방법은 {@code twoplayer/docs/006-two-player-cell.md}의 "측정 방법".
  */
 final class CellCandidateBenchmark {
   private static final int SIZE = 64;
@@ -34,156 +31,24 @@ final class CellCandidateBenchmark {
 
   private CellCandidateBenchmark() {}
 
-  /** 후보 F의 프로토타입 셀. owner가 null이면 DEAD. */
-  private static final class PrototypeCell implements Cell {
-    private Player owner;
-    private Player next;
-    /** place 직전에 보드가 정한다. toggle이 DEAD 칸을 이 소유자로 살린다. */
-    private Player armed;
-
-    @Override
-    public boolean figureNextState(
-        Cell north,
-        Cell south,
-        Cell east,
-        Cell west,
-        Cell northeast,
-        Cell northwest,
-        Cell southeast,
-        Cell southwest) {
-      Cell[] adjacent = {north, south, east, west, northeast, northwest, southeast, southwest};
-      int a = 0;
-      int b = 0;
-      for (Cell cell : adjacent) {
-        if (cell instanceof PrototypeCell neighbor && neighbor.owner != null) {
-          if (neighbor.owner == Player.A) {
-            a++;
-          } else {
-            b++;
-          }
-        }
-      }
-      int live = a + b;
-      if (owner != null) {
-        next = (live == 2 || live == 3) ? owner : null;
-      } else {
-        next = live == 3 ? (a >= 2 ? Player.A : Player.B) : null;
-      }
-      return next != owner;
-    }
-
-    @Override
-    public Cell edge(int row, int column) {
-      return this;
-    }
-
-    @Override
-    public boolean transition() {
-      boolean changed = next != owner;
-      owner = next;
-      return changed;
-    }
-
-    @Override
-    public void toggle(int row, int column) {
-      owner = (owner == null) ? armed : null;
-      next = owner;
-      armed = null;
-    }
-
-    @Override
-    public boolean isAlive() {
-      return owner != null;
-    }
-
-    @Override
-    public int widthInCells() {
-      return 1;
-    }
-
-    @Override
-    public Cell create() {
-      return new PrototypeCell();
-    }
-
-    @Override
-    public Direction isDisruptiveTo() {
-      return next == owner ? Direction.NONE : Direction.ALL;
-    }
-
-    @Override
-    public void clear() {
-      owner = null;
-      next = null;
-    }
-
-    @Override
-    public boolean transfer(Memento memento, Point upperLeft, boolean doLoad) {
-      return false;
-    }
-
-    @Override
-    public NeighborhoodState createMemento() {
-      throw new UnsupportedOperationException("two-player store is not supported");
-    }
-
-    @Override
-    public boolean isCancer() {
-      return false;
-    }
-
-    @Override
-    public void setCancer() {}
-
-    @Override
-    public void cureCancer() {}
-  }
-
-  /** 후보 F: Neighborhood(8, Neighborhood(8, PrototypeCell)) + 칸 색 조회용 평면 색인. */
+  /** 후보 F: 실제 구현 {@link NeighborhoodTwoPlayerBoard}. 측정 코드에서 쓰는 이름만 맞춘다. */
   private static final class CandidateF {
-    final Neighborhood root = new Neighborhood(8, new Neighborhood(8, new PrototypeCell()));
-    final PrototypeCell[][] cells = new PrototypeCell[SIZE][SIZE];
-
-    CandidateF() {
-      for (int r = 0; r < 8; r++) {
-        for (int c = 0; c < 8; c++) {
-          Neighborhood inner = (Neighborhood) root.childAt(r, c);
-          for (int rr = 0; rr < 8; rr++) {
-            for (int cc = 0; cc < 8; cc++) {
-              cells[r * 8 + rr][c * 8 + cc] = (PrototypeCell) inner.childAt(rr, cc);
-            }
-          }
-        }
-      }
-    }
+    final NeighborhoodTwoPlayerBoard board = new NeighborhoodTwoPlayerBoard();
 
     void place(int row, int column, Player owner) {
-      cells[row][column].armed = owner;
-      root.toggle(row, column);
+      board.place(row, column, owner);
     }
 
     void step() {
-      Cell outside = Cell.DUMMY;
-      if (root.figureNextState(
-          outside, outside, outside, outside, outside, outside, outside, outside)) {
-        root.transition();
-      }
+      board.advanceGeneration();
     }
 
     Player owner(int row, int column) {
-      return cells[row][column].owner;
+      return board.owner(row, column).orElse(null);
     }
 
     int count(Player owner) {
-      int n = 0;
-      for (PrototypeCell[] row : cells) {
-        for (PrototypeCell cell : row) {
-          if (cell.owner == owner) {
-            n++;
-          }
-        }
-      }
-      return n;
+      return board.count(owner);
     }
   }
 
@@ -412,10 +277,13 @@ final class CellCandidateBenchmark {
         quietGenerations, placed, TICKS);
   }
 
-  /** 3. F의 루트를 CompositeBoard로 감쌌을 때. */
+  /**
+   * 3. 2인용 셀(실제 {@link TwoPlayerResident}) 보드의 루트를 CompositeBoard로 감쌌을 때. {@link
+   * NeighborhoodTwoPlayerBoard}는 루트를 감추므로, 같은 구성의 루트를 여기서 따로 만든다.
+   */
   private static void checkCompositeBoardReuse() {
     CandidateF direct = new CandidateF();
-    CandidateF wrapped = new CandidateF();
+    WrappedRoot wrapped = new WrappedRoot();
     CompositeBoard board = new CompositeBoard(wrapped.root);
     int[][] glider = {{0, 1}, {1, 2}, {2, 0}, {2, 1}, {2, 2}};
     for (int[] p : glider) {
@@ -460,6 +328,38 @@ final class CellCandidateBenchmark {
     board.clear();
     System.out.printf(
         "CompositeBoard.clear(): A=%d, B=%d%n", wrapped.count(Player.A), wrapped.count(Player.B));
+  }
+
+  /** CompositeBoard 점검용: NeighborhoodTwoPlayerBoard와 같은 구성의 루트를 직접 갖는다. */
+  private static final class WrappedRoot {
+    final Neighborhood root = new Neighborhood(8, new Neighborhood(8, new TwoPlayerResident()));
+
+    private TwoPlayerResident cell(int row, int column) {
+      Neighborhood block = (Neighborhood) root.childAt(row / 8, column / 8);
+      return (TwoPlayerResident) block.childAt(row % 8, column % 8);
+    }
+
+    /** NeighborhoodTwoPlayerBoard.place와 같은 순서: 소유자 지정 → toggle. */
+    void place(int row, int column, Player owner) {
+      cell(row, column).prepareOwner(owner);
+      root.toggle(row, column);
+    }
+
+    Player owner(int row, int column) {
+      return cell(row, column).owner();
+    }
+
+    int count(Player owner) {
+      int n = 0;
+      for (int r = 0; r < SIZE; r++) {
+        for (int c = 0; c < SIZE; c++) {
+          if (cell(r, c).owner() == owner) {
+            n++;
+          }
+        }
+      }
+      return n;
+    }
   }
 
   /** 4-1. tick당 시간. 같은 무작위 보드, TICKS번 진행, REPEATS번 중 최소. */

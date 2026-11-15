@@ -120,18 +120,20 @@ Neighborhood root = new Neighborhood(8, new Neighborhood(8, new TwoPlayerResiden
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 구조 — 고칠 model 파일 | 3 (`Cell`·`DUMMY`, `Resident`, `Neighborhood`) (`Cell` 구현체 수에서 셈) | 0 | 3 + 새 파일 2 | 3 + `CellVisitor` | 실측 유사 사례: PR #60이 model 4개 파일 `Cell` +23, `Resident` +54/−14, `Neighborhood` +194, `NeighborhoodState` +23 | **0** | 0 |
 | 구조 — 고칠 ui 파일 | `BoardRenderer` 1 | 1 | 1 | `BoardRenderer` 전체(45줄) 재작성 | 1 (PR #60: `BoardRenderer` +2/−1) | 0 (그리기는 #7) | 0 (그리기는 #7) |
-| 구조 — 새 타입·LOC | enum 1 + 2인용 셀 (추정) | 인터페이스 1 + enum 1 + 셀 (추정) | 3 + 팔레트 1 (추정) | 1 + 구현 2~3 (추정) | 0~1 (추정) | 셀 1 + 보드 1. 프로토타입 셀 88줄, 보드 41줄 (실측) | 보드 1. 프로토타입 54줄 (실측) |
+| 구조 — 새 타입·LOC | enum 1 + 2인용 셀 (추정) | 인터페이스 1 + enum 1 + 셀 (추정) | 3 + 팔레트 1 (추정) | 1 + 구현 2~3 (추정) | 0~1 (추정) | 셀 1 + 보드 1. 실제 구현 `TwoPlayerResident` 105줄, `NeighborhoodTwoPlayerBoard` 87줄 (실측, 구현 전 프로토타입은 88줄·41줄) | 보드 1. 프로토타입 54줄 (실측) |
 | 간접성 — 이웃 1개당 | 가상 호출 1 (추정) | `instanceof` + 호출 1 (추정) | 인터페이스 호출 1 (추정) | 가상 호출 2 (추정) | `isAlive` + 소유자 조회 (현재 암: `isAlive` + `isCancer`, `Resident.java:50-52`) | `instanceof` + 필드 읽기, 가상 호출 0 | 배열 읽기 |
 | 결합도 | 모든 모드가 공용 enum에 의존 | `twoplayer` → `model` | `twoplayer` → `model.CellState` | `model` ↔ `twoplayer` 순환 위험 | model이 2인용 소유자 개념을 가짐 | `twoplayer` → `model`(`Cell`, `Neighborhood`, `Direction`, `NeighborhoodState`) | 없음 |
 | `java.awt` 의존 (`twoplayer`) | 셀이 `Cell`을 구현하면 `Point` (추정) | `Point` | `Point` (추정) | `Point` (추정) | 없음 | `Point` 1개 (실측) | 없음 |
-| 런타임 — tick당 | 측정 안 함 | 측정 안 함 | 측정 안 함 | 측정 안 함 | 측정 안 함 | **0.0623~0.0626 ms** | **0.0337~0.0352 ms** |
-| 런타임 — `count(owner)` 1회 | — | — | — | — | — | 0.0020~0.0021 ms | 0.0009 ms |
+| 런타임 — tick당 | 측정 안 함 | 측정 안 함 | 측정 안 함 | 측정 안 함 | 측정 안 함 | **0.0591~0.0618 ms** (실제 구현) | **0.0314~0.0359 ms** |
+| 런타임 — `count(owner)` 1회 | — | — | — | — | — | 0.0011~0.0021 ms (실제 구현) | 0.0009 ms |
 | 테스트 용이성 | Swing 없이 가능 | 가능 | 가능 | Visitor 대역 필요 | 가능, 클래식 `Resident`를 거침 | 가능. 예시 4·TP-R-10·11 확인 (실측) | 가능 |
 | 확장 — 다음 모드 추가 | 공용 enum + 모든 `switch` | 하위 인터페이스 + 렌더러 분기 | enum + 팔레트 | `CellVisitor` + 모든 구현 | model 4개 파일 다시 | 새 `Cell` 구현 1개, model 0 | 새 엔진 |
 | 리팩토링 팀 영역과 충돌 | 있음 | 렌더러 | 있음 | 가장 큼 | 가장 큼 | **없음** | 없음 |
 | `model.Board` 관계 | — | — | — | — | — | W3: `Neighborhood` 직접 사용 (`CompositeBoard`의 `toggle`·`snapshot`·`restore`가 소유자를 잃음, 실측) | `Board`와 무관 |
 
-클래식 기준선(같은 보드, 같은 측정): tick당 **0.0577~0.0585 ms**.
+클래식 기준선(같은 보드, 같은 측정): tick당 **0.0570~0.0584 ms**.
+
+측정값 갱신(2026-11-15): 위 F·G·클래식 값은 `CellCandidateBenchmark`의 F를 실제 구현으로 바꾼 뒤 다시 잰 값이다. 프로토타입 F일 때는 tick당 0.0623~0.0626 ms, `count` 0.0020~0.0021 ms, G 0.0337~0.0352 ms, 클래식 0.0577~0.0585 ms였다. 실제 구현의 `count`는 3번 중 2번이 약 0.0011 ms, 1번이 0.0021 ms로 실행마다 갈렸다(원인은 확인하지 않음).
 
 ### 측정 방법
 
@@ -145,6 +147,7 @@ java -ea -cp build/classes/java/main:build/classes/java/test \
 - 환경: Apple M4 Pro (12 코어), macOS, JDK 26.0.2.1 (aarch64), `-ea` 켬. 프로그램이 첫 줄에 환경을 출력한다.
 - 보드: 64×64, 칸마다 확률 0.3으로 살림(`Random` 시드 42), 왼쪽 절반 A, 오른쪽 절반 B. 클래식은 같은 칸을 `toggle`.
 - tick: 200 tick 진행 시간 / 200, 10번 반복 중 최소. 워밍업 3회. 표의 범위는 3번 실행한 결과.
+- F는 실제 구현(`NeighborhoodTwoPlayerBoard`)을 쓴다. `CompositeBoard` 점검(3번)은 `NeighborhoodTwoPlayerBoard`가 루트를 감추므로, 같은 구성의 루트를 실제 `TwoPlayerResident`로 따로 만들어 감싼다.
 - `count(owner)`: 워밍업 10,000회 뒤 10,000회 평균.
 - `@Test`가 없어 `./gradlew test`에서는 실행되지 않는다(이 클래스를 넣은 뒤 `./gradlew test --rerun` 186개 통과, 결과 파일 없음 확인).
 
@@ -210,5 +213,5 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 - 이슈 (a)~(c)를 리팩토링 팀에, (d)를 B 도메인 담당에게 남긴다.
 - #7: 2인용 렌더러, `TwoPlayerGame`을 부르는 2인용 진입점. `GameController`는 쓰지 않는다(W3, 이슈 (d)).
 - #7: 렌더러가 `owner()`를 `TwoPlayerBoard` 인터페이스로 읽어야 하는지 정한다(그러면 `StubBoard`에도 필요하다). 지금은 `NeighborhoodTwoPlayerBoard`에만 있다([interfaces.md](interfaces.md)).
-- 실제 2인용 셀·보드가 `src`에 들어오면 `CellCandidateBenchmark`의 F 쪽(`PrototypeCell`, `CandidateF`)을 실제 클래스로 바꾼다. 같은 로직을 측정 코드에 두 벌 두지 않기 위해서다. G와 클래식 기준선은 비교용으로 남긴다.
-- 구현 후 이 문서의 F 열을 실제 클래스의 LOC·tick 시간으로 다시 적는다.
+- ~~실제 2인용 셀·보드가 `src`에 들어오면 `CellCandidateBenchmark`의 F 쪽을 실제 클래스로 바꾼다.~~ 완료(2026-11-15). `PrototypeCell`을 지우고 F는 `NeighborhoodTwoPlayerBoard`를 쓴다. G와 클래식 기준선은 비교용으로 남겼다.
+- ~~구현 후 이 문서의 F 열을 실제 클래스의 LOC·tick 시간으로 다시 적는다.~~ 완료(오버헤드 비교표, "측정값 갱신").
