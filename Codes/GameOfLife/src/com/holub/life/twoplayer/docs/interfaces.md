@@ -1,16 +1,17 @@
 # 2인용 모드 인터페이스
 
-- 근거: [003-game-phase.md](003-game-phase.md), [004-player-input.md](004-player-input.md)
+- 근거: [003-game-phase.md](003-game-phase.md), [004-player-input.md](004-player-input.md), [006-two-player-cell.md](006-two-player-cell.md)
 - 공통 `Cell` 인터페이스 변경 제안은 core 쪽 문서에 있다: [../../docs/interfaces.md](../../docs/interfaces.md)
 
 ---
 
 # TwoPlayerBoard
 
-- 제공 도메인: 2인용 모드(구현은 #5 이후) / 사용 도메인: 2인용 게임 진행(`TwoPlayerGame`) / 담당자: Son2kwon
+- 제공 도메인: 2인용 모드(구현: `NeighborhoodTwoPlayerBoard`, #5) / 사용 도메인: 2인용 게임 진행(`TwoPlayerGame`) / 담당자: Son2kwon
 - 변경 이력:
   - 2026-11-03, 최초 작성 (#6). 셀 상태 회의(#5) 전이라 게임 진행이 보드에 묻는 것만 모았다.
   - 2026-11-03, `count(Player)` 추가 (#6 2차, 승패 판정)
+  - 2026-11-15, 계약 위반 시 동작(예외)을 정함 (#5, [test-cases.md](test-cases.md) 1-2장 TP-B-13~17). 실제 구현 `NeighborhoodTwoPlayerBoard` 추가
 
 ## 시그니처
 
@@ -31,12 +32,57 @@ public interface TwoPlayerBoard {
 ## 계약
 
 - `rows()`, `columns()`: 1 이상, 게임 중 바뀌지 않는다.
-- `isEmpty(row, column)`: 그 칸이 `DEAD`이면 true. 사전조건: `0 <= row < rows()`, `0 <= column < columns()` (범위 검사는 호출하는 쪽이 먼저 한다).
+- `isEmpty(row, column)`: 그 칸이 `DEAD`이면 true. 사전조건: `0 <= row < rows()`, `0 <= column < columns()` (범위 검사는 호출하는 쪽이 먼저 한다). 어기면 `IndexOutOfBoundsException`.
 - `hasEmptyCell()`: `isEmpty`가 true인 칸이 하나라도 있으면 true.
-- `place(row, column, owner)`: 그 칸을 `owner`의 산 셀로 만든다. 사전조건: `isEmpty(row, column)`이 true. 게임 진행은 확정할 때만 부른다(임시 배치는 보드에 놓지 않는다).
+- `place(row, column, owner)`: 그 칸을 `owner`의 산 셀로 만든다. 사전조건: 범위 안, `owner`가 null이 아님, `isEmpty(row, column)`이 true. 어기면 차례로 `IndexOutOfBoundsException`, `NullPointerException`, `IllegalArgumentException`이고, 예외를 던지면 보드는 바뀌지 않는다. 보드는 진영을 검사하지 않는다(진영 제한은 게임 진행의 일). 게임 진행은 확정할 때만 부른다(임시 배치는 보드에 놓지 않는다).
 - `advanceGeneration()`: rules.md 3장 규칙으로 1세대 진행한다.
 - 스레드: 게임 진행과 같은 스레드에서만 부른다(UI 연결 방식은 #7에서 정함).
-- `count(owner)`: 지금 살아 있는 `owner` 셀 수. 0 이상. 게임 진행은 시뮬레이션 중 매 세대 직후(판정)와 상태 조회(`score`)에서 부른다. 세는 방법(전체 순회 / 증분 / Visitor)은 #5에서 정한다([005](005-cell-count-and-judge.md) 2절).
+- `count(owner)`: 지금 살아 있는 `owner` 셀 수. 0 이상. `owner`가 null이면 `NullPointerException`(`DEAD` 칸 수를 돌려주지 않는다). 게임 진행은 시뮬레이션 중 매 세대 직후(판정)와 상태 조회(`score`)에서 부른다. `NeighborhoodTwoPlayerBoard`는 전체 순회(4,096칸)로 센다([006](006-two-player-cell.md) 오버헤드 표).
+
+- 게임 진행(`TwoPlayerGame`)은 범위·빈 칸을 먼저 확인하므로(거부 이유 `OUT_OF_BOARD`, `CELL_NOT_EMPTY`) 정상 진행에서는 위 예외가 나지 않는다.
+
+---
+
+# NeighborhoodTwoPlayerBoard
+
+- 제공 도메인: 2인용 모드 / 사용 도메인: 2인용 게임 진행(`TwoPlayerGame`에 넣음), 2인용 UI(#7, 조회) / 담당자: Son2kwon
+- 변경 이력: 2026-11-15, 최초 작성 (#5, [006](006-two-player-cell.md) 후보 F)
+
+## 시그니처
+
+```java
+package com.holub.life.twoplayer;
+
+public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
+  public NeighborhoodTwoPlayerBoard();                 // 빈 64×64 보드
+  // TwoPlayerBoard 메서드 7개
+  public Optional<Player> owner(int row, int column);  // 이 클래스에만 있음
+}
+```
+
+## 계약
+
+- 구성: `Neighborhood(8, Neighborhood(8, TwoPlayerResident))`. `rows()` = `columns()` = 64. `CompositeBoard`·`Board`는 쓰지 않는다(006 W3).
+- `TwoPlayerBoard` 계약을 모두 지킨다(위 절).
+- `owner(row, column)`: 그 칸의 소유자. `DEAD`면 `Optional.empty()`. 범위 밖이면 `IndexOutOfBoundsException`. 테스트와 #7 렌더러가 칸 색을 읽는 데 쓴다. **`TwoPlayerBoard` 인터페이스에는 넣지 않았다.** 렌더러가 인터페이스로 읽어야 하는지는 #7에서 정한다(넣으면 `StubBoard`에도 구현이 필요하다).
+- 스레드: 한 스레드에서만 부른다. 내부 `Neighborhood`의 `static` 잠금(`model/Neighborhood.java:32`)을 클래식 보드와 공유한다.
+
+## package-private: `TwoPlayerResident`
+
+`NeighborhoodTwoPlayerBoard`만 쓰는 2인용 셀(`Cell` 구현)이다. 다른 도메인은 쓰지 않는다.
+
+```java
+final class TwoPlayerResident implements Cell {
+  Player owner();                   // 지금 소유자. DEAD면 null
+  void prepareOwner(Player owner);  // 다음 toggle이 DEAD 칸을 살릴 때 쓸 소유자
+  // Cell 메서드 14개
+}
+```
+
+- **"소유자 지정 → toggle" 규칙**: 칸을 살릴 때는 `prepareOwner(owner)`를 부른 뒤 반드시 루트 `Neighborhood.toggle(row, column)`으로 살린다. 셀의 상태만 바꾸면 그 블록이 활성으로 표시되지 않아 다음 세대에 계산되지 않는다(`model/Neighborhood.java:120-128`, `313-320`). `NeighborhoodTwoPlayerBoard.place`가 이 순서를 지킨다.
+- `toggle`: 살아 있으면 `DEAD`로, `DEAD`면 정해 둔 소유자의 산 셀로 바꾸고, 정해 둔 소유자는 지운다. 정해 둔 소유자 없이 `DEAD` 칸을 toggle하면 `DEAD` 그대로다. 살아 있는 칸을 toggle하면 죽이므로, `place`는 살아 있는 칸을 먼저 거부한다.
+- 전이: rules.md 3장. 이웃은 같은 보드의 `TwoPlayerResident` 또는 `Cell.DUMMY`(`DEAD`)다.
+- 저장·암 메서드: `transfer`는 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`, `isCancer`는 false, `setCancer`·`cureCancer`는 아무것도 안 함(2인용 저장 미지원, rules.md 8장).
 
 ---
 

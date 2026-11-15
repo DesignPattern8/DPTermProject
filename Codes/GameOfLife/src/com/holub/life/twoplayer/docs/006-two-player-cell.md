@@ -209,5 +209,6 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 - 게임 진행 테스트(TP-E)의 예시를 실제 보드로 다시 확인한다(005 "구현 후 실측"의 남은 일).
 - 이슈 (a)~(c)를 리팩토링 팀에, (d)를 B 도메인 담당에게 남긴다.
 - #7: 2인용 렌더러, `TwoPlayerGame`을 부르는 2인용 진입점. `GameController`는 쓰지 않는다(W3, 이슈 (d)).
+- #7: 렌더러가 `owner()`를 `TwoPlayerBoard` 인터페이스로 읽어야 하는지 정한다(그러면 `StubBoard`에도 필요하다). 지금은 `NeighborhoodTwoPlayerBoard`에만 있다([interfaces.md](interfaces.md)).
 - 실제 2인용 셀·보드가 `src`에 들어오면 `CellCandidateBenchmark`의 F 쪽(`PrototypeCell`, `CandidateF`)을 실제 클래스로 바꾼다. 같은 로직을 측정 코드에 두 벌 두지 않기 위해서다. G와 클래식 기준선은 비교용으로 남긴다.
 - 구현 후 이 문서의 F 열을 실제 클래스의 LOC·tick 시간으로 다시 적는다.
