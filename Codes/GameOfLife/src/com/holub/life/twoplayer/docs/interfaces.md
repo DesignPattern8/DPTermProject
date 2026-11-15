@@ -65,7 +65,7 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 - 구성: `Neighborhood(8, Neighborhood(8, TwoPlayerResident))`. `rows()` = `columns()` = 64. `CompositeBoard`·`Board`는 쓰지 않는다(006 W3).
 - `TwoPlayerBoard` 계약을 모두 지킨다(위 절).
 - `owner(row, column)`: 그 칸의 소유자. `DEAD`면 `Optional.empty()`. 범위 밖이면 `IndexOutOfBoundsException`. 테스트와 #7 렌더러가 칸 색을 읽는 데 쓴다. **`TwoPlayerBoard` 인터페이스에는 넣지 않았다.** 렌더러가 인터페이스로 읽어야 하는지는 #7에서 정한다(넣으면 `StubBoard`에도 구현이 필요하다).
-- 스레드: 한 스레드에서만 부른다. 내부 `Neighborhood`의 `static` 잠금(`model/Neighborhood.java:32`)을 클래식 보드와 공유한다.
+- 스레드: 한 스레드에서만 부른다. 내부 `Neighborhood`의 `static` 잠금(`model/Neighborhood.java:32`)을 클래식 보드와 공유한다(#74).
 
 ## package-private: `TwoPlayerResident`
 

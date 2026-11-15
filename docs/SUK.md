@@ -354,12 +354,14 @@ PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` �
 | #70 (b) | `Cell`에 모드별(암) 메서드가 쌓임 | model |
 | #71 (c) | model API가 `java.awt.Point`를 노출 | model |
 | #72 (d) | 2인용 진입점: `GameController` 대신 `TwoPlayerGame`을 부르는 경로 | application(B 도메인) |
+| #73 (e) | `BoardSnapshot`·`restore()`가 살아 있는지만 저장 → 암 상태가 지금도 복원되지 않음(scratch 확인), 2인용 소유자도 잃음. `model` 밖 호출 없음, 암세포 `restore` 테스트 없음 | model |
+| #74 (f) | `Neighborhood`의 `readingPermitted`·`nestingLevel`이 `static` → 한 보드의 `transition()` 중 다른 보드의 그리기가 건너뜀(scratch: 200,000번 중 9,540번). #7 모드 전환과 관련 | model |
 
 ## 남은 일
 
 - #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기
 - #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
-- #5: `feature/5-two-player-cell` push 완료, 이슈 #69~#72 생성 완료. PR(base `feature/base`, `Closes #5`) 확인 후 열기. `feature/base`는 기본 브랜치가 아니라 머지 후 #5를 직접 닫는다. #72는 B 도메인 담당에게 알림
+- #5: `feature/5-two-player-cell` push 완료, 이슈 #69~#74 생성 완료. PR(base `feature/base`, `Closes #5`) 확인 후 열기. `feature/base`는 기본 브랜치가 아니라 머지 후 #5를 직접 닫는다. #72는 B 도메인 담당에게 알림
 - #7 UI 통합: `GameController`는 쓰지 않고 2인용 진입점을 따로 설계(006 W3). 2인용 렌더러, `owner()`를 인터페이스에 올릴지 결정
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)

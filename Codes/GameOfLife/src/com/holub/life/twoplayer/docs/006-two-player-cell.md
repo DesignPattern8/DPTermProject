@@ -177,16 +177,18 @@ java -ea -cp build/classes/java/main:build/classes/java/test \
 - 2인용 셀은 `Cell`의 14개 메서드를 모두 구현한다. 암 메서드 3개는 할 일 없음(`DUMMY`와 같은 방식, `Cell.java:166-172`), `transfer`는 false, `createMemento`는 `UnsupportedOperationException`(`Resident.createMemento`와 같은 방식). 2인용 저장은 rules.md 8장에서 지원하지 않으므로 충돌하지 않는다.
 - 배치가 "셀에 소유자 지정 → `Neighborhood.toggle`" 두 단계다. 보드 클래스 안에 숨긴다.
 - `step()` 4줄이 `CompositeBoard.step()`과 중복된다(W3).
-- `Neighborhood`의 `static` 잠금(`Neighborhood.java:32`)을 클래식 보드와 공유한다. 한 스레드 계약 안에서는 문제가 없다.
+- `Neighborhood`의 `static` 잠금(`Neighborhood.java:32`)을 클래식 보드와 공유한다. 한 스레드 계약 안에서는 문제가 없다. 보드 둘이 다른 스레드에서 돌면 그리기를 건너뛴다(#74).
 
 ## 리팩토링 팀에 이슈로 남길 것
 
-이번 작업에서는 고치지 않는다. (a)~(c)는 model·ui, (d)는 application(B 도메인)에 관한 것이다. 2026-11-15에 GitHub 이슈로 올렸다: (a) #69, (b) #70, (c) #71, (d) #72.
+이번 작업에서는 고치지 않는다(강령 2). (a)~(c)·(e)·(f)는 model·ui, (d)는 application(B 도메인)에 관한 것이다. 2026-11-15에 GitHub 이슈로 올렸다: (a) #69, (b) #70, (c) #71, (d) #72, (e) #73, (f) #74.
 
 - **[#69] (a) 렌더러가 `Resident`만 그린다.** `BoardRenderer.java:39`의 `instanceof Resident` 분기에 맞지 않는 셀은 조용히 그려지지 않는다. #7에서 2인용 렌더러를 `twoplayer` 안에 따로 만들지(`Neighborhood`의 공개 API `childAt`·`gridSize`·`isActive`·`beginRedraw`, `Neighborhood.java:285-303` 사용), 셀 종류에 의존하지 않는 렌더링을 팀에 요청할지 정해야 한다.
 - **[#70] (b) `Cell` 인터페이스가 모드별 메서드로 커진다.** 암 메서드 3개(`Cell.java:108-115`)와 `Memento`의 암 메서드 2개(`Cell.java:81-85`)를 모든 구현이 갖는다. 2인용 셀도 할 일 없는 구현을 3개 둔다(인터페이스 분리 문제).
 - **[#71] (c) model API가 `java.awt.Point`를 노출한다.** `Cell.transfer`와 `Cell.Memento`(`Cell.java:3`, `76-93`)가 `Point`를 쓴다. `Cell`을 구현하는 쪽은 모두 `java.awt`에 의존하게 된다.
 - **[#72] (d) #7은 `GameController`가 아닌 2인용 진입점이 필요하다 (B 도메인 담당에게 알림).** W2·W3 결과, 2인용 보드는 `Board`를 구현하지 않고 `GameController`를 거치지 않는다. `GameController.tick()`(`GameController.java:65-90`)이 `board.step()`을 직접 부르면 `TwoPlayerGame`의 단계·K세대 카운트·전멸 판정을 건너뛰기 때문이다. #7에서는 `Clock`만 재사용하고 `TwoPlayerGame`의 `select`·`confirm`·`pass`·`tick`을 부르는 진입점을 따로 둔다. `GameController`(application, B 도메인)는 바꾸지 않는다. 다만 메뉴·패널이 컨트롤러를 어떻게 고르는지는 B 도메인 담당과 #7에서 맞춘다.
+- **[#73] (e) `BoardSnapshot`·`restore()`가 살아 있는지만 저장한다.** `BoardSnapshot`은 살아 있는 위치만 갖고(`BoardSnapshot.java:6`), `CompositeBoard.restore()`는 `clear()` + `toggle()`로 되살린다(`CompositeBoard.java:55-64`). 그래서 암 상태가 지금도 복원되지 않고(scratch 확인: 암세포 1개 → 복원 뒤 0개), 2인용 소유자도 잃는다(W1 실측). `model` 밖 호출이 없어 아직은 잠재 문제이고, 암세포가 있는 보드의 `restore()`를 확인하는 테스트는 없다.
+- **[#74] (f) `Neighborhood`의 읽기 잠금·중첩 깊이가 `static`이라 모든 보드가 공유한다.** `readingPermitted`(`Neighborhood.java:32`)와 `nestingLevel`(`:258`)이 `static`이다. 한 보드의 `transition()`(`:233`, `:245`)이 도는 동안 다른 보드의 `beginRedraw()`가 그리기를 건너뛴다(`:300`). scratch 확인: 보드 1만 다른 스레드에서 진행할 때 보드 2의 `beginRedraw(true)`가 200,000번 중 9,540번 false. #7에서 클래식·2인용 보드가 한 프로세스에 함께 있을 때 관련(감수하는 비용의 `static` 잠금 공유).
 
 ## 전/후 비교
 
@@ -210,7 +212,7 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 
 - 테스트 케이스: test-cases.md 1장 TP-R-01~18을 이 구조 기준으로 다시 보고(예정 클래스 `TwoPlayerRuleTest`), 보드 계약(`isEmpty`, `hasEmptyCell`, `place`, `count`) 케이스를 추가한 뒤 테스트 → 구현 순서로 진행한다.
 - 게임 진행 테스트(TP-E)의 예시를 실제 보드로 다시 확인한다(005 "구현 후 실측"의 남은 일).
-- ~~이슈 (a)~(c)를 리팩토링 팀에, (d)를 B 도메인 담당에게 남긴다.~~ 올림: #69, #70, #71 (리팩토링 팀), #72 (B 도메인 담당에게 알릴 것).
+- ~~이슈 (a)~(f)를 남긴다.~~ 올림: #69, #70, #71, #73, #74 (리팩토링 팀), #72 (B 도메인 담당에게 알릴 것).
 - #7: 2인용 렌더러, `TwoPlayerGame`을 부르는 2인용 진입점. `GameController`는 쓰지 않는다(W3, #72). 렌더러는 #69.
 - #7: 렌더러가 `owner()`를 `TwoPlayerBoard` 인터페이스로 읽어야 하는지 정한다(그러면 `StubBoard`에도 필요하다). 지금은 `NeighborhoodTwoPlayerBoard`에만 있다([interfaces.md](interfaces.md)).
 - ~~실제 2인용 셀·보드가 `src`에 들어오면 `CellCandidateBenchmark`의 F 쪽을 실제 클래스로 바꾼다.~~ 완료(2026-11-15). `PrototypeCell`을 지우고 F는 `NeighborhoodTwoPlayerBoard`를 쓴다. G와 클래식 기준선은 비교용으로 남겼다.
