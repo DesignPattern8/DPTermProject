@@ -9,7 +9,7 @@
 | 게임 진행 모델 (단계·차례·배치·패스·승패 판정) | #6 | 구현 완료, 보드는 대역으로 테스트 |
 | 셀 상태(DEAD/A/B)와 세대 전이 규칙, `TwoPlayerBoard` 실제 구현 | #5 | 구현 완료([006](006-two-player-cell.md) 후보 F, model·ui·application 무수정). `NeighborhoodTwoPlayerBoard`로 TP-R·TP-B·TP-I 37개 통과 |
 | UI 통합 (모드 선택·입력·상태 표시줄) | #7 | 구현 완료([007](007-two-player-ui.md) D: `GameMode` + `ModeSwitch`, model·application 무수정). TP-U 17개 통과 |
-| 문서·다이어그램 정리 | #8 | 대기 |
+| 문서·다이어그램 정리 | #8 | 완료. 유스케이스 다이어그램 추가, 클래스·시퀀스·상태 다이어그램을 현재 코드로 갱신, rules.md 9장(구현과 다른 부분) |
 
 브랜치: 이슈마다 `feature/base`에서 브랜치를 따서(`feature/5-two-player-cell`, `feature/7-two-player-ui`) `feature/base`로 PR을 보낸다. 예전 통합 브랜치 `feature/two-player-mode`는 2026-11-15에 지웠다.
 
@@ -37,39 +37,57 @@
 
 ## 문서
 
-| 문서 | 내용 |
+**규칙·설계 결정** (번호 순. 001·002는 core 쪽 문서, 아래 끝 참고)
+
+| 문서 | 이슈 | 결정 |
+| --- | --- | --- |
+| [rules.md](rules.md) | #6 | 규칙 명세 (2026-11-03 결정). 구현과 다른 부분은 9장(D1~D8) |
+| [003-game-phase.md](003-game-phase.md) | #6 | 게임 단계 표현 → State |
+| [004-player-input.md](004-player-input.md) | #6 | 플레이어 입력 전달 → 직접 호출 + `Response` (Command 기각) |
+| [005-cell-count-and-judge.md](005-cell-count-and-judge.md) | #6 | 셀 수 집계와 승패 판정 → 별도 판정 클래스 `GameJudge` |
+| [006-two-player-cell.md](006-two-player-cell.md) | #5 | 2인용 셀 상태와 `TwoPlayerBoard` 구현 → twoplayer 안의 셀 + `Neighborhood` 재사용(model 무수정, 후보 F). `CompositeBoard`·`Board`는 쓰지 않음. 001 대체 |
+| [007-two-player-ui.md](007-two-player-ui.md) | #7 | UI 통합 → `GameMode` + 시계 하나를 잠금 하나로 나누는 `ModeSwitch`(Strategy), 진입점 `TwoPlayerSession`(Facade), 상태 표시줄 Observer, 렌더러는 `twoplayer.ui` 안. #74 모드 전환 재현 |
+| [interfaces.md](interfaces.md) | #5·#7 | `TwoPlayerBoard`, `NeighborhoodTwoPlayerBoard`, `TwoPlayerGame`, `TwoPlayerSession`, `TwoPlayerMode` 시그니처와 계약 |
+| [test-cases.md](test-cases.md) | #5·#6·#7 | 테스트 케이스 정의 (TP-R·TP-B·TP-I·TP-F·TP-P·TP-E·TP-U), 아래 "테스트" 요약 |
+
+**다이어그램** (`diagrams/`, `.puml` 원본 + png·svg)
+
+| 다이어그램 | 내용 |
 | --- | --- |
-| [rules.md](rules.md) | 규칙 명세 (2026-11-03 결정 반영) |
-| [003-game-phase.md](003-game-phase.md) | 설계 결정: 게임 단계 표현 → State |
-| [004-player-input.md](004-player-input.md) | 설계 결정: 플레이어 입력 전달 → 직접 호출 + `Response` |
-| [005-cell-count-and-judge.md](005-cell-count-and-judge.md) | 설계 결정: 셀 수 집계와 승패 판정 → 별도 판정 클래스 |
-| [007-two-player-ui.md](007-two-player-ui.md) | 설계 결정: UI 통합 → `GameMode` + 시계 하나를 잠금 하나로 나누는 `ModeSwitch`(Strategy), 2인용 진입점(Facade)·렌더러는 `twoplayer` 안, 상태 표시줄은 Observer. #74 모드 전환 재현 |
-| [006-two-player-cell.md](006-two-player-cell.md) | 설계 결정: 2인용 셀 상태와 `TwoPlayerBoard` 구현 → twoplayer 안의 셀 + `Neighborhood` 재사용(model 무수정), `CompositeBoard`·`Board`는 쓰지 않음. 001 대체 |
-| [interfaces.md](interfaces.md) | `TwoPlayerBoard`, `NeighborhoodTwoPlayerBoard`, `TwoPlayerGame`, `TwoPlayerSession`, `TwoPlayerMode` 시그니처와 계약 |
-| [test-cases.md](test-cases.md) | 테스트 케이스 정의 (TP-R·TP-F·TP-P·TP-E·TP-U) |
-| [diagrams/twoplayer-game-phase-state.puml](diagrams/twoplayer-game-phase-state.puml) ([png](diagrams/twoplayer-game-phase-state.png), [svg](diagrams/twoplayer-game-phase-state.svg)) | 게임 단계 상태 다이어그램 |
-| [diagrams/twoplayer-class.puml](diagrams/twoplayer-class.puml) ([png](diagrams/twoplayer-class.png), [svg](diagrams/twoplayer-class.svg)) | 게임 진행 모델 클래스 다이어그램 (공개 타입 흰색, package-private 회색) |
-| [diagrams/twoplayer-ui-before.puml](diagrams/twoplayer-ui-before.puml) ([png](diagrams/twoplayer-ui-before.png), [svg](diagrams/twoplayer-ui-before.svg)) / [diagrams/twoplayer-ui-class.puml](diagrams/twoplayer-ui-class.puml) ([png](diagrams/twoplayer-ui-class.png), [svg](diagrams/twoplayer-ui-class.svg)) | UI 통합 전/후 클래스 다이어그램 (#7) |
-| [diagrams/twoplayer-round-sequence.puml](diagrams/twoplayer-round-sequence.puml) ([png](diagrams/twoplayer-round-sequence.png), [svg](diagrams/twoplayer-round-sequence.svg)) | 한 라운드(시뮬레이션 K세대 → 개입 → 다음 라운드) 시퀀스 다이어그램 |
+| [twoplayer-usecase](diagrams/twoplayer-usecase.puml) ([png](diagrams/twoplayer-usecase.png), [svg](diagrams/twoplayer-usecase.svg)) | 유스케이스 (구현 기준, 확장은 `E` 접두). 원본 초안 `diagrams/use-case diagram/holub-life-usecase-2p.puml`(저장소 루트, 수정하지 않음)과 달라진 점은 `.puml` 머리 주석 |
+| [twoplayer-class](diagrams/twoplayer-class.puml) ([png](diagrams/twoplayer-class.png), [svg](diagrams/twoplayer-class.svg)) | `com.holub.life.twoplayer` 클래스 (게임 진행 모델, 실제 보드, `TwoPlayerSession`). 공개 타입 흰색, package-private 회색 |
+| [twoplayer-ui-before](diagrams/twoplayer-ui-before.puml) ([png](diagrams/twoplayer-ui-before.png), [svg](diagrams/twoplayer-ui-before.svg)) / [twoplayer-ui-class](diagrams/twoplayer-ui-class.puml) ([png](diagrams/twoplayer-ui-class.png), [svg](diagrams/twoplayer-ui-class.svg)) | UI 통합 전/후 클래스 (#7, `twoplayer.ui`·`ui.ModeSwitch`) |
+| [twoplayer-game-phase-state](diagrams/twoplayer-game-phase-state.puml) ([png](diagrams/twoplayer-game-phase-state.png), [svg](diagrams/twoplayer-game-phase-state.svg)) | 게임 단계 상태 (`PhaseKind`), New Game |
+| [twoplayer-round-sequence](diagrams/twoplayer-round-sequence.puml) ([png](diagrams/twoplayer-round-sequence.png), [svg](diagrams/twoplayer-round-sequence.svg)) | 한 라운드(시뮬레이션 K세대 → 개입 → 다음 라운드). 시계·패널 → `TwoPlayerSession` → `TwoPlayerGame` 실제 호출 경로 |
 
 셀 상태 표현의 이전 제안(Cell 인터페이스 변경, 006으로 대체됨)은 core 쪽 문서에 기록으로 남아 있다: [../../docs/001-cell-state-representation.md](../../docs/001-cell-state-representation.md), [../../docs/interfaces.md](../../docs/interfaces.md)
 
 ## 테스트
 
-`Codes/GameOfLife/test/com/holub/life/twoplayer/`
+`Codes/GameOfLife/test/com/holub/life/twoplayer/`. 정의는 [test-cases.md](test-cases.md).
 
-| 클래스 | 케이스 | 수 |
-| --- | --- | --- |
-| `TwoPlayerGameFlowTest` | TP-F 게임 진행 | 17 |
-| `PlacementRuleTest` | TP-P 배치 규칙 | 15 |
-| `GameJudgeTest` | TP-E 종료·승패 판정 | 10 |
-| `TwoPlayerRuleTest` | TP-R 세대 전이 규칙 (실제 보드) | 17 |
-| `NeighborhoodTwoPlayerBoardTest` | TP-B `TwoPlayerBoard` 계약 (실제 보드) | 17 |
-| `TwoPlayerGameOnRealBoardTest` | TP-I 게임 진행을 실제 보드로 다시 확인 | 3 |
-| `StubBoard`, `GameScript`, `RealBoardScript` | 대역 보드, 게임 진행 도우미, 실제 보드 도우미 | — |
-| `ui.TwoPlayerUiTest` | TP-U UI 통합 (headless, 대역 모드·대역 `TickSource`·`BufferedImage`) | 17 |
-| `ui.StaticLockCheck` | 007 "#74 확인" 측정 (`main`으로 실행, `@Test` 없음) | — |
-| `CellCandidateBenchmark` | 006의 측정·동등성 확인. F는 실제 `NeighborhoodTwoPlayerBoard` (`main`으로 실행, `@Test` 없음. 실행 방법은 006 "측정 방법") | — |
+**접두어별 요약** (2026-11-16, `./gradlew test --rerun-tasks` 결과: 2인용 테스트 96개 통과, 실패·건너뜀 0. 저장소 전체 240개 통과)
+
+| 접두어 | 내용 | 명세 | 이슈 | 테스트 클래스 | 정의 | JUnit |
+| --- | --- | --- | --- | --- | --- | --- |
+| TP-R | 세대 전이 규칙 (실제 보드) | 3장 | #5 | `TwoPlayerRuleTest` | 18 | 17 |
+| TP-B | `TwoPlayerBoard` 계약 (실제 보드) | — | #5 | `NeighborhoodTwoPlayerBoardTest` | 17 | 17 |
+| TP-I | 게임 진행을 실제 보드로 다시 확인 | 4·6장 | #5 | `TwoPlayerGameOnRealBoardTest` | 3 | 3 |
+| TP-F | 게임 진행 (대역 보드) | 4장 | #6 | `TwoPlayerGameFlowTest` | 17 | 17 |
+| TP-P | 배치 규칙 (대역 보드) | 5장 | #6 | `PlacementRuleTest` | 15 | 15 |
+| TP-E | 종료·승패 판정 | 6장 | #6 | `GameJudgeTest` | 10 | 10 |
+| TP-U | UI 통합 (headless, 대역 모드·대역 `TickSource`·`BufferedImage`) | 4·5·8장 | #7 | `ui.TwoPlayerUiTest` | 17 | 17 |
+| **합계** | | | | | **97** | **96** |
+
+- TP-R-18(클래식 모드가 그대로 동작)은 따로 메서드를 두지 않고 기존 클래식·core 테스트 클래스로 확인한다. 그래서 정의가 JUnit보다 1개 많다.
+
+**테스트 도우미·측정 클래스** (`@Test` 없음)
+
+| 클래스 | 역할 |
+| --- | --- |
+| `StubBoard`, `GameScript`, `RealBoardScript` | 대역 보드, 게임 진행 도우미, 실제 보드 도우미 |
+| `ui.StaticLockCheck` | 007 "#74 확인" 측정 (`main`으로 실행) |
+| `CellCandidateBenchmark` | 006의 측정·동등성 확인. F는 실제 `NeighborhoodTwoPlayerBoard` (`main`으로 실행, 방법은 006 "측정 방법") |
 
 실행: `cd Codes/GameOfLife && ./gradlew test` (JDK 26)
 
