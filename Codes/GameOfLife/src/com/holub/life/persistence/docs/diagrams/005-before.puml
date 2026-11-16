@@ -1,0 +1,22 @@
+@startuml 005-before
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+title Legacy input before (#65 / 084d6c7)
+interface PatternCodec
+class LegacyLifeCodec {
+  read(InputStream): PatternData
+  write(PatternData, OutputStream)
+  positions(Collection): List<CellPosition>
+}
+class ObjectInputStream <<JDK>>
+class "LegacyLifeCodec.CancerStateData" as CancerStateData
+class PatternData <<record>>
+PatternCodec <|.. LegacyLifeCodec
+LegacyLifeCodec ..> ObjectInputStream : readObject() before validation
+LegacyLifeCodec ..> CancerStateData : existing wire format
+LegacyLifeCodec ..> PatternData : validate Collection / Point after read
+note bottom of ObjectInputStream
+  No per-stream filter or resource limits.
+  Unsupported readObject may run first.
+end note
+@enduml

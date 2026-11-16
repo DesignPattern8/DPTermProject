@@ -17,3 +17,5 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 - [C 저장·패턴 도메인의 공개 계약 및 도메인 간 변경 제안](../../persistence/docs/002-public-contract-and-refactoring.md)
 
 - [C 파일 API·모델 값 연동 (#61)](../../persistence/docs/003-file-api-and-model-values.md): 기존 Memento 저장 경로·암세포 보존, 클래식 Snapshot 변환과 C/B 책임 경계.
+
+- [C Legacy 입력 허용 타입·자원 한도 (#65)](../../persistence/docs/005-legacy-input-policy.md): 지원하지 않는 타입·초과 입력은 IOException. B의 Load 실패 후 보드·Clock 정책은 #63에서 별도로 변경한다.
