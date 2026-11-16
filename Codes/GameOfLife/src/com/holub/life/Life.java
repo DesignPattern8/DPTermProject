@@ -7,7 +7,9 @@ import com.holub.life.application.UtilTimerTickSource;
 import com.holub.life.model.CompositeBoard;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
+import com.holub.life.twoplayer.ui.TwoPlayerMode;
 import com.holub.life.ui.LifeFrame;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 
@@ -21,6 +23,6 @@ public final class Life {
     CancerGame cancerGame = new CancerGame(board, new Random());
     GameController controller =
         new GameController(new CompositeBoard(board), board, clock, cancerGame);
-    new LifeFrame(board, controller, clock);
+    new LifeFrame(board, controller, clock, List.of(new TwoPlayerMode()));
   }
 }
