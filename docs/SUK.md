@@ -28,6 +28,7 @@
 | #36 | 11-05 | 통합 브랜치 | #6 (Refs) | #6 다이어그램: 상태 다이어그램 렌더링, 클래스·한 라운드 시퀀스 다이어그램 |
 | #75 | 11-15 | `feature/base` | #5 | 2인용 실제 보드(`NeighborhoodTwoPlayerBoard`)와 게임 진행 모델 이관 |
 | #76 | 11-16 | `feature/base` | #7 | 2인용 UI 통합 (Mode 메뉴, `TwoPlayerSession`, `ModeSwitch`) |
+| #78 | 11-16 | `feature/base` | #8 | 2인용 문서·다이어그램 정리 (유스케이스 다이어그램, rules.md 9장, README 요약) |
 
 "통합 브랜치" = `feature/two-player-mode`.
 
@@ -39,8 +40,8 @@
 
 | 작업 | 이슈 | 시작 조건 |
 | --- | --- | --- |
-| 2인용 문서·다이어그램 정리 | #8 | 지금 (#5·#7 완료) |
-| 2인용 통합 결과를 `main`으로 PR | — | #8 이후 |
+| 2인용 통합 결과를 `main`으로 PR | — | 지금 (#5·#6·#7·#8 완료) |
+| 2인용 설정값(N/K/M/R) 플레이 테스트 후 재조정 | #77 | 플레이 테스트 방법을 정한 뒤 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
 
@@ -398,9 +399,23 @@ PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` �
 - #74 댓글의 `StaticLockCheck` 링크를 브랜치 경로 대신 `f3dd0f9` 고정 링크로 바꿨다(브랜치를 지워도 열리도록).
 - `test-cases.md`에 TP-U-06에서 Clear·Load까지 끄는 이유(007 149행) 한 줄 추가.
 
+## 2인용 문서·다이어그램 정리 (#8, 2026-11-16)
+
+브랜치: `feature/base`(`cd72be6`, #7 머지 후)에서 `feature/8-two-player-docs`. PR #78. 코드 변경 없음.
+
+- **유스케이스 다이어그램** `twoplayer-usecase` 새로 작성(확장은 `E` 접두). 저장소 루트의 초안(`diagrams/use-case diagram/holub-life-usecase-2p.puml`, 11-02)은 "전" 기준이라 고치지 않았다. 초안과 구현이 다른 곳: E2 "2인 게임 시작" → New Game, E6 시뮬레이션은 배치·개입이 끝나도 자동으로 돌지 않고 Go 메뉴로 진행(초안의 `E4 → E6`, `E5 → E6` include 삭제), Clear·Load·Store 비활성.
+- **다이어그램 3개를 코드와 대조**
+  - `twoplayer-class`: `TwoPlayerSession`(+ `Snapshot`)이 빠져 있었다(#7 때 ui 다이어그램에만 넣음). `TwoPlayerResident`의 `edge`·`widthInCells`·`clear` 누락. 근거 브랜치가 `feature/5-two-player-cell`.
+  - `twoplayer-round-sequence`: 호출자가 "UI / 테스트"(#6 때 대역 보드 기준)였고 근거가 지워진 브랜치(`feature/two-player-mode 86bda26`). 실제 경로(Clock → `ModeSwitch` → `TwoPlayerMode` → `TwoPlayerSession`, 패널 → 세션)와 리스너 갱신으로 바꿈.
+  - `twoplayer-game-phase-state`: 시작 지점(세션 생성 / New Game)과 "세대는 시계 tick마다" 추가. 전이 자체는 코드와 같았다.
+- **rules.md**: 규칙은 그대로 두고 구현과 다른 곳을 본문에 `[구현: D번호]`, 9장에 D1~D8로 모았다.
+- **README**: 문서 목록(rules, 003~007, interfaces, test-cases)과 다이어그램 목록, 테스트 접두어별 요약. 정의 97개, JUnit 96개(TP-R-18은 기존 클래식 테스트로 확인해서 메서드 없음).
+- `./gradlew test --rerun-tasks` 240개 통과. 렌더링은 `-Pdir=src/com/holub/life/twoplayer`, 바뀐 png·svg는 고친 다이어그램 4개뿐.
+- #8 To Do 중 "기본 수치 재조정 여부"는 플레이 테스트를 하지 않아 "재조정하지 않음"(D7)만 기록하고 #77로 분리했다. TP-F-16이 기본값을 고정하고 있어서, 바꾸면 그 정의·테스트부터 고친다.
+
 ## 남은 일
 
-- #8: 2인용 모드 문서·다이어그램 정리
-- #8 이후: 2인용 통합 결과(`feature/base`)를 `main`으로 PR
+- 2인용 통합 결과(`feature/base`)를 `main`으로 PR
+- #77: 2인용 설정값(N/K/M/R) 플레이 테스트 후 재조정
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
 - 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록). 예외: `CellCandidateBenchmark`(#5), `StaticLockCheck`(#7)는 저장소에 있다
