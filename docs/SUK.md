@@ -6,7 +6,7 @@
 
 ## 한눈에 보기
 
-### 머지된 PR (머지 순서, 2026-11-03 ~ 11-04)
+### 머지된 PR (머지 순서, 2026-11-03 ~ 11-16)
 
 | PR | 날짜 | base | 이슈 | 내용 |
 | --- | --- | --- | --- | --- |
@@ -25,23 +25,22 @@
 | #32 | 11-04 | 통합 브랜치 | — | main 동기화 2차 (#25 포함, merge commit으로 머지) |
 | #34 | 11-04 | main | #33 | 클래식 `test-cases.md`를 #25 이후 경로로 갱신(CL-M-06 정리), 측정 문서 기준 커밋 한 줄 |
 | #35 | 11-04 | 통합 브랜치 | #5 (Refs) | 회의 자료(001, core `interfaces.md`)를 #25 이후 코드로 갱신, 렌더러 문제 반영 |
+| #36 | 11-05 | 통합 브랜치 | #6 (Refs) | #6 다이어그램: 상태 다이어그램 렌더링, 클래스·한 라운드 시퀀스 다이어그램 |
+| #75 | 11-15 | `feature/base` | #5 | 2인용 실제 보드(`NeighborhoodTwoPlayerBoard`)와 게임 진행 모델 이관 |
+| #76 | 11-16 | `feature/base` | #7 | 2인용 UI 통합 (Mode 메뉴, `TwoPlayerSession`, `ModeSwitch`) |
 
 "통합 브랜치" = `feature/two-player-mode`.
 
 ### 진행 중 PR
 
-| PR | base | 이슈 | 내용 | 상태 |
-| --- | --- | --- | --- | --- |
-| #36 | 통합 브랜치 | #6 (Refs) | #6 다이어그램: 상태 다이어그램 렌더링, 클래스·한 라운드 시퀀스 다이어그램 | 리뷰 대기 |
+없음.
 
 ### 다음 작업
 
 | 작업 | 이슈 | 시작 조건 |
 | --- | --- | --- |
-| #6 닫기 (#21, #36 링크 댓글) | #6 | #36 머지 후 |
-| 2인용 셀 상태·전이 규칙 | #5 | 로컬 구현 완료(`feature/5-two-player-cell`), 확인 후 push·PR |
-| 2인용 UI 통합 | #7 | #5 이후. `GameController` 대신 2인용 진입점(#72), 2인용 렌더러(#69) |
-| 2인용 문서·다이어그램 정리 | #8 | #5·#7 이후 |
+| 2인용 문서·다이어그램 정리 | #8 | 지금 (#5·#7 완료) |
+| 2인용 통합 결과를 `main`으로 PR | — | #8 이후 |
 
 ## 0. 테스트 환경 (#2 → PR #3, 머지)
 
@@ -392,13 +391,16 @@ PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` �
 - `NativeUiSmoke`가 `BoardPanel`을 "내용 패널 0번째"로 찾던 것을 타입으로 찾게 바꿨다(검사 항목 그대로).
 - 문서: 007, `test-cases.md` 5장(TP-U-01~17), `interfaces.md`(`TwoPlayerSession`, `TwoPlayerMode`), ui `interfaces.md`·`README.md`, 전/후 클래스 다이어그램.
 
+**PR·이슈 정리 (2026-11-16)**
+
+- PR #76(base `feature/base`)로 머지. `feature/base`는 기본 브랜치가 아니라서 #7은 PR 링크 댓글을 남기고 직접 닫았다.
+- #72(2인용 진입점): 담당자를 Son2kwon으로 바꾸고 "`TwoPlayerSession`(Facade)과 `ModeSwitch`(Strategy)로 구현, `GameController` 변경 없음" 댓글 후 닫았다.
+- #74 댓글의 `StaticLockCheck` 링크를 브랜치 경로 대신 `f3dd0f9` 고정 링크로 바꿨다(브랜치를 지워도 열리도록).
+- `test-cases.md`에 TP-U-06에서 Clear·Load까지 끄는 이유(007 149행) 한 줄 추가.
+
 ## 남은 일
 
-- #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기
-- #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
-- #5: `feature/5-two-player-cell` push 완료, 이슈 #69~#74 생성 완료. PR(base `feature/base`, `Closes #5`) 확인 후 열기. `feature/base`는 기본 브랜치가 아니라 머지 후 #5를 직접 닫는다. #72는 B 도메인 담당에게 알림
-- #7: `feature/7-two-player-ui` 로컬 커밋까지. push·PR(base `feature/base`, `Closes #7`, 머지 후 직접 닫기)은 확인 후. #74 댓글의 측정 코드 경로는 push해야 열린다
-- 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
+- #8: 2인용 모드 문서·다이어그램 정리
+- #8 이후: 2인용 통합 결과(`feature/base`)를 `main`으로 PR
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
-- 도메인 `docs/README.md`: `twoplayer/docs/`는 #21에 넣음. `life/docs/README.md`는 #25가 추가함(문서 목록에 001·`interfaces.md`는 통합 브랜치가 main에 머지될 때 반영)
-- 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록)
+- 검증에 쓴 시뮬레이터·측정 프로그램은 저장소에 없음(결과만 문서에 기록). 예외: `CellCandidateBenchmark`(#5), `StaticLockCheck`(#7)는 저장소에 있다
