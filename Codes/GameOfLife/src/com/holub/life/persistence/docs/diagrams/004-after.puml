@@ -1,0 +1,32 @@
+@startuml 004-after
+title Store after #64
+participant GameController as B
+participant BoardFileStore as C
+participant PatternCodec as Codec
+participant "Sibling temporary file" as Temp
+participant "FileMover (Files.move)" as Move
+participant "Target file" as Target
+B -> C : write(path, capture)
+C -> Target : validate type / access / permissions
+C -> Temp : create unique file / open
+C -> B : capture (stop Clock, snapshot)
+B --> C : PatternData
+C -> Codec : write(data, temp stream)
+Codec -> Temp : encoded bytes
+alt capture / encoding / close / permissions succeed
+ C -> Temp : close / apply POSIX permissions
+ C -> Move : move(temp, target)
+ alt atomic replacement supported and succeeds
+  Move -> Target : atomic replace
+  Move --> C : success (temp path gone)
+  C --> B : success
+ else move fails
+  Move --> C : IOException (no fallback)
+  C -> Temp : deleteIfExists
+  C --> B : original exception\n(+ suppressed if cleanup fails)
+ end
+else capture / encoding / close / permissions fails
+ C -> Temp : close / deleteIfExists
+ C --> B : original exception\n(+ suppressed if cleanup fails)
+end
+@enduml
