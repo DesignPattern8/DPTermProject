@@ -40,3 +40,25 @@
 | C-12 | 정상 | Controller 저장 순회·암세포 유지 | 여러 블록의 일반/암세포 | 기존 순서, 암 상태 왕복 | `GameControllerPersistenceTest#preservesTraversalAndCancer` |
 | C-13 | 예외 | Controller 기존 실패/Clock 정책 | 개방 실패/해석 실패 | 기존 보드·Clock·알림 정책 | 기존 `GameControllerTest`, `GameControllerBoardTest` 및 `GameControllerPersistenceTest#preservesOpenAndDecodeFailureOrder` |
 | C-14 | 예외 | 프리셋 필드 계약 | null id/표시명/데이터 | NullPointerException | `PresetCatalogTest#rejectsNullPresetFields` |
+
+## #65 역직렬화 정책 — 구현 전 정의 (2026-11-16)
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| FIL-01 | 정상 | 초기 저장기 호환 | e38ce7a flush 고정 fixture | 순서·중복·음수 좌표 유지 | `LegacyInputPolicyTest#readsOriginalWriterFixture` |
+| FIL-02 | 정상/경계 | 허용 컬렉션 호환 | LinkedList/ArrayList/HashSet/Arrays/List.of/빈·단일 목록 | Point 값 동일 | `LegacyInputPolicyTest#readsSupportedCollections` |
+| FIL-03 | 예외 | 임의 객체 hook 실행 전 거부 | readObject 표식 객체가 든 LinkedList | IOException, 표식 미실행 | `LegacyInputPolicyTest#rejectsUnknownClassBeforeReadObject` |
+| FIL-04 | 예외 | Point 하위 클래스 거부 | readObject 표식 Point subclass | IOException, 표식 미실행 | `LegacyInputPolicyTest#rejectsPointSubclassBeforeReadObject` |
+| FIL-05 | 예외 | 미지원 컬렉션 거부 | Vector<Point> | InvalidClassException | `LegacyInputPolicyTest#rejectsUnsupportedCollection` |
+| FIL-06 | 경계 | 배열 할당 한도 | Object[] 32,768 / 32,769 | 전자는 의미 검사까지, 후자는 filter 거부 | `LegacyInputPolicyTest#boundsArrayAllocation` |
+| FIL-07 | 경계 | 깊이 한도 | Point를 감싼 ArrayList 깊이 8 / 9 | 전자는 의미 검사까지, 후자는 filter 거부 | `LegacyInputPolicyTest#boundsGraphDepth` |
+| FIL-08 | 경계 | 참조 수 한도 | 동일 Point 반복 목록, 측정된 refs 경계 | 경계까지 의미 검사, 초과 filter 거부 | `LegacyInputPolicyTest#boundsRepeatedReferences` |
+| FIL-09 | 경계 | 소비 바이트 한도 | reset padding으로 크기 1 MiB / +1인 빈 legacy 목록 | 정확히 한도는 성공, +1은 IOException | `LegacyInputPolicyTest#boundsBytesConsumed` |
+| FIL-10 | 예외 | 필터 밖 문자열 제한 | 1 MiB를 넘는 serialized String | IOException, 읽은 바이트 ≤1 MiB, stream 열림 | `LegacyInputPolicyTest#boundsUnfilteredStringsWithoutClosingInput` |
+| FIL-11 | 정상/경계 | 최대 출력 왕복 | 생존/암 각각 16,384 좌표 | 같은 PatternData 복원 | `LegacyInputPolicyTest#roundTripsLargestSupportedCancerPattern` |
+| FIL-12 | 예외 | 원소 한도 | LinkedList 16,385 Point / 초과 PatternData | read IOException / write 전 거부·출력 비변경 | `LegacyInputPolicyTest#rejectsOversizedCellCollections` |
+| FIL-13 | 예외 | JVM 제한 유지 | 별도 JVM 전역 Point 거부 필터 | Codec도 거부, 전역 필터 완화 없음 | `LegacyInputPolicyTest#preservesJvmWideFilter` |
+| FIL-14 | 정상/경계 | stream 계약 유지 | 정상 첫 객체 뒤 큰 데이터 | 첫 객체만 읽기, caller stream 열림 | `LegacyInputPolicyTest#leavesTrailingDataAndStreamOwnershipToCaller` |
+| FIL-15 | 예외 | skip도 바이트 한도 적용 | 거대한 primitive 클래스 annotation | IOException, 실제 소비 ≤1 MiB | `LegacyInputPolicyTest#countsSkippedClassAnnotationsAgainstByteLimit` |
+
+기존 CL-M/CAN-P/C-01~14 및 고정 암세포 fixture 테스트는 유지한다. readObject 표식은 정수 카운터만 변경하는 무해한 테스트 객체다.
