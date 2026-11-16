@@ -12,7 +12,16 @@ import javax.swing.*;
 public final class GameMenu {
   private GameMenu() {}
 
+  /** Grid·Go 메뉴와, 시계 tick마다 {@code controller}를 진행하는 리스너를 단다 (원래 동작). */
   public static void install(BoardPanel panel, GameController controller, Clock clock) {
+    installMenus(panel, controller, clock);
+    clock.addClockListener(() -> onTick(controller));
+  }
+
+  /**
+   * Grid·Go 메뉴만 단다. 시계 tick을 무엇에 쓸지는 부르는 쪽이 정한다({@link ModeSwitch}, twoplayer/docs/007).
+   */
+  public static void installMenus(BoardPanel panel, GameController controller, Clock clock) {
     MenuSite.addLine(
         panel,
         "Grid",
@@ -29,7 +38,14 @@ public final class GameMenu {
     MenuSite.addLine(clock, "Go", "Slow", modifier);
     MenuSite.addLine(clock, "Go", "Medium", modifier);
     MenuSite.addLine(clock, "Go", "Fast", modifier);
-    clock.addClockListener(() -> onTick(controller));
+  }
+
+  /** Grid의 Clear·Load·Store를 켜거나 끈다(2인용 모드에서는 끔). Exit은 그대로 둔다. */
+  public static void setFileCommandsEnabled(BoardPanel panel, boolean enabled) {
+    for (String name : new String[] {"Clear", "Load", "Store"}) {
+      JMenuItem item = MenuSite.getMyMenuItem(panel, "Grid", name);
+      if (item != null) item.setEnabled(enabled);
+    }
   }
 
   /** Map a Go menu item to the clock request. Like the original, any other item stops the clock. */
@@ -49,7 +65,7 @@ public final class GameMenu {
     if (!menuIsActive()) controller.tick();
   }
 
-  private static boolean menuIsActive() {
+  static boolean menuIsActive() {
     MenuElement[] path = MenuSelectionManager.defaultManager().getSelectedPath();
     return path != null && path.length > 0;
   }

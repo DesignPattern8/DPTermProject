@@ -174,7 +174,7 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 - CI가 headless(`java.awt.headless=true`)라 `JFrame`·`MenuSite`는 쓰지 않는다. `ModeSwitch`·`TwoPlayerPanel`(`JPanel`)·`BufferedImage` 렌더링과 대역 모드·대역 `TickSource`로 확인한다.
 - 공통 전제: 2인용은 `TwoPlayerMode(settings, Runnable::run)`로 만든다(화면 갱신을 바로 실행). 패널의 보드 영역은 512×512(칸 8px). 클래식은 `ClassicMode`(`Neighborhood(8, Neighborhood(8, Resident))` + `GameController`)이고 (10,9)·(10,10)·(10,11)에 가로 blinker를 둔다. 시계는 `Clock` + 기록용 `TickSource` 대역이며 tick은 `clock.tick()`으로 직접 준다.
 - 셀 1개는 1세대 뒤 죽어 전멸 판정으로 끝나므로, tick이 필요한 케이스(TP-U-09·10·11·16)는 블록(2×2, 정물)을 둔다.
-- 상태 표시줄 문구는 영어 한 줄이다(기존 메뉴·대화상자와 같음). 테스트는 아래 조각이 들어 있는지만 본다: 단계(`Placement`, `Round r Simulation g/K`, `Round r Intervention`, `Game over`), 차례(`Turn: A`), 남은 개수(`Left A:x B:y`), 셀 수(`A:B = a:b`), 거부(`Rejected: <이유>`).
+- 상태 표시줄 문구는 영어 한 줄이다(기존 메뉴·대화상자와 같음). 테스트는 아래 조각이 들어 있는지만 본다: 단계(`Placement`, `Round r Simulation g/K`, `Round r Intervention`, `Game over`), 차례(`Turn: A`), 남은 개수(`Left A:x B:y`), 임시 배치(`Selected (r,c)`), 셀 수(`A:B = a:b`), 거부(`Rejected: <이유>`).
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |

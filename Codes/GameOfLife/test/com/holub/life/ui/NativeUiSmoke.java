@@ -34,6 +34,17 @@ public class NativeUiSmoke {
     throw new AssertionError("Missing menu: " + menu + " / " + name);
   }
 
+  static JComponent find(Container root, Class<? extends JComponent> type) {
+    for (Component child : root.getComponents()) {
+      if (type.isInstance(child)) return type.cast(child);
+      if (child instanceof Container container) {
+        JComponent found = find(container, type);
+        if (found != null) return found;
+      }
+    }
+    return null;
+  }
+
   static Set<Point> cells() throws Exception {
     Object state = board.getClass().getMethod("createMemento").invoke(board);
     ByteArrayOutputStream bytes = new ByteArrayOutputStream();
@@ -132,7 +143,8 @@ public class NativeUiSmoke {
           });
       for (Frame f : Frame.getFrames()) if (f instanceof JFrame jf && jf.isVisible()) frame = jf;
       check(frame != null, "visible frame");
-      panel = (JComponent) frame.getContentPane().getComponent(0);
+      // #7부터 BoardPanel은 Mode 전환 카드(ModeSwitch.view) 안에 있다.
+      panel = find(frame.getContentPane(), BoardPanel.class);
       Field field = panel.getClass().getDeclaredField("outermostCell");
       field.setAccessible(true);
       board = field.get(panel);
