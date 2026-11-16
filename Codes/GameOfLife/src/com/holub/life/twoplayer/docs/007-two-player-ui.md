@@ -1,6 +1,6 @@
 # [007] 2인용 UI 통합 — 모드 전환, 진입점, 렌더러, 상태 표시줄
 
-- 상태: 채택 (구현 전. 오버헤드의 구현 쪽 값은 추정, 구현 뒤 실측으로 바꾼다)
+- 상태: 채택 (구현 완료 2026-11-16. 오버헤드 표 D 열은 실측)
 - 작성자: Son2kwon / 2026-11-16 / 관련 이슈: #7 (관련: #69, #72, #74)
 - 근거 명세: [rules.md](rules.md) 4장(단계), 5장(배치·확정·불가능한 클릭), 8장(Store 비활성, 상태 표시줄 한 줄 + 진영 경계선)
 - 코드 근거: `feature/base` `1889b16`. 파일 경로는 `Codes/GameOfLife/src/com/holub/life/` 아래 기준
@@ -92,16 +92,16 @@ public final class TwoPlayerMode implements GameMode { ... } // 2인용 진입�
 
 ### 오버헤드 비교표
 
-- 실측: 저장소 코드에서 센 값. 추정: 구현하지 않은 후보와 D의 구현 전 값.
+- 실측: 구현 뒤 저장소 코드에서 센 값(D 열). LOC는 빈 줄·주석 제외. 추정: 구현하지 않은 후보(A~C).
 
 | 항목 | A. Abstract Factory | B. Strategy (패널 안) | C. 화면·시계 따로 | **D. `GameMode` + `ModeSwitch`** |
 | --- | --- | --- | --- | --- |
-| 구조 — 고칠 기존 파일 | `BoardPanel`, `BoardRenderer`, `GameController`, `LifeFrame`, `GameMenu` 이상 (추정) | `BoardPanel`, `BoardRenderer`, `LifeFrame`, `GameMenu` (추정) | `LifeFrame` + Go 메뉴 재연결 (추정) | `LifeFrame`, `GameMenu`, `Life` (추정) |
-| 구조 — 새 타입 | 팩토리 인터페이스 1 + 부품 인터페이스 3~4 + 모드별 구현 (추정) | 전략 인터페이스 2~3 + 구현 (추정) | 2인용 쪽만 (추정) | ui 3 + 2인용 쪽 (추정) |
+| 구조 — 고칠 기존 파일 | `BoardPanel`, `BoardRenderer`, `GameController`, `LifeFrame`, `GameMenu` 이상 (추정) | `BoardPanel`, `BoardRenderer`, `LifeFrame`, `GameMenu` (추정) | `LifeFrame` + Go 메뉴 재연결 (추정) | `LifeFrame` +22/−2, `GameMenu` +18/−2, `Life` +3/−1 (`git diff --numstat`, 실측). `BoardPanel`·`BoardRenderer`·`GameController`·`Clock`·model 0 |
+| 구조 — 새 타입 | 팩토리 인터페이스 1 + 부품 인터페이스 3~4 + 모드별 구현 (추정) | 전략 인터페이스 2~3 + 구현 (추정) | 2인용 쪽만 (추정) | ui 3: `GameMode` 8줄, `ModeSwitch` 74줄, `ClassicMode` 27줄. 2인용 4: `TwoPlayerSession` 153줄, `TwoPlayerMode` 40줄, `TwoPlayerPanel` 117줄, `TwoPlayerRenderer` 46줄 (실측) |
 | 간접성 — tick 1번 | 팩토리 부품 호출 +1 (추정) | 전략 호출 +1 (추정) | 0 | `ModeSwitch` → `GameMode.tick()` +1, 잠금 1번 |
 | 결합도 | ui·application이 모드 부품 인터페이스에 의존 | ui가 2인용 입력 개념을 가짐 | `twoplayer` → `application.Clock` | ui는 `twoplayer`를 모름. `twoplayer.ui` → `ui.GameMode`, 조립은 `Life` |
-| #74 (두 보드 동시 진행) | 보드가 하나면 없음 (추정) | 없음 (추정) | **있음 (S3 실측, 1초 안)** | 없음 (잠금으로 직렬화) |
-| 테스트 용이성 | 팩토리 대역 | 전략 대역 | 시계 두 개를 함께 다뤄야 함 | `ModeSwitch`는 headless에서 대역 모드로 테스트 가능 |
+| #74 (두 보드 동시 진행) | 보드가 하나면 없음 (추정) | 없음 (추정) | **있음 (S3 실측, 1초 안)** | 없음 (잠금으로 직렬화, TP-U-13으로 확인) |
+| 테스트 용이성 | 팩토리 대역 | 전략 대역 | 시계 두 개를 함께 다뤄야 함 | headless에서 대역 모드·대역 `TickSource`로 TP-U 17개 (실측) |
 | 확장 — 다음 모드 | 팩토리 + 부품 전부 | 전략 구현 전부 | 화면 + 시계 + 메뉴 | `GameMode` 구현 1 + 조립 1줄 |
 | ui 담당 영역과 충돌 | 큼 | 큼 | 작음 | 작음 (Mode 메뉴와 tick 경로) |
 
@@ -162,11 +162,29 @@ public final class TwoPlayerMode implements GameMode { ... } // 2인용 진입�
                                         └ TwoPlayerMode → TwoPlayerSession.tick → TwoPlayerGame.tick
 ```
 
-클래스 다이어그램: 구현 커밋에서 `diagrams/twoplayer-ui-class.puml`로 추가한다.
+클래스 다이어그램: 전 [twoplayer-ui-before](diagrams/twoplayer-ui-before.puml) ([png](diagrams/twoplayer-ui-before.png)) / 후 [twoplayer-ui-class](diagrams/twoplayer-ui-class.puml) ([png](diagrams/twoplayer-ui-class.png))
+
+## 구현하면서 바뀐 것
+
+- **상태 표시줄에 임시 배치 칸을 넣었다**(`Selected (r,c)`). TP-U-03(클릭하면 문구가 바뀐다)이 실패해서 알았다. 임시 배치만 하면 문구가 그대로라 상태 표시줄만 보고는 클릭이 받아들여졌는지 알 수 없었다.
+- **카드 크기를 지금 모드 화면에 맞추고, 전환할 때 창을 `pack()`한다.** `CardLayout`은 가장 큰 카드에 맞추므로 클래식 화면이 2인용 화면(상태 표시줄 포함) 높이로 늘어났다. 기존 `NativeUiSmoke`의 "panel dimensions"(512×512) 검사가 실패해서 알았다. 2인용으로 바꾸면 창이 상태 표시줄 높이만큼 커지고, 돌아오면 원래 크기(클래식 512×512)가 된다.
+- **상태 표시줄을 한 줄 + 버튼 줄로 나누고 너비를 보드에 맞췄다.** 한 줄에 버튼까지 두니 창이 599px로 넓어지고 문구가 잘렸다(실제 창 실행으로 확인). 문구도 줄였다.
+- `NativeUiSmoke`(수동 실행, `@Test` 없음)가 `BoardPanel`을 "내용 패널의 0번째 컴포넌트"로 찾았는데 이제 카드 안에 있어서, 타입으로 찾도록 바꿨다. 검사 항목은 그대로이고 통과한다.
+- TP-U-09·10·11·16은 셀 1개씩 두면 1세대 뒤 전멸로 게임이 끝나서, 테스트를 구현 전에 블록(2×2)으로 고쳤다.
+
+## 실제 창 확인 (2026-11-16)
+
+scratch 드라이버로 `Life.main`을 띄우고(headless 아님) 확인했다. 드라이버는 저장소에 넣지 않았다.
+
+- Classic: 보드 512×512. Mode → 2 Players: 2인용 화면이 보이고 클래식 화면은 숨음. Grid의 Clear·Load·Store 꺼짐, Exit 켜짐.
+- A·B가 20개씩 배치 → Go → Fast: 상태 표시줄이 `Simulation 5/20` → `10/20` → `16/20` → `Round 1 Intervention | Turn: B`로 바뀌고, 개입 단계에서는 시계가 돌아도 그대로.
+- Mode → Classic: 보드 512×512, Store 다시 켜짐. 기존 `NativeUiSmoke`(마우스 토글, Tick, Store, Clear, Load, 취소·읽기 실패) 통과.
 
 ## 후속 작업
 
-- TP-U 테스트 케이스를 이 문서 기준으로 다시 정의한다([test-cases.md](test-cases.md) 5장).
-- 구현 후 오버헤드 표 D 열을 실측(LOC, 파일 수)으로 바꾼다.
+- ~~TP-U 테스트 케이스를 이 문서 기준으로 다시 정의한다.~~ 완료([test-cases.md](test-cases.md) 5장, 17개).
+- ~~구현 후 오버헤드 표 D 열을 실측으로 바꾼다.~~ 완료.
+- 2인용 저장·불러오기, 배치 가능 칸 강조는 범위 밖(rules.md 8장).
+- Grid 메뉴 항목을 켜고 끄는 `GameMenu.setFileCommandsEnabled`는 `MenuSite`가 `JFrame`을 요구해 headless 테스트가 없다. 실제 창 확인만 했다.
 - #74: 재현 결과를 댓글로 남겼다(2026-11-16). `Neighborhood` 쪽 수정은 리팩토링 팀. 고쳐지면 `ModeSwitch`의 잠금은 "tick 하나씩"이라는 의미만 남는다.
 - #69: ui 담당이 B·C로 렌더러를 일반화하면 `TwoPlayerRenderer`를 그쪽으로 옮길 수 있다.

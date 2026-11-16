@@ -357,12 +357,47 @@ PR #60(암세포 기능, curiousio, base main)은 #25 이전 구조(`Universe` �
 | #73 (e) | `BoardSnapshot`·`restore()`가 살아 있는지만 저장 → 암 상태가 지금도 복원되지 않음(scratch 확인), 2인용 소유자도 잃음. `model` 밖 호출 없음, 암세포 `restore` 테스트 없음 | model |
 | #74 (f) | `Neighborhood`의 `readingPermitted`·`nestingLevel`이 `static` → 한 보드의 `transition()` 중 다른 보드의 그리기가 건너뜀(scratch: 200,000번 중 9,540번). #7 모드 전환과 관련 | model |
 
+## 2인용 UI 통합 (#7, 2026-11-16)
+
+브랜치: `feature/base`(`1889b16`, #5 머지 후)에서 `feature/7-two-player-ui`를 땄다. 순서: 설계 결정(007) → TP-U 정의·테스트(골격에서 17개 실패) → 구현.
+
+**이슈 정리**: #7 본문이 `Universe`·`MenuSite` 기준이라 지금 구조(`LifeFrame`·`BoardPanel`·`GameMenu`·`GameController`·`Clock`)에 맞게 고쳤다.
+
+**#74 확인** (`StaticLockCheck`, `main`으로 실행. Apple M4 Pro, JDK 26.0.2.1) — 결과는 #74에 댓글로 남겼다.
+
+| 경우 | 결과 |
+| --- | --- |
+| 한 번에 한 보드만 진행 | 잠금 정상, 클래식 그리기 건너뜀 0번 |
+| 두 보드를 두 스레드에서 동시에 1초 (5회) | 5회 모두 `nestingLevel` 약 -21,000, 잠금이 닫힌 채 남아 클래식 화면이 다시는 안 그려짐 |
+| 모드마다 시계 하나씩 Fast (6회) | 6회 모두 1초 안에 `nestingLevel`이 깨짐(1회는 잠금 닫힘, 5회는 잠금이 다시는 닫히지 않음) |
+
+→ 모드 전환에서 두 보드가 동시에 세대를 진행하면 문제가 된다. `Neighborhood`는 고치지 않고 2인용 쪽에서 피했다.
+
+**설계 결정** ([`twoplayer/docs/007`](../Codes/GameOfLife/src/com/holub/life/twoplayer/docs/007-two-player-ui.md))
+
+| 결정 | 채택 | 기각 |
+| --- | --- | --- |
+| 모드 전환 | D. `GameMode`(Strategy) + 시계 하나에 리스너 하나를 다는 `ModeSwitch`. 모든 모드의 tick과 전환을 한 잠금으로 직렬화 → 두 보드가 동시에 진행하지 않음 | A Abstract Factory·B 패널 안 Strategy(ui·application 리팩토링), C 모드마다 시계(위 측정에서 1초 안에 깨짐) |
+| 상태 표시줄 | Observer(세션 리스너) | 매 tick 폴링(배치 단계는 시계가 멈춰 있어 안 바뀜) |
+| 렌더러 (#69) | `twoplayer` 안에 따로, 세션 스냅숏만 그림(`Neighborhood` 잠금 미사용) | `beginRedraw` 사용(#74 영향), `BoardRenderer` 일반화(ui 변경) |
+
+- 2인용 모드에서 Grid의 Clear·Load·Store를 끈다(Store는 rules.md 8장, Clear·Load는 숨은 클래식 보드를 바꾸므로). 모드를 바꾸면 시계를 멈춘다. `owner()`는 `TwoPlayerBoard`에 올리지 않았다.
+
+**결과**
+
+- 새 코드: `TwoPlayerSession` 153줄, `twoplayer.ui` 3개(203줄), ui 3개(`GameMode`·`ModeSwitch`·`ClassicMode`, 109줄)(빈 줄·주석 제외). 기존 파일은 `LifeFrame` +22/−2, `GameMenu` +18/−2, `Life` +3/−1. model·application diff 없음.
+- `./gradlew test --rerun` 240개 통과(TP-U 17개 추가). 기존 `NativeUiSmoke`(실제 창) 통과.
+- 구현하면서 테스트·실제 창 확인으로 찾아 고친 것: 임시 배치만 하면 상태 문구가 그대로였음(TP-U-03) → `Selected (r,c)` 추가. `CardLayout`이 클래식 화면을 2인용 화면 높이로 늘림(`NativeUiSmoke` 512×512 검사) → 카드 크기를 지금 모드에 맞추고 전환 때 `pack()`. 상태 표시줄 때문에 창이 599px로 넓어짐 → 상태 줄과 버튼 줄을 나눔.
+- TP-U-09·10·11·16은 셀 1개씩이면 1세대 뒤 전멸로 끝나서 구현 전에 블록(2×2)으로 고쳤다.
+- `NativeUiSmoke`가 `BoardPanel`을 "내용 패널 0번째"로 찾던 것을 타입으로 찾게 바꿨다(검사 항목 그대로).
+- 문서: 007, `test-cases.md` 5장(TP-U-01~17), `interfaces.md`(`TwoPlayerSession`, `TwoPlayerMode`), ui `interfaces.md`·`README.md`, 전/후 클래스 다이어그램.
+
 ## 남은 일
 
 - #36 머지 → #6에 #21과 #36 링크를 댓글로 남기고 닫기
 - #9·#25 댓글 답변 확인 (CL-M 경로 이동 시점, `@DisplayName` 담당)
 - #5: `feature/5-two-player-cell` push 완료, 이슈 #69~#74 생성 완료. PR(base `feature/base`, `Closes #5`) 확인 후 열기. `feature/base`는 기본 브랜치가 아니라 머지 후 #5를 직접 닫는다. #72는 B 도메인 담당에게 알림
-- #7 UI 통합: `GameController`는 쓰지 않고 2인용 진입점을 따로 설계(006 W3). 2인용 렌더러, `owner()`를 인터페이스에 올릴지 결정
+- #7: `feature/7-two-player-ui` 로컬 커밋까지. push·PR(base `feature/base`, `Closes #7`, 머지 후 직접 닫기)은 확인 후. #74 댓글의 측정 코드 경로는 push해야 열린다
 - 브랜치 방식: `feature/two-player-mode`는 2인용 통합 브랜치. 단계마다 여기서 브랜치를 따서 이 브랜치로 PR을 보내고(위 규칙), `main`으로는 #5까지 끝나면 한 번에 PR을 연다
 - 다이어그램 원본과 렌더링 결과는 관련 코드 PR에 함께 넣는다(AGENTS.md 2-5)
 - 도메인 `docs/README.md`: `twoplayer/docs/`는 #21에 넣음. `life/docs/README.md`는 #25가 추가함(문서 목록에 001·`interfaces.md`는 통합 브랜치가 main에 머지될 때 반영)
