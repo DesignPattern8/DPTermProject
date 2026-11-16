@@ -1,7 +1,7 @@
 # 2인용 모드 테스트 케이스
 
 - 근거: [rules.md](rules.md) (2인용 Life Game 규칙 명세). 아래에서 "명세 N장"은 이 문서를 뜻한다.
-- 상태: TP-F·TP-P는 #6 1차, TP-E는 #6 2차에서 테스트 작성(아래 각 장 참고). TP-R·TP-B·TP-I는 #5에서 [006](006-two-player-cell.md) 설계(F) 기준으로 정의하고 테스트를 작성했다(37개, 골격 단계에서 모두 실패 → 구현 후 통과). TP-U는 정의 단계이고 **테스트 클래스·메서드 이름은 예정**이다.
+- 상태: TP-F·TP-P는 #6 1차, TP-E는 #6 2차에서 테스트 작성(아래 각 장 참고). TP-R·TP-B·TP-I는 #5에서 [006](006-two-player-cell.md) 설계(F) 기준으로 정의하고 테스트를 작성했다(37개, 골격 단계에서 모두 실패 → 구현 후 통과). TP-U는 #7에서 [007](007-two-player-ui.md) 기준으로 다시 정의했다(5장, 17개).
 - 공통 전제
   - 좌표는 (행, 열)이고 0부터 센다. 보드 밖은 항상 `DEAD`다.
   - 격자 표기: `A`·`B`는 각 플레이어의 살아 있는 셀, `.`은 죽은 셀이다. 적지 않은 아래쪽 행은 모두 `.`이다.
@@ -170,20 +170,33 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 
 ## 5. UI 통합 (명세 4·5·8장, #7)
 
-예정 클래스: `TwoPlayerUiTest`. Swing 창을 띄우지 않고 대역(Stub)이나 `BufferedImage` headless 렌더링으로 확인한다.
+- 근거: [007](007-two-player-ui.md). 클래스: `TwoPlayerUiTest` (`test/com/holub/life/twoplayer/ui/`).
+- CI가 headless(`java.awt.headless=true`)라 `JFrame`·`MenuSite`는 쓰지 않는다. `ModeSwitch`·`TwoPlayerPanel`(`JPanel`)·`BufferedImage` 렌더링과 대역 모드·대역 `TickSource`로 확인한다.
+- 공통 전제: 2인용은 `TwoPlayerMode(settings, Runnable::run)`로 만든다(화면 갱신을 바로 실행). 패널의 보드 영역은 512×512(칸 8px). 클래식은 `ClassicMode`(`Neighborhood(8, Neighborhood(8, Resident))` + `GameController`)이고 (10,9)·(10,10)·(10,11)에 가로 blinker를 둔다. 시계는 `Clock` + 기록용 `TickSource` 대역이며 tick은 `clock.tick()`으로 직접 준다.
+- 상태 표시줄 문구는 영어 한 줄이다(기존 메뉴·대화상자와 같음). 테스트는 아래 조각이 들어 있는지만 본다: 단계(`Placement`, `Round r Simulation g/K`, `Round r Intervention`, `Game over`), 차례(`Turn: A`), 남은 개수(`Left A:x B:y`), 셀 수(`A:B = a:b`), 거부(`Rejected: <이유>`).
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
-| TP-U-01 | 정상 | 모드를 바꾸면 셀 종류와 클릭 동작이 바뀐다 | Classic → 2 Players | 클릭이 토글이 아니라 현재 플레이어 임시 배치로 동작 | `TwoPlayerUiTest#switchingModeChangesClickBehavior` |
-| TP-U-02 | 정상 | 상태 표시줄에 단계·차례·남은 개수·A:B 셀 수가 나온다 | 초기 배치, A 1개 확정 뒤 | 문구에 단계, 차례 B, 남은 개수, A:B = 1:0 포함 | `#statusBarShowsGameState` |
-| TP-U-03 | 정상 | 모델 상태가 바뀌면 상태 표시줄이 갱신된다 | 배치 확정 이벤트 | 상태 표시줄 대역이 새 문구를 받음 | `#statusBarUpdatesOnModelChange` |
-| TP-U-04 | 정상 | Enter 키로 임시 배치를 확정한다 | 임시 배치 뒤 Enter | TP-P-03과 같은 결과 | `#enterConfirmsPlacement` |
-| TP-U-05 | 정상 | A·B 셀이 다른 색으로 그려지고 진영 경계선이 보인다 | A·B 셀이 있는 보드를 `BufferedImage`에 렌더링 | A 칸·B 칸 픽셀 색이 서로 다름, 31·32열 사이에 경계선 색 픽셀 | `#rendersOwnerColorsAndBorderLine` |
-| TP-U-06 | 예외 | 2인용 모드에서는 Store를 쓸 수 없다 | 2 Players 모드 | Store 메뉴 비활성화 | `#storeDisabledInTwoPlayerMode` |
-| TP-U-07 | 예외 | 시뮬레이션 중 클릭은 무시되고 이유가 표시된다 | 시뮬레이션 단계에서 클릭 | 보드 변화 없음, 상태 표시줄에 거부 이유 | `#clickDuringSimulationShowsReason` |
-| TP-U-08 | 경계 | 2인용에서 클래식으로 돌아오면 기존 기능이 그대로 동작한다 | 2 Players → Classic | Clear, Load, Store, Go 속도/Tick, 마우스 토글이 클래식 특성 테스트와 같은 결과. Exit은 메뉴 항목 존재만 확인 | `#classicFeaturesWorkAfterSwitchingBack` |
+| TP-U-01 | 정상 | 모드를 바꾸면 화면과 클릭 동작이 바뀐다 | Classic + 2 Players를 가진 `ModeSwitch`, 2 Players 선택 뒤 2인용 보드 (10,10) 칸 픽셀(84,84) 클릭 | 보이는 카드 = 2인용 패널. (10,10)이 A 임시 배치(토글 아님). 클래식 blinker 그대로 | `TwoPlayerUiTest#switchingModeChangesClickBehavior` |
+| TP-U-02 | 정상 | 상태 표시줄에 단계·차례·남은 개수·A:B 셀 수가 나온다 | 초기 배치(N=20), A가 (10,10) 클릭 → 확정 | 문구에 `Placement`, `Turn: B`, `Left A:19 B:20`, `A:B = 1:0` | `#statusBarShowsGameState` |
+| TP-U-03 | 정상 | 모델 상태가 바뀌면 상태 표시줄이 갱신된다 (Observer) | 패널을 만든 뒤 A가 (10,10) 클릭 | 세션 리스너가 1번 불리고, 상태 표시줄 라벨 문구가 세션 `status()`와 같아진다 | `#statusBarUpdatesOnModelChange` |
+| TP-U-04 | 정상 | Enter 키로 임시 배치를 확정한다 | (10,10) 임시 배치 뒤 패널의 Enter 키 바인딩 실행 | TP-P-03과 같음: (10,10) A, 차례 B, A 남은 개수 N-1 | `#enterConfirmsPlacement` |
+| TP-U-05 | 정상 | A·B 셀이 다른 색으로 그려지고 진영 경계선이 보인다 | A (10,10), B (10,40) 확정 뒤 512×512 `BufferedImage`에 렌더링 | (84,84) = A 색, (324,84) = B 색, 서로 다름. 빈 칸 (164,164) = 빈 칸 색. 31·32열 사이(x = 256)의 (256,300) = 경계선 색 | `#rendersOwnerColorsAndBorderLine` |
+| TP-U-06 | 예외 | 2인용 모드에서는 Store(와 Clear·Load)를 쓸 수 없다 | Classic → 2 Players | 파일 명령 사용 가능 여부로 false를 받는다. 처음 Classic일 때는 true. `LifeFrame`은 이 값으로 Grid의 Clear·Load·Store 항목을 켜고 끈다(헤드리스라 메뉴 항목 자체는 확인하지 않음) | `#storeDisabledInTwoPlayerMode` |
+| TP-U-07 | 예외 | 시뮬레이션 중 클릭은 무시되고 이유가 표시된다 | N=1, K=3: A (10,10), B (10,40) 확정 → 시뮬레이션. (20,20) 칸 클릭 | 보드 칸 변화 없음(임시 배치 없음, (20,20) 빈 칸), 문구에 `Rejected:` | `#clickDuringSimulationShowsReason` |
+| TP-U-08 | 경계 | 2인용에서 클래식으로 돌아오면 기존 기능이 그대로 동작한다 | Classic → 2 Players → Classic | 파일 명령 사용 가능 = true. Tick: `clock.tick()` 1번에 blinker가 세로가 된다. 마우스 토글: `GameController.toggle(0,0)`으로 (0,0)이 산다. Clear: 모든 칸이 죽는다. Store → Load: 임시 파일에 저장한 blinker를 다시 불러오면 같은 칸. Go 속도: `GameMenu.go`가 Fast·Halt를 시계에 그대로 전달. Exit은 `GameMenu.installMenus`가 그대로 단다(실제 종료는 확인하지 않음) | `#classicFeaturesWorkAfterSwitchingBack` |
+| TP-U-09 | 정상 | 패스 버튼으로 개입 차례를 넘긴다 | N=1, K=1, M=1, R=2: 배치 뒤 tick 1번 → 라운드 1 개입(선공 B). 패스 버튼 클릭 | 차례 A, 문구에 `Turn: A` | `#passButtonPassesTurn` |
+| TP-U-10 | 정상 | 2인용 모드의 Tick은 시뮬레이션 세대를 진행하고 K에 들어간다 | N=1, K=3: 배치 → 시뮬레이션, 2 Players 선택, `clock.tick()` 1번 | `generationInRound` = 1, 문구에 `Simulation 1/3` | `#tickAdvancesTwoPlayerSimulation` |
+| TP-U-11 | 경계 | 2인용 모드일 때 클래식 보드는 진행하지 않는다 | TP-U-10과 같은 상태에서 `clock.tick()` 3번 | 클래식 blinker 가로 그대로 | `#classicBoardDoesNotAdvanceInTwoPlayerMode` |
+| TP-U-12 | 경계 | 배치 단계의 tick은 아무것도 바꾸지 않는다 | 초기 배치, 2 Players 선택, `clock.tick()` 1번 | 세션 리스너 0번, 문구 그대로, 단계 = 배치 | `#tickDuringPlacementIsIgnored` |
+| TP-U-13 | 경계 | 모드 전환은 진행 중인 tick이 끝난 뒤에 된다 (#74 회피) | 대역 모드의 tick이 래치에서 멈춘 동안 다른 스레드에서 `select(다른 모드)` | 그 스레드는 BLOCKED, 지금 모드는 그대로. 래치를 풀면 전환이 끝나고 지금 모드 = 다른 모드 | `#switchWaitsForRunningTick` |
+| TP-U-14 | 정상 | 모드를 바꾸면 시계가 멈춘다 | `clock.start(FAST)` 뒤 2 Players 선택 | `TickSource` 대역의 `stop()`이 불림, 실행 중 아님 | `#switchingModeStopsClock` |
+| TP-U-15 | 정상 | 새 게임 버튼은 2인용 게임을 처음으로 되돌린다 | A (10,10) 확정, B (10,40) 임시 배치 뒤 새 게임 버튼 | 모든 칸 빈 칸, 임시 배치 없음, 단계 = 배치, 차례 A, `Left A:20 B:20` | `#newGameButtonResetsGame` |
+| TP-U-16 | 경계 | 메뉴가 열려 있으면 2인용 tick도 건너뛴다 | TP-U-10의 시뮬레이션 상태, 메뉴 선택 경로가 있을 때 `clock.tick()` | `generationInRound` = 0. 선택 경로를 지운 뒤 `clock.tick()` → 1 | `#openMenuSuppressesTwoPlayerTick` |
+| TP-U-17 | 예외 | 격자 밖 픽셀 클릭은 무시되고 이유가 표시된다 | 보드 영역 520×520(칸 8px, 격자 512px), 픽셀 (515,10) 클릭 | 임시 배치 없음, 문구에 `Rejected: outside the board` | `#clickOutsideGridShowsReason` |
 
-TP-U-08의 Exit은 `System.exit(0)`을 호출하므로(`Universe.java:116-124`) 실제 종료는 테스트하지 않는다.
+- TP-U-08의 Exit은 `System.exit(0)`을 부르므로(`ui/GameMenu.java:23`) 실제 종료는 테스트하지 않는다.
+- 이전 정의(2026-11-03)와 달라진 점: TP-U-01의 "셀 종류가 바뀐다"를 "화면(카드)이 바뀐다"로 고쳤다(007: 한 패널의 셀을 바꾸지 않고 모드마다 화면을 둔다). TP-U-06에 Clear·Load를 더했다. TP-U-09~17을 추가했다(패스·Tick·#74 회피·시계 정지·새 게임·메뉴 열림·격자 밖 클릭). TP-U-08의 `Universe.java` 근거를 지금 파일로 바꿨다.
 
 ## 기대값 검증 기록
 
