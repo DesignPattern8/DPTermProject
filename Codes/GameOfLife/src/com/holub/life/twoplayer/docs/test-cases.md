@@ -196,6 +196,7 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 | TP-U-16 | 경계 | 메뉴가 열려 있으면 2인용 tick도 건너뛴다 | TP-U-10의 시뮬레이션 상태, 메뉴 선택 경로가 있을 때 `clock.tick()` | `generationInRound` = 0. 선택 경로를 지운 뒤 `clock.tick()` → 1 | `#openMenuSuppressesTwoPlayerTick` |
 | TP-U-17 | 예외 | 격자 밖 픽셀 클릭은 무시되고 이유가 표시된다 | 보드 영역 520×520(칸 8px, 격자 512px), 픽셀 (515,10) 클릭 | 임시 배치 없음, 문구에 `Rejected: outside the board` | `#clickOutsideGridShowsReason` |
 
+- TP-U-06에서 Clear·Load까지 끄는 이유는 007 결정(149행): 2인용 모드에서 누르면 보이지 않는 클래식 보드를 바꾸기 때문이다.
 - TP-U-08의 Exit은 `System.exit(0)`을 부르므로(`ui/GameMenu.java:23`) 실제 종료는 테스트하지 않는다.
 - 이전 정의(2026-11-03)와 달라진 점: TP-U-01의 "셀 종류가 바뀐다"를 "화면(카드)이 바뀐다"로 고쳤다(007: 한 패널의 셀을 바꾸지 않고 모드마다 화면을 둔다). TP-U-06에 Clear·Load를 더했다. TP-U-09~17을 추가했다(패스·Tick·#74 회피·시계 정지·새 게임·메뉴 열림·격자 밖 클릭). TP-U-08의 `Universe.java` 근거를 지금 파일로 바꿨다.
 
