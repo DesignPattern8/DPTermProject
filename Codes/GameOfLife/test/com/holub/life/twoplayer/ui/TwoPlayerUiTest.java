@@ -44,8 +44,10 @@ import org.junit.jupiter.api.io.TempDir;
 /** TP-U: 2인용 UI 통합 (docs/test-cases.md 5장, docs/007-two-player-ui.md). Swing 창 없이 headless로 돈다. */
 class TwoPlayerUiTest {
   private static final GameSettings DEFAULTS = GameSettings.defaults();
-  /** N=1, K=3, M=1, R=2: A·B 한 개씩 두면 바로 시뮬레이션. */
+  /** N=1, K=3, M=1, R=2: A·B 한 개씩 두면 바로 시뮬레이션. 셀 1개는 1세대 뒤 죽으므로 tick 없이만 쓴다. */
   private static final GameSettings ONE_EACH = new GameSettings(1, 3, 1, 2);
+  /** N=4, K=3, M=1, R=2: A·B가 블록(2×2, 정물)을 하나씩 두면 시뮬레이션. tick해도 셀 수가 그대로다. */
+  private static final GameSettings BLOCKS = new GameSettings(4, 3, 1, 2);
 
   /** 시계 대역: 실제로 tick을 만들지 않고 start·stop만 기록한다. */
   private static final class RecordingTicks implements TickSource {
@@ -163,6 +165,17 @@ class TwoPlayerUiTest {
     mode.panel().confirmButton().doClick();
     clickCell(mode, 10, 40);
     mode.panel().confirmButton().doClick();
+  }
+
+  /** A 블록 (10,10)~(11,11), B 블록 (10,40)~(11,41)을 번갈아 확정한다(N=4). */
+  private static void placeBlocks(TwoPlayerMode mode) {
+    int[][] offsets = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+    for (int[] offset : offsets) {
+      clickCell(mode, 10 + offset[0], 10 + offset[1]);
+      mode.panel().confirmButton().doClick();
+      clickCell(mode, 10 + offset[0], 40 + offset[1]);
+      mode.panel().confirmButton().doClick();
+    }
   }
 
   private static Optional<Player> owner(TwoPlayerSession session, int row, int column) {
@@ -335,8 +348,8 @@ class TwoPlayerUiTest {
   @Test
   @DisplayName("TP-U-09 패스 버튼으로 개입 차례를 넘긴다")
   void passButtonPassesTurn() {
-    TwoPlayerMode two = twoPlayer(new GameSettings(1, 1, 1, 2));
-    placeBoth(two);
+    TwoPlayerMode two = twoPlayer(new GameSettings(4, 1, 1, 2));
+    placeBlocks(two);
     two.tick();
     assertEquals(PhaseKind.INTERVENTION, two.session().phase());
     assertEquals(Player.B, two.session().snapshot().currentPlayer());
@@ -350,9 +363,9 @@ class TwoPlayerUiTest {
   @Test
   @DisplayName("TP-U-10 2인용 모드의 Tick은 시뮬레이션 세대를 진행하고 K에 들어간다")
   void tickAdvancesTwoPlayerSimulation() {
-    TwoPlayerMode two = twoPlayer(ONE_EACH);
+    TwoPlayerMode two = twoPlayer(BLOCKS);
     ModeSwitch modes = modes(classic(), two);
-    placeBoth(two);
+    placeBlocks(two);
     modes.select(two);
 
     clock.tick();
@@ -364,9 +377,9 @@ class TwoPlayerUiTest {
   @Test
   @DisplayName("TP-U-11 2인용 모드일 때 클래식 보드는 진행하지 않는다")
   void classicBoardDoesNotAdvanceInTwoPlayerMode() {
-    TwoPlayerMode two = twoPlayer(ONE_EACH);
+    TwoPlayerMode two = twoPlayer(BLOCKS);
     ModeSwitch modes = modes(classic(), two);
-    placeBoth(two);
+    placeBlocks(two);
     modes.select(two);
 
     clock.tick();
@@ -466,9 +479,9 @@ class TwoPlayerUiTest {
   @Test
   @DisplayName("TP-U-16 메뉴가 열려 있으면 2인용 tick도 건너뛴다")
   void openMenuSuppressesTwoPlayerTick() {
-    TwoPlayerMode two = twoPlayer(ONE_EACH);
+    TwoPlayerMode two = twoPlayer(BLOCKS);
     ModeSwitch modes = modes(classic(), two);
-    placeBoth(two);
+    placeBlocks(two);
     modes.select(two);
 
     openMenu();

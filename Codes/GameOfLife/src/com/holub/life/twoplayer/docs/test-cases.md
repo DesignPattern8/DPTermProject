@@ -173,6 +173,7 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 - 근거: [007](007-two-player-ui.md). 클래스: `TwoPlayerUiTest` (`test/com/holub/life/twoplayer/ui/`).
 - CI가 headless(`java.awt.headless=true`)라 `JFrame`·`MenuSite`는 쓰지 않는다. `ModeSwitch`·`TwoPlayerPanel`(`JPanel`)·`BufferedImage` 렌더링과 대역 모드·대역 `TickSource`로 확인한다.
 - 공통 전제: 2인용은 `TwoPlayerMode(settings, Runnable::run)`로 만든다(화면 갱신을 바로 실행). 패널의 보드 영역은 512×512(칸 8px). 클래식은 `ClassicMode`(`Neighborhood(8, Neighborhood(8, Resident))` + `GameController`)이고 (10,9)·(10,10)·(10,11)에 가로 blinker를 둔다. 시계는 `Clock` + 기록용 `TickSource` 대역이며 tick은 `clock.tick()`으로 직접 준다.
+- 셀 1개는 1세대 뒤 죽어 전멸 판정으로 끝나므로, tick이 필요한 케이스(TP-U-09·10·11·16)는 블록(2×2, 정물)을 둔다.
 - 상태 표시줄 문구는 영어 한 줄이다(기존 메뉴·대화상자와 같음). 테스트는 아래 조각이 들어 있는지만 본다: 단계(`Placement`, `Round r Simulation g/K`, `Round r Intervention`, `Game over`), 차례(`Turn: A`), 남은 개수(`Left A:x B:y`), 셀 수(`A:B = a:b`), 거부(`Rejected: <이유>`).
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
@@ -185,8 +186,8 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 | TP-U-06 | 예외 | 2인용 모드에서는 Store(와 Clear·Load)를 쓸 수 없다 | Classic → 2 Players | 파일 명령 사용 가능 여부로 false를 받는다. 처음 Classic일 때는 true. `LifeFrame`은 이 값으로 Grid의 Clear·Load·Store 항목을 켜고 끈다(헤드리스라 메뉴 항목 자체는 확인하지 않음) | `#storeDisabledInTwoPlayerMode` |
 | TP-U-07 | 예외 | 시뮬레이션 중 클릭은 무시되고 이유가 표시된다 | N=1, K=3: A (10,10), B (10,40) 확정 → 시뮬레이션. (20,20) 칸 클릭 | 보드 칸 변화 없음(임시 배치 없음, (20,20) 빈 칸), 문구에 `Rejected:` | `#clickDuringSimulationShowsReason` |
 | TP-U-08 | 경계 | 2인용에서 클래식으로 돌아오면 기존 기능이 그대로 동작한다 | Classic → 2 Players → Classic | 파일 명령 사용 가능 = true. Tick: `clock.tick()` 1번에 blinker가 세로가 된다. 마우스 토글: `GameController.toggle(0,0)`으로 (0,0)이 산다. Clear: 모든 칸이 죽는다. Store → Load: 임시 파일에 저장한 blinker를 다시 불러오면 같은 칸. Go 속도: 같은 시계가 Fast로 돌고 멈춘다(메뉴 이름 → 시계 요청 매핑은 기존 `GameMenuTest#goCommandsKeepOriginalActions`). Exit은 `GameMenu.installMenus`가 그대로 단다(실제 종료는 확인하지 않음) | `#classicFeaturesWorkAfterSwitchingBack` |
-| TP-U-09 | 정상 | 패스 버튼으로 개입 차례를 넘긴다 | N=1, K=1, M=1, R=2: 배치 뒤 tick 1번 → 라운드 1 개입(선공 B). 패스 버튼 클릭 | 차례 A, 문구에 `Turn: A` | `#passButtonPassesTurn` |
-| TP-U-10 | 정상 | 2인용 모드의 Tick은 시뮬레이션 세대를 진행하고 K에 들어간다 | N=1, K=3: 배치 → 시뮬레이션, 2 Players 선택, `clock.tick()` 1번 | `generationInRound` = 1, 문구에 `Simulation 1/3` | `#tickAdvancesTwoPlayerSimulation` |
+| TP-U-09 | 정상 | 패스 버튼으로 개입 차례를 넘긴다 | N=4, K=1, M=1, R=2: A·B가 블록(2×2) 하나씩 배치 뒤 tick 1번 → 라운드 1 개입(선공 B). 패스 버튼 클릭 | 차례 A, 문구에 `Turn: A` | `#passButtonPassesTurn` |
+| TP-U-10 | 정상 | 2인용 모드의 Tick은 시뮬레이션 세대를 진행하고 K에 들어간다 | N=4, K=3: A 블록 (10,10)~(11,11), B 블록 (10,40)~(11,41) 배치 → 시뮬레이션, 2 Players 선택, `clock.tick()` 1번 | `generationInRound` = 1, 문구에 `Simulation 1/3` | `#tickAdvancesTwoPlayerSimulation` |
 | TP-U-11 | 경계 | 2인용 모드일 때 클래식 보드는 진행하지 않는다 | TP-U-10과 같은 상태에서 `clock.tick()` 3번 | 클래식 blinker 가로 그대로 | `#classicBoardDoesNotAdvanceInTwoPlayerMode` |
 | TP-U-12 | 경계 | 배치 단계의 tick은 아무것도 바꾸지 않는다 | 초기 배치, 2 Players 선택, `clock.tick()` 1번 | 세션 리스너 0번, 문구 그대로, 단계 = 배치 | `#tickDuringPlacementIsIgnored` |
 | TP-U-13 | 경계 | 모드 전환은 진행 중인 tick이 끝난 뒤에 된다 (#74 회피) | 대역 모드의 tick이 래치에서 멈춘 동안 다른 스레드에서 `select(다른 모드)` | 그 스레드는 BLOCKED, 지금 모드는 그대로. 래치를 풀면 전환이 끝나고 지금 모드 = 다른 모드 | `#switchWaitsForRunningTick` |
