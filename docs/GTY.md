@@ -11,7 +11,7 @@
 | 공통 보드 계약 정의 | [#47](https://github.com/DesignPattern8/DPTermProject/issues/47) | [#48](https://github.com/DesignPattern8/DPTermProject/pull/48) | main 병합, 좌표·스냅샷·도메인별 인계 기준 작성 |
 | 클래식 보드 Facade | [#49](https://github.com/DesignPattern8/DPTermProject/issues/49) | [#50](https://github.com/DesignPattern8/DPTermProject/pull/50) | main 병합, 당시 전체 68개 테스트 통과 |
 | 클래식 생사 판정 함수 추출 | [#52](https://github.com/DesignPattern8/DPTermProject/issues/52) | [#54](https://github.com/DesignPattern8/DPTermProject/pull/54) | main 병합, 당시 전체 87개 테스트 통과 |
-| 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | 커밋 전 | 구현 완료, JDK 25에서 전체 169개 통과 |
+| 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | [#83](https://github.com/DesignPattern8/DPTermProject/pull/83) | PR 작성, 최신 base 충돌 해소·통합 검증은 005 참고 |
 
 ## 001. 모델과 화면 메서드 분리
 
@@ -146,7 +146,7 @@ B는 [#51](https://github.com/DesignPattern8/DPTermProject/issues/51)에서 게�
 
 ## 004. 암세포 스냅샷 보존 (#73)
 
-- 상태: 채택 · 구현 완료, 커밋 전
+- 상태: 채택 · 구현 완료, [PR #83](https://github.com/DesignPattern8/DPTermProject/pull/83) 작성
 - 담당 A 모델 · 태영 · 2026-11-17
 - 기준 `refactor/base` `881819f`, 작업 브랜치 `fix/73-cancer-snapshot`
 
@@ -241,5 +241,37 @@ public record BoardSnapshot(
 
 - PR base는 `refactor/base`, 본문 연결은 `Refs #73`을 사용한다. 병합 후 이슈에 PR 링크를 남겨 직접 닫는다.
 - 이번 복원 대상은 클래식·암세포 보드의 셀 상태다. 2인용 소유자는 전용 보드 계약에서 다룬다.
-- 개인 Notion 개발 기록의 07번에 이번 #73의 육하원칙·대안·수정 내용·검증 결과를 갱신했다. 커밋·푸시·PR은 사용자가 진행하며, 버그 수정 → 테스트 → 문서 순서로 나눌 예정이다.
+- 개인 Notion 개발 기록의 07번에 이번 #73의 육하원칙·대안·수정 내용·검증 결과를 갱신했다. 이후 사용자가 버그 수정 `baf7935` → 테스트 `df2c454` → 문서 `d255b8e` 순서로 커밋·푸시하고 PR #83을 작성했다.
 - 앞으로 A 모델의 설계 결정·고민·검증 결과·육하원칙은 이 파일에 추가한다. 공개 시그니처와 테스트 케이스는 모델의 계약·테스트 문서에 갱신한다.
+
+## 005. PR #83의 refactor/base 충돌 해결
+
+- 담당 A 모델 · 태영 · 2026-11-17
+- 작업 브랜치 `fix/73-cancer-snapshot`, 병합 대상 `origin/refactor/base` `084d6c7`
+
+### 원인과 해결
+
+PR #83 작성 후 확인한 통합 브랜치에는 C의 파일 API·모델 값 연동(#61)이 반영돼 있었다. 모델 README의 같은 문단에서 A는 기록 위치를 `docs/GTY.md`로 바꾸고 C는 신규 연동 문서 링크를 추가해 내용 충돌이 발생했다. 소스 충돌은 없었다.
+
+A의 GTY 누적 기록 안내와 C의 신규 파일 API 연동 문서 링크를 모두 유지했다. C가 추가한 파일·테스트·문서·다이어그램은 그대로 통합한다. A가 옮긴 문서 001·002·003은 복구하지 않는다. `git merge --no-commit --no-ff origin/refactor/base`로 가져왔으며 병합 커밋·푸시는 사용자가 진행한다.
+
+### 분류 기준
+
+이슈 #73에는 기존 `[REFACTOR]` 제목이 남아 있지만 이번 변경은 캡처·복원 시 암세포가 일반 세포가 되는 오류를 수정한다. PR의 `fix`와 BUG 유형이 실제 동작 변경에 맞는다. 이슈 제목의 분류를 정리할 수 있으나 이번 충돌 해결에서 원격 이슈나 PR은 수정하지 않았다. PR base는 팀 작업 흐름에 따라 `refactor/base`를 유지한다.
+
+### 육하원칙
+
+| 항목 | 기록 |
+| --- | --- |
+| 누가 | 태영의 A 모델 작업 |
+| 언제 | 2026-11-17, PR #83 작성 이후 |
+| 어디서 | 기존 IntelliJ 프로젝트의 `fix/73-cancer-snapshot` |
+| 무엇을 | 최신 refactor/base를 가져와 모델 README 충돌을 해결했다. |
+| 왜 | A의 기록 통합과 C의 연동 문서 추가가 같은 문단을 수정했기 때문이다. |
+| 어떻게 | C의 새 문서 링크와 A의 GTY 안내를 함께 유지한 뒤 통합 상태의 전체 테스트를 확인했다. |
+
+### 검증
+
+- `Codes/GameOfLife`에서 기존과 같은 JDK 25.0.3 및 임시 초기화 파일로 `./gradlew test --no-daemon --init-script /private/tmp/dp73-jdk25.init.gradle` 실행: 전체 189개 통과, 실패·오류·건너뜀 0. 최초 #73 검증 169개에 C가 추가한 20개가 함께 실행됐다. JDK 26에서는 미검증이다.
+- README·GTY의 로컬 파일 링크 26개, 변경 Java·Markdown의 충돌 표시 제거, `git diff --check`와 `git diff --cached --check`를 확인했다.
+- 미해결 충돌 파일은 0개이며 Git은 병합 커밋을 기다리는 상태다. README 해결 결과와 GTY 기록을 스테이징한다. 커밋·푸시 후 기존 PR #83에 반영된다.
