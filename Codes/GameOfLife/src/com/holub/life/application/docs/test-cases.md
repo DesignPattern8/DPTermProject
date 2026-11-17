@@ -38,7 +38,7 @@ GameControllerTest는 정상 세대, 실제 파일 왕복과 좌표당 1회 기�
 | APP-R06 | 정상 | 세대가 바뀐 tick 후 부분 갱신 알림 | blinker, `tick()` | `GENERATION` 1번 | GameControllerTest#changingTickNotifiesGeneration |
 | APP-R07 | 경계 | 바뀐 칸이 없는 tick은 알리지 않음 (기존 `refreshNow` 조건 유지) | 빈 보드, `tick()` | 알림 없음, 반환값 false | GameControllerTest#unchangedTickDoesNotNotify |
 | APP-R08 | 정상 | 불러오기 성공 후 전체 갱신 알림 | 저장한 파일 Load | `EDITED` 1번 | GameControllerTest#loadNotifiesEdited |
-| APP-R09 | 예외 | 불러오기 실패 후에도 전체 갱신 알림 (기존: 실패 후에도 `repaint()`) | garbage 파일 Load | IOException, `EDITED` 1번 | GameControllerTest#failedLoadStillNotifiesEdited |
+| APP-R09 | 예외 | 불러오기 실패는 보드 변경을 알리지 않음 (#63에서 계약 변경) | garbage 파일 Load | IOException, 알림 없음 | GameControllerTest#failedLoadDoesNotNotifyEdited |
 | APP-R10 | 경계 | 저장은 보드를 바꾸지 않으므로 알리지 않음 | `store()` | 알림 없음 | GameControllerTest#storeDoesNotNotify |
 
 ## Board 연결과 보드 호출 직렬화 (#55)
@@ -72,3 +72,24 @@ GameControllerTest는 정상 세대, 실제 파일 왕복과 좌표당 1회 기�
 | CAN-C02 | 정상 | 치료하면 전체 다시 그리기를 알리고, 횟수가 없으면 알리지 않는다 | 암 규칙 컨트롤러, 4번 치료 | 1~3번째에만 `EDITED` 알림 | `GameControllerCancerTest#treatmentNotifiesOnlyWhenUsed` |
 | CAN-C03 | 정상 | 승리하는 tick은 시계를 멈추고 `GAME_OVER`를 알린다 | 암세포 2칸(서로 붙어 안정) → tick → 치료 → tick | 시계 정지, 마지막 알림 `GAME_OVER`, 승리 메시지 | `GameControllerCancerTest#winningTickStopsClockAndReportsGameOver` |
 | CAN-C04 | 경계 | 끝난 뒤의 tick은 보드를 진행하지 않고 알리지 않는다 | CAN-C03 이후 블링커를 놓고 tick | false, 블링커 그대로, 알림 없음 | `GameControllerCancerTest#tickAfterGameOverDoesNothing` |
+
+## #63 안전한 Load — 구현 전 정의 (2026-11-17)
+
+[005 행동 계약](005-safe-load.md)을 기준으로 아래 케이스를 먼저 정의한다. #63은 버그 수정이므로 과거 실패 시 Clear/정지/EDITED를 고정한 기대값을 명시적으로 변경한다. 기존 테스트를 삭제하거나 비활성화하지 않는다. APP-R09 및 `invalidFileClearsBoard`, `preservesOpenAndDecodeFailureOrder`는 상태 보존 계약으로 이름·기대값을 갱신한다. 나머지 기존 기대값은 유지한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| LOAD-01 | 예외 | 잘못된 입력에서 일반·암세포 보존 | 0바이트/garbage/잘린 stream/비Point 원소, 기존 혼합 보드 | IOException, 원래 배치·종류 유지 | `GameControllerLoadTest#malformedInputsPreserveCellsAndCancer` |
+| LOAD-02 | 예외 | 실행 중 Clock과 다음 세대 유지 | 블록 경계 blinker, FAST, garbage | 예약·주기·start/stop 횟수 불변, 수동 예약 tick은 정상 다음 세대 | `GameControllerLoadTest#failedLoadKeepsRunningClockAndNextGeneration` |
+| LOAD-03 | 경계 | 정지 상태 보존 | 정지 Clock, garbage | start/stop 호출 없음 | `GameControllerLoadTest#failedLoadKeepsStoppedClock` |
+| LOAD-04 | 예외 | 개방 실패 상태 보존 | 없는 파일, 실행 중 Clock, 암세포 | 셀·Clock 유지, 변경 알림 없음 | `GameControllerLoadTest#missingFilePreservesStateWithoutNotification` |
+| LOAD-05 | 예외 | 부분 읽기 오류 전파·자원 해제 | 실제 파일 입력을 읽고 IOException을 던지는 Codec | 동일 예외 전파, 입력 닫힘, 기존 셀 유지 | `GameControllerLoadTest#decodeFailureClosesInputAndPropagatesOriginalException` |
+| LOAD-06 | 정상 | 해석 전 상태 보존과 완료 후 알림 | Codec에서 기존 셀·Clock 검사, 정상 반환 | 해석 중 상태 유지, listener에서 입력 닫힘·새 배치·정지 확인 | `GameControllerLoadTest#successfulLoadAppliesOnlyAfterDecodingAndClosingInput` |
+| LOAD-07 | 경계 | 유효한 빈 목록으로 교체 | 혼합 보드 → 정상 빈 legacy 파일 | 보드·암세포 비움, Clock 정지, EDITED 1회 | `GameControllerLoadTest#emptyPatternClearsBoardSuccessfully` |
+| LOAD-08 | 정상 | 암세포·일반 세포 종류 교체 | 기존 암 위치는 일반으로, 기존 일반 위치는 암으로 저장된 파일 | 좌표와 종류 정확히 복원 | `GameControllerLoadTest#cancerPatternReplacesExistingCellKinds` |
+| LOAD-09 | 경계 | 기존 좌표 정책 유지 | 중복·음수·범위 밖 좌표, 블록 경계 blinker | 유효 좌표만 배치, 중복 제거 | `GameControllerLoadTest#loadedBoundaryPatternKeepsLegacyCoordinatePolicy` |
+| LOAD-10 | 예외 | 해석 실패는 화면 변경 아님 | 기존 APP-R09 garbage Load | IOException, EDITED 없음 | `GameControllerTest#failedLoadDoesNotNotifyEdited` |
+
+기존 APP-S01~04의 stream 정리, APP-B05의 보드 호출 직렬화, UI-R05의 Read Failed 표시 및 classic/cancer 왕복 회귀는 유지한다.
+
+LOAD-09의 경계 배치 이후 세대 진행에서 별도 기존 결함 [#81](https://github.com/DesignPattern8/DPTermProject/issues/81)을 발견했다. 성공 Load의 경계 출생 처리는 이 PR에서 수정하지 않으며, LOAD-09는 좌표 배치 정책까지만 검증한다. 실패 Load 뒤 기존 예약 tick의 정상 진행은 LOAD-02로 검증한다.

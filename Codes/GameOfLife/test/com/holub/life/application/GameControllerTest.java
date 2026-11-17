@@ -52,12 +52,12 @@ class GameControllerTest {
   }
 
   @Test
-  void invalidFileClearsBoard() throws Exception {
+  void invalidFileKeepsBoard() throws Exception {
     board.toggle(5, 5);
     Path file = directory.resolve("bad.life");
     Files.write(file, new byte[] {1, 2, 3, 4});
     assertThrows(IOException.class, () -> controller.load(file.toFile()));
-    assertTrue(board.createMemento().liveCells().isEmpty());
+    assertEquals(List.of(new Point(5, 5)), board.createMemento().liveCells());
   }
 
   @Test
@@ -195,8 +195,8 @@ class GameControllerTest {
   }
 
   @Test
-  @DisplayName("APP-R09 불러오기에 실패해도 전체 갱신을 알린다")
-  void failedLoadStillNotifiesEdited() throws Exception {
+  @DisplayName("APP-R09 불러오기 실패는 보드를 바꾸지 않아 갱신을 알리지 않는다")
+  void failedLoadDoesNotNotifyEdited() throws Exception {
     board.toggle(5, 5);
     Path file = directory.resolve("bad.life");
     Files.write(file, new byte[] {1, 2, 3, 4});
@@ -204,7 +204,7 @@ class GameControllerTest {
 
     assertThrows(IOException.class, () -> controller.load(file.toFile()));
 
-    assertEquals(List.of(GameListener.Change.EDITED), changes);
+    assertTrue(changes.isEmpty());
   }
 
   @Test

@@ -38,5 +38,5 @@
 | C-10 | 예외 | 암세포 손실 변환 방지 | 암세포가 있는 PatternData | classic snapshot 변환 거부 | `PatternDataTest#rejectsLossyCancerSnapshot` |
 | C-11 | 정상/경계 | 모델 연결과 방어 복사 | Memento의 Point 변경, 중복/범위 밖 입력 | 독립 값, Board.restore 결과 일치 | `PersistenceMapperTest#copiesMutableMemento`, `PersistenceMapperTest#restoresClassicSnapshot` |
 | C-12 | 정상 | Controller 저장 순회·암세포 유지 | 여러 블록의 일반/암세포 | 기존 순서, 암 상태 왕복 | `GameControllerPersistenceTest#preservesTraversalAndCancer` |
-| C-13 | 예외 | Controller 기존 실패/Clock 정책 | 개방 실패/해석 실패 | 기존 보드·Clock·알림 정책 | 기존 `GameControllerTest`, `GameControllerBoardTest` 및 `GameControllerPersistenceTest#preservesOpenAndDecodeFailureOrder` |
+| C-13 | 예외 | Controller Load 실패 보존 (#63에서 계약 변경) | 개방 실패/해석 실패 | 보드·Clock 유지, Load 알림 없음 | `GameControllerTest`, `GameControllerBoardTest` 및 `GameControllerPersistenceTest#preservesStateOnOpenAndDecodeFailure` |
 | C-14 | 예외 | 프리셋 필드 계약 | null id/표시명/데이터 | NullPointerException | `PresetCatalogTest#rejectsNullPresetFields` |
