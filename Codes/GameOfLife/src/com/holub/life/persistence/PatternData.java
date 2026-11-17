@@ -18,12 +18,30 @@ public record PatternData(List<CellPosition> cells, Set<CellPosition> cancerCell
     if (!cancerCells.isEmpty()) {
       throw new IllegalStateException("A classic snapshot cannot represent cancer cells");
     }
+    return toSnapshot(rows, columns);
+  }
+
+  /** Clips file coordinates to the target board and preserves cancer membership. */
+  public BoardSnapshot toSnapshot(int rows, int columns) {
+    if (rows <= 0 || columns <= 0) {
+      throw new IllegalArgumentException("Board dimensions must be positive");
+    }
     Set<CellPosition> live = new HashSet<>();
     for (CellPosition cell : cells) {
-      if (cell.row() >= 0 && cell.row() < rows && cell.column() >= 0 && cell.column() < columns) {
+      if (inside(cell, rows, columns)) {
         live.add(cell);
       }
     }
-    return new BoardSnapshot(rows, columns, live);
+    Set<CellPosition> cancer = new HashSet<>();
+    for (CellPosition cell : cancerCells) {
+      if (inside(cell, rows, columns)) {
+        cancer.add(cell);
+      }
+    }
+    return new BoardSnapshot(rows, columns, live, cancer);
+  }
+
+  private static boolean inside(CellPosition cell, int rows, int columns) {
+    return cell.row() >= 0 && cell.row() < rows && cell.column() >= 0 && cell.column() < columns;
   }
 }
