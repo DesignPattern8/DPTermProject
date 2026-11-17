@@ -9,7 +9,9 @@ import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
+import com.holub.life.twoplayer.ui.TwoPlayerMode;
 import com.holub.life.ui.LifeFrame;
+import java.util.List;
 import java.util.Random;
 import java.util.Timer;
 
@@ -28,6 +30,6 @@ public final class Life {
             clock,
             cancerGame,
             new BoardFileStore(new LegacyLifeCodec()));
-    new LifeFrame(board, controller, clock);
+    new LifeFrame(board, controller, clock, List.of(new TwoPlayerMode()));
   }
 }

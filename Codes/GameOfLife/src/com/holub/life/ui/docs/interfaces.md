@@ -65,3 +65,36 @@ public final class GameResultAnnouncer implements GameListener {
 - `GameResultAnnouncer.boardChanged`: `GAME_OVER`일 때만 알림을 받은 스레드에서 `controller.gameResultMessage()`를 읽고, `onUiThread`에 `dialogs.showMessage(message)`를 넘긴다. 다른 알림은 무시한다. `LifeFrame`은 `SwingUtilities::invokeLater`를 넘긴다.
 - `SwingUserDialogs.showMessage`: `JOptionPane.showMessageDialog(messageParent, message, "Game of Life", INFORMATION_MESSAGE)`. 이벤트 스레드에서 부른다. `showError`는 계속 부모 없이(`null`) 띄운다(원본).
 - 사용하는 다른 도메인 API(#60): B `GameController.treat(int, int)`, `GameController.gameResultMessage()`, `GameListener.Change.GAME_OVER`, A `Cell.isCancer()`.
+
+# 게임 모드 전환 (`GameMode`, `ModeSwitch`, `ClassicMode`)
+
+- 제공 ui / 사용 조립 지점(`LifeFrame`, `Life`), 2인용(`twoplayer.ui.TwoPlayerMode`) / 담당 Son2kwon
+- 변경 이력: 2026-11-16, 최초 작성 (#7). 설계 근거: [twoplayer/007](../../twoplayer/docs/007-two-player-ui.md)
+
+```java
+public interface GameMode {
+  String menuName();
+  JComponent view();
+  void tick();
+  boolean supportsFileCommands();
+}
+public final class ModeSwitch {
+  public ModeSwitch(Clock clock, GameMode first, Consumer<Boolean> fileCommandsEnabled);
+  public void add(GameMode mode);
+  public void select(GameMode mode);   // EDT에서
+  public GameMode current();
+  public JComponent view();            // CardLayout. 크기는 지금 모드 화면을 따른다
+}
+public final class ClassicMode implements GameMode {
+  public ClassicMode(JComponent view, GameController controller);  // "Classic", tick = controller.tick(), 파일 명령 true
+}
+// 추가: GameMenu.installMenus(panel, controller, clock), GameMenu.setFileCommandsEnabled(panel, enabled)
+// 추가: LifeFrame(Cell, GameController, Clock, List<GameMode> otherModes)
+```
+
+- `ModeSwitch`는 만들 때 시계에 리스너를 하나 단다. tick마다 메뉴가 열려 있으면 건너뛰고(기존 `onTick`과 같음), 아니면 잠금 안에서 지금 모드의 `tick()`만 부른다.
+- `select`: 시계를 멈추고 → 잠금을 잡아(진행 중인 tick이 끝나길 기다림) 지금 모드를 바꾸고 → 카드를 바꾸고 창을 `pack()`하고 → `fileCommandsEnabled`에 새 모드의 값을 넘긴다. 등록하지 않은 모드면 `IllegalArgumentException`.
+- 모든 모드의 tick과 전환이 한 잠금 안에서 돌므로 두 모드의 보드가 동시에 세대를 진행하지 않는다(`Neighborhood`의 `static` 잠금, #74).
+- `GameMode.tick()`은 시계 스레드(Go → Tick이면 EDT)에서 잠금을 잡은 채 불린다. 오래 걸리면 모드 전환이 기다린다. 다른 스레드를 기다리는 일(예: `invokeAndWait`)을 하면 안 된다.
+- `GameMenu.install`은 원래 동작 그대로다(Grid·Go 메뉴 + 클래식 tick 리스너). `LifeFrame`은 `installMenus` + `ModeSwitch`를 쓴다. `otherModes`가 비어 있으면 Mode 메뉴를 달지 않는다.
+- `setFileCommandsEnabled`는 Grid의 Clear·Load·Store만 켜고 끈다. Exit은 그대로.

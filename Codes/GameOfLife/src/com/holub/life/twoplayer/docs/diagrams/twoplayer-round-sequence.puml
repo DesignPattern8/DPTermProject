@@ -1,0 +1,97 @@
+@startuml twoplayer-round-sequence
+' 2인용 게임 한 라운드(r < R) 시퀀스 다이어그램 (#6, #7에서 실제 호출 경로로 갱신)
+' 근거: ui/ModeSwitch.tick, twoplayer/ui/TwoPlayerMode.tick, twoplayer/ui/TwoPlayerPanel(버튼·클릭),
+'       TwoPlayerSession.click/confirm/pass/tick, SimulationPhase.tick,
+'       TwoPlayerGame.endSimulation/endIntervention/startSimulation,
+'       InterventionPhase.begin/pass/afterConfirm, PlacingPhase.select/confirm (feature/base cd72be6)
+' 리스너 호출(세션 → 패널 refresh)은 입력·진행한 tick마다 있으나 처음 한 번만 그린다.
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #444444
+  LifeLineBorderColor #444444
+  ParticipantBorderColor #444444
+  ParticipantBackgroundColor #FFFFFF
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title 한 라운드: 시뮬레이션 K세대 → 개입 → 다음 라운드 (r < R, 전멸 없음)
+
+actor "플레이어" as P
+participant "TwoPlayerPanel" as UI
+participant "Clock → ModeSwitch\n→ TwoPlayerMode" as C
+participant TwoPlayerSession as SS
+participant TwoPlayerGame as G
+participant "SimulationPhase\n(round r)" as S
+participant TwoPlayerBoard as B
+participant GameJudge as J
+participant "InterventionPhase\n(round r)" as I
+participant "SimulationPhase\n(round r + 1)" as S2
+
+== 시뮬레이션 (K세대) ==
+note over C : 플레이어가 Go 메뉴로 시계를 돌린다.\nModeSwitch는 tickLock 안에서\n지금 모드(TwoPlayerMode)의 tick만 부른다.
+loop 1 ~ K-1번째 세대
+  C -> SS : tick()
+  SS -> G : tick()
+  G -> S : tick()
+  S -> B : advanceGeneration()
+  S -> G : countGeneration()
+  S -> B : count(A), count(B)
+  S -> J : afterGeneration(scoreA, scoreB)
+  J --> S : Optional.empty()
+  note right of S : 한쪽이라도 0이면 결과가 오고\nG.endGame(result) → GAME_OVER (K세대 전이라도)
+  S --> SS : true
+  SS -> UI : 리스너 → refresh()\n(상태 표시줄 Simulation g/K, 보드 다시 그림)
+end
+C -> SS : tick()
+note left : K번째 세대
+SS -> G : tick()
+G -> S : tick()
+S -> B : advanceGeneration()
+S -> G : countGeneration()
+S -> B : count(A), count(B)
+S -> J : afterGeneration(scoreA, scoreB)
+J --> S : Optional.empty()
+S -> G : endSimulation(r, scoreA, scoreB)
+note right of G : r = R이면 afterLastRound로 판정 후 endGame
+G -> I ** : new InterventionPhase(G, r)
+G -> I : begin()
+note right of I : 선공: r 홀수 B, r 짝수 A.\n둘 수 없는 선공은 자동 패스
+S --> SS : true
+SS -> UI : 리스너 → refresh()\n(Round r Intervention | Turn: 선공)
+note over C, SS : 시계는 계속 돌지만 개입 단계의 tick은\ngame.tick() = false라 아무것도 하지 않는다\n(리스너도 부르지 않음).
+
+== 개입 (선공 B, r = 1 예) ==
+P -> UI : 보드 클릭
+UI -> SS : click(row, column)
+SS -> G : select(currentPlayer() = B, row, column)
+G -> I : select(B, row, column)
+I -> B : isEmpty(row, column)
+I --> SS : ACCEPTED (임시 배치, 보드에는 아직 없음)
+P -> UI : Confirm 버튼 / Enter
+UI -> SS : confirm()
+SS -> G : confirm(B)
+G -> I : confirm(B)
+I -> B : place(row, column, B)
+I -> I : afterConfirm()\nconsecutivePasses = 0, 차례 A
+I --> SS : ACCEPTED
+P -> UI : Pass 버튼 (A 차례)
+UI -> SS : pass()
+SS -> G : pass(A)
+G -> I : pass(A)
+I --> SS : ACCEPTED (consecutivePasses = 1, 차례 B)
+P -> UI : Pass 버튼 (B 차례)
+UI -> SS : pass()
+SS -> G : pass(B)
+G -> I : pass(B)
+I -> G : endIntervention(r)
+note right of I : consecutivePasses = 2
+G -> G : startSimulation(r + 1)
+G -> S2 ** : new SimulationPhase(G, r + 1)
+I --> SS : ACCEPTED
+SS -> UI : 리스너 → refresh()\n(Round r+1 Simulation 0/K)
+note over C : 시계가 돌고 있으면 다음 tick부터\n라운드 r + 1 시뮬레이션이 진행된다.
+@enduml

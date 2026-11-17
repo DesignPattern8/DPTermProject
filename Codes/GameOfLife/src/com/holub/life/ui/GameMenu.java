@@ -47,14 +47,33 @@ public final class GameMenu {
         new Entry(GO, "Fast", e -> clock.start(Speed.FAST)));
   }
 
-  /** Install the menus with the original Swing dialogs and System.exit(0). */
+  /**
+   * Install the menus with the original Swing dialogs and System.exit(0), and a clock listener
+   * that advances {@code controller} on every tick (the original behaviour).
+   */
   public static void install(BoardPanel panel, GameController controller, Clock clock) {
+    installMenus(panel, controller, clock);
+    clock.addClockListener(() -> onTick(controller));
+  }
+
+  /**
+   * Install only the Grid and Go menus. The caller decides what a clock tick drives ({@link
+   * ModeSwitch}, twoplayer/docs/007).
+   */
+  public static void installMenus(BoardPanel panel, GameController controller, Clock clock) {
     for (Entry entry : entries(controller, clock, new SwingUserDialogs(), () -> System.exit(0))) {
       // Same requesters as the original: the panel owns Grid, the clock owns Go.
       Object requester = entry.menu().equals(GRID) ? panel : clock;
       MenuSite.addLine(requester, entry.menu(), entry.label(), entry.action());
     }
-    clock.addClockListener(() -> onTick(controller));
+  }
+
+  /** Enable or disable Grid's Clear, Load and Store (disabled in two-player mode). Exit stays. */
+  public static void setFileCommandsEnabled(BoardPanel panel, boolean enabled) {
+    for (String name : new String[] {"Clear", "Load", "Store"}) {
+      JMenuItem item = MenuSite.getMyMenuItem(panel, GRID, name);
+      if (item != null) item.setEnabled(enabled);
+    }
   }
 
   /** Run the Go menu item with this label. Like the original, any other name stops the clock. */
@@ -72,7 +91,7 @@ public final class GameMenu {
     if (!menuIsActive()) controller.tick();
   }
 
-  private static boolean menuIsActive() {
+  static boolean menuIsActive() {
     MenuElement[] path = MenuSelectionManager.defaultManager().getSelectedPath();
     return path != null && path.length > 0;
   }

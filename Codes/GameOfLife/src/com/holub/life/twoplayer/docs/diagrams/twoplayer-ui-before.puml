@@ -1,0 +1,50 @@
+@startuml twoplayer-ui-before
+' #7 전: 창·메뉴·시계 연결 (feature/base 1889b16). 근거: ui/LifeFrame.java:15-22, ui/GameMenu.java:15-32, application/Clock.java:43-45
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+set separator none
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title 2인용 UI 통합 전 (이슈 7): 클래식 화면만 있음
+
+package com.holub.life.ui {
+  class LifeFrame
+  class BoardPanel
+  class GameMenu {
+    + {static} install(panel, controller, clock)
+    ~ {static} go(clock, name)
+    ~ {static} onTick(controller)
+  }
+}
+package com.holub.life.application {
+  class Clock {
+    + addClockListener(listener)
+    + start(speed) / stop() / tick()
+  }
+  class GameController {
+    + toggle() / clear() / load() / store()
+    + tick() : boolean
+  }
+}
+
+LifeFrame *-- BoardPanel
+LifeFrame ..> GameMenu : install
+GameMenu ..> Clock : Go 메뉴, 리스너 추가
+GameMenu ..> GameController : Grid 메뉴
+Clock --> "listeners" GameMenu : tick → onTick → controller.tick
+BoardPanel --> GameController : 클릭 → toggle
+
+note bottom of Clock
+  리스너를 뗄 수 없다.
+  2인용을 붙여도 클래식 tick 리스너가 남는다.
+end note
+@enduml

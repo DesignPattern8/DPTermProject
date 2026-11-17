@@ -1,0 +1,306 @@
+@startuml twoplayer-class
+' 2인용 게임 진행 모델 + 실제 보드 + UI 진입점의 모델 쪽 클래스 다이어그램 (#6, #5, #7)
+' 근거: com.holub.life.twoplayer (feature/base cd72be6), 003~007
+' 하위 패키지 twoplayer.ui(TwoPlayerMode·Panel·Renderer)와 ui.ModeSwitch는 twoplayer-ui-class.puml에 있다.
+' com.holub.life.model 타입은 2인용 보드가 쓰는 것만 그린다(멤버 일부 생략).
+' 공개(public) 타입은 흰색, package-private 타입은 회색. 필드·메서드는 실제 코드 이름 그대로.
+skinparam defaultFontName "Noto Sans CJK KR"
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+set separator none
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  ArrowColor #444444
+}
+skinparam class<<package-private>> {
+  BackgroundColor #EEEEEE
+}
+skinparam note {
+  BackgroundColor #FFFBE6
+  BorderColor #C9B458
+}
+
+title 2인용 게임 진행 모델, 실제 보드, 세션 (com.holub.life.twoplayer)
+
+package com.holub.life.twoplayer {
+
+  class TwoPlayerSession {
+    - settings : GameSettings
+    - listeners : List<Runnable>
+    - board : NeighborhoodTwoPlayerBoard
+    - game : TwoPlayerGame
+    - rejection : String
+    + TwoPlayerSession(settings : GameSettings)
+    + addListener(listener : Runnable)
+    + click(row : int, column : int) : Response
+    + confirm() : Response
+    + pass() : Response
+    + tick() : boolean
+    + newGame()
+    + status() : String
+    + snapshot() : Snapshot
+    + phase() : PhaseKind
+    + generationInRound() : int
+    + rows() : int
+    + columns() : int
+  }
+
+  class "TwoPlayerSession.Snapshot" as Snapshot <<record>> {
+    + cells : Player[][]
+    + tentative : Optional<Coordinate>
+    + currentPlayer : Player
+  }
+
+  class TwoPlayerGame {
+    - board : TwoPlayerBoard
+    - settings : GameSettings
+    - phase : Phase
+    - round : int
+    - generationInRound : int
+    + TwoPlayerGame(board : TwoPlayerBoard, settings : GameSettings)
+    + select(who : Player, row : int, column : int) : Response
+    + confirm(who : Player) : Response
+    + pass(who : Player) : Response
+    + tick() : boolean
+    + phase() : PhaseKind
+    + currentPlayer() : Player
+    + remaining(player : Player) : int
+    + round() : int
+    + generationInRound() : int
+    + tentative() : Optional<Coordinate>
+    + score(player : Player) : int
+    + result() : Optional<GameResult>
+    ~ board() : TwoPlayerBoard
+    ~ settings() : GameSettings
+    ~ countGeneration()
+    ~ startSimulation(newRound : int)
+    ~ endSimulation(finishedRound : int, scoreA : int, scoreB : int)
+    ~ endGame(result : GameResult)
+    ~ endIntervention(finishedRound : int)
+  }
+
+  interface TwoPlayerBoard {
+    + rows() : int
+    + columns() : int
+    + isEmpty(row : int, column : int) : boolean
+    + hasEmptyCell() : boolean
+    + place(row : int, column : int, owner : Player)
+    + advanceGeneration()
+    + count(owner : Player) : int
+  }
+
+  class GameSettings {
+    - placements : int
+    - generationsPerRound : int
+    - interventions : int
+    - rounds : int
+    + GameSettings(placements : int, generationsPerRound : int, interventions : int, rounds : int)
+    + {static} defaults() : GameSettings
+    + placements() : int
+    + generationsPerRound() : int
+    + interventions() : int
+    + rounds() : int
+  }
+
+  interface Phase <<package-private>> {
+    kind() : PhaseKind
+    select(who : Player, row : int, column : int) : Response
+    confirm(who : Player) : Response
+    pass(who : Player) : Response
+    tick() : boolean
+    currentPlayer() : Player
+    remaining(player : Player) : int
+    tentative() : Optional<Coordinate>
+    result() : Optional<GameResult>
+  }
+
+  abstract class PlacingPhase <<package-private>> {
+    # game : TwoPlayerGame
+    # current : Player
+    - remaining : Map<Player, Integer>
+    - tentative : Coordinate
+    # {abstract} allowsColumn(who : Player, column : int) : boolean
+    # {abstract} afterConfirm()
+    # clearTentative()
+  }
+
+  class InitialPlacementPhase <<package-private>>
+  class InterventionPhase <<package-private>> {
+    - round : int
+    - consecutivePasses : int
+    ~ begin()
+    - nextTurn()
+    - skipPlayersWhoCannotPlace()
+    - canPlace(player : Player) : boolean
+  }
+  class SimulationPhase <<package-private>> {
+    - game : TwoPlayerGame
+    - round : int
+  }
+  class GameOverPhase <<package-private>> {
+    - result : GameResult
+  }
+
+  class GameJudge <<package-private>> {
+    ~ {static} afterGeneration(scoreA : int, scoreB : int) : Optional<GameResult>
+    ~ {static} afterLastRound(scoreA : int, scoreB : int) : GameResult
+  }
+
+  enum Player {
+    A
+    B
+    + opponent() : Player
+  }
+  enum PhaseKind {
+    PLACEMENT
+    SIMULATION
+    INTERVENTION
+    GAME_OVER
+  }
+  enum Response {
+    ACCEPTED
+    WRONG_PHASE
+    NOT_YOUR_TURN
+    OUT_OF_BOARD
+    CELL_NOT_EMPTY
+    OPPONENT_HALF
+    NO_TENTATIVE_PLACEMENT
+    PASS_NOT_ALLOWED
+  }
+  class NeighborhoodTwoPlayerBoard {
+    - root : Neighborhood
+    - cells : TwoPlayerResident[64][64]
+    + NeighborhoodTwoPlayerBoard()
+    + rows() : int
+    + columns() : int
+    + isEmpty(row : int, column : int) : boolean
+    + hasEmptyCell() : boolean
+    + place(row : int, column : int, owner : Player)
+    + advanceGeneration()
+    + count(owner : Player) : int
+    + owner(row : int, column : int) : Optional<Player>
+    - cellAt(row : int, column : int) : TwoPlayerResident
+  }
+
+  class TwoPlayerResident <<package-private>> {
+    - owner : Player
+    - next : Player
+    - prepared : Player
+    ~ owner() : Player
+    ~ prepareOwner(owner : Player)
+    + figureNextState(north .. southwest : Cell) : boolean
+    + transition() : boolean
+    + toggle(row : int, column : int)
+    + isAlive() : boolean
+    + create() : Cell
+    + isDisruptiveTo() : Direction
+    + edge(row : int, column : int) : Cell
+    + widthInCells() : int
+    + clear()
+    .. 저장·암 메서드(transfer, createMemento, isCancer 등): 아무것도 안 함 / 미지원 ..
+  }
+
+  class Coordinate <<record>> {
+    + row : int
+    + column : int
+  }
+  class GameResult <<record>> {
+    + outcome : Outcome
+    + reason : EndReason
+    + scoreA : int
+    + scoreB : int
+  }
+  enum Outcome {
+    A_WINS
+    B_WINS
+    DRAW
+  }
+  enum EndReason {
+    WIPE_OUT
+    ROUNDS_COMPLETED
+  }
+}
+
+package com.holub.life.model {
+  interface Cell {
+    + figureNextState(...) : boolean
+    + transition() : boolean
+    + toggle(row : int, column : int)
+    + isAlive() : boolean
+    + create() : Cell
+    ..
+    + isCancer() / setCancer() / cureCancer()
+    + transfer(...) / createMemento()
+  }
+  class Neighborhood {
+    + Neighborhood(gridSize : int, prototype : Cell)
+    + figureNextState(...) : boolean
+    + transition() : boolean
+    + toggle(row : int, column : int)
+    + childAt(row : int, column : int) : Cell
+  }
+}
+
+TwoPlayerSession *--> "1" NeighborhoodTwoPlayerBoard : board (newGame마다 새로)
+TwoPlayerSession *--> "1" TwoPlayerGame : game (newGame마다 새로)
+TwoPlayerSession ..> Snapshot : snapshot()
+TwoPlayerGame o--> "1" TwoPlayerBoard
+TwoPlayerGame o--> "1" GameSettings
+TwoPlayerGame *--> "1" Phase : 현재 단계
+
+Phase <|.. PlacingPhase
+PlacingPhase <|-- InitialPlacementPhase
+PlacingPhase <|-- InterventionPhase
+Phase <|.. SimulationPhase
+Phase <|.. GameOverPhase
+
+PlacingPhase --> TwoPlayerGame : game
+SimulationPhase --> TwoPlayerGame : game
+SimulationPhase ..> GameJudge : afterGeneration
+TwoPlayerGame ..> GameJudge : afterLastRound
+GameOverPhase --> GameResult
+GameResult --> Outcome
+GameResult --> EndReason
+
+NeighborhoodTwoPlayerBoard ..|> TwoPlayerBoard
+NeighborhoodTwoPlayerBoard *--> "1" Neighborhood : root
+NeighborhoodTwoPlayerBoard --> "4096" TwoPlayerResident : cells (색인)
+TwoPlayerResident ..|> Cell
+Neighborhood ..|> Cell
+Neighborhood o--> "gridSize²" Cell : grid (prototype.create())
+TwoPlayerResident ..> TwoPlayerResident : 이웃 소유자 조회\n(instanceof)
+TwoPlayerResident --> Player : owner
+
+note right of Phase
+  State 패턴 (003).
+  TwoPlayerGame의 입력 메서드는
+  모두 phase에 위임한다.
+end note
+
+note bottom of TwoPlayerBoard
+  셀 상태를 숨기는 인터페이스.
+  앱의 구현은 NeighborhoodTwoPlayerBoard 하나(#5).
+  TwoPlayerGame은 이 인터페이스만 안다
+  (테스트 대역 StubBoard는 test 폴더에만 있음).
+end note
+
+note top of TwoPlayerSession
+  UI 진입점의 모델 쪽 (Facade, 007 결정 3).
+  click → game.select(currentPlayer(), …).
+  공개 메서드 synchronized (EDT 클릭 / 시계 tick).
+  상태가 바뀌면 리스너 호출 (Observer, 007 결정 2).
+  Swing 의존 없음.
+end note
+
+note right of NeighborhoodTwoPlayerBoard
+  006 후보 F: model 무수정.
+  Neighborhood(8, Neighborhood(8, TwoPlayerResident)).
+  place = prepareOwner(owner) → root.toggle(row, column)
+  CompositeBoard·Board는 쓰지 않음 (006 W3).
+end note
+
+note left of GameJudge
+  판정 규칙만 하는 순수 함수 (005).
+end note
+@enduml
