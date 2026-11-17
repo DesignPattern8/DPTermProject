@@ -69,3 +69,17 @@ Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의
 | SNAP-C07 | 정상 | 3인자 생성자 호환·이전 암 상태 제거 | 기존 암세포 보드에 3인자 생성자로 만든 클래식 스냅샷 복원 | 지정된 일반 세포만 남고 암세포 집합은 비어 있다. | `CancerSnapshotTest#classicSnapshotClearsPreviousCancerState` |
 | SNAP-C08 | 경계 | 빈 보드 캡처·복원 | 빈 보드 캡처 후 암세포를 배치하고 복원 | 생존·암세포 집합 모두 비어 있다. | `CancerSnapshotTest#emptySnapshotRemovesAllCellStates` |
 | SNAP-C09 | 예외 | null 암세포 집합·원소 거부 | null 집합 또는 null 원소가 든 암세포 집합 | `NullPointerException` | `CancerSnapshotTest#rejectsNullCancerCollectionsAndElements` |
+
+## legacy Load 경계 활성화 (#81)
+
+`GameController.load()`의 실제 파일 경로와 `Neighborhood.transfer(LOAD)`를 통해 복원한 뒤, 읽기 전용 `Board.snapshot()`으로 관찰한다. 세대 계산 전에 `createMemento()`를 호출하면 활성 정보가 바뀔 수 있어 관찰에 사용하지 않는다. 일반·암세포 규칙과 직접 편집 경로의 결과는 유지한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| LDB-01 | 정상·경계 | 정상 파일 Load 후 첫 세대·연속 세대 계산 | 64×64 블링커: 블록 내부, 하단·우측·모서리 경계, 보드 네 가장자리. 8×8 3중 구조의 상위 경계. 총 11개 배치 | 첫 세대는 명시한 회전·범위 절단 결과, 이후 세대는 직접 편집한 보드와 같다. | `LegacyLoadBoundaryTest#loadedBlinkerMatchesDirectEditing` |
+| LDB-02 | 경계 | 암세포 파일의 경계 너머 탄생 보존 | 하단·우측·모서리 경계의 암세포 3개, 총 3개 배치 | 첫 세대에 기존 3개와 수직/수평 양쪽 새 암세포가 남고 이후에도 직접 편집 경로와 같다. | `LegacyLoadBoundaryTest#loadedCancerMatchesDirectEditing` |
+| LDB-03 | 경계 | 유효한 빈 파일 복원 후 이전 세포 제거 | 경계 일반·암세포 배치 → 빈 패턴 파일 Load → tick | 생존·암세포가 모두 비고 다음 세대에도 되살아나지 않는다. | `LegacyLoadBoundaryTest#emptyFileClearsBoundaryCells` |
+| LDB-04 | 정상·경계 | Controller 외의 기존 Memento 복원 경로 | 일반·암세포가 있는 보드에 clear 없이 경계 블링커 Memento 적용 | 기존 배치를 대체하고 첫 세대 경계 출생도 직접 편집한 보드와 같다. | `LegacyLoadBoundaryTest#directMementoLoadReplacesCellsAndActivatesEdges` |
+| LDB-05 | 경계 | 빈 LOAD의 불필요한 활성화 방지 | clear한 중첩 보드에 빈 Memento LOAD | 반환 false, 모든 블록이 비활성·방향 NONE이며 빈 상태 유지 | `LegacyLoadBoundaryTest#emptyMementoLeavesClearedBlocksInactive` |
+| LDB-06 | 예외 | #63의 실패 시 상태 보존 계약 유지 | 잘못된 파일 또는 없는 파일 Load, 실행 중/정지 상태 | 일반·암세포 배치와 Clock 예약·속도 보존, 변경 알림 없음 | 기존 `GameControllerLoadTest#malformedInputsPreserveCellsAndCancer`, `#failedLoadKeepsRunningClockAndNextGeneration`, `#missingFilePreservesStateWithoutNotification` |
+| LDB-07 | 정상·경계 | 기존 저장 형식·복원 호환 | 기존 클래식 Point Collection, 암세포 형식, 중복·빈 데이터 | 기존 형식·좌표·중복 해석 및 STORE 동작 유지 | 기존 `ClassicMementoTest`, `CancerCodecTest`, `LegacyLifeCodecTest` |
