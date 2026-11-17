@@ -31,3 +31,5 @@
 
 - [C 저장·패턴 도메인의 공개 계약 및 도메인 간 변경 제안](../../persistence/docs/002-public-contract-and-refactoring.md)
 - B 리팩토링(#44)으로 `GameMenu`·`BoardPanel`의 화면 갱신 호출이 `GameListener` 구독 한 곳으로 모였다: [application/003](../../application/docs/003-pattern-analysis.md#8-1-구현-결과-44)
+
+- [B/C Load 실패 상태 보존 (#63)](../../application/docs/005-safe-load.md): 실패 시 EDITED를 받지 않으며 기존 Read Failed 오류 표시는 유지한다.

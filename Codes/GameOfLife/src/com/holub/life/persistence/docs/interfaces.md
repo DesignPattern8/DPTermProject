@@ -3,6 +3,8 @@
 - 제공: C(도현) / 사용: B 실행 제어, 조립 지점 Life. 모델 값 타입은 A 제공.
 - 변경 이력: 2026-11-14, #61 — 구 정적 load/flush/open API를 인스턴스 파일 API로 이전. 구현 결정은 [003](003-file-api-and-model-values.md). 팀원 합의 완료를 주장하지 않으며 변경 계약은 #61과 PR에서 검토한다.
 
+- 변경 이력: 2026-11-17, #63 — C 공개 API 변경 없음. B의 Load가 read(Path)를 사용하고 성공 이후에만 보드를 교체한다. [이슈 계약](https://github.com/DesignPattern8/DPTermProject/issues/63).
+
 ## 시그니처
 
 ```java
@@ -35,7 +37,7 @@ public final class PresetCatalog {
 - Codec은 입력 최상위 타입과 Point 원소를 검증한다. 잘못된 파일은 `IOException`; 파일/stream 오용의 모든 런타임 예외를 IOException으로 감싸지 않는다. stream은 호출자 소유이며 성공/실패 모두 Codec이 닫지 않는다. 쓰기 후 flush한다.
 - 일반 파일은 `LinkedList<Point>`를 기록한다. 암세포 파일은 기존 `LegacyLifeCodec$CancerStateData`, UID=1, Collection/Set 필드 형식을 유지한다. Point x=column/y=row다.
 - Store는 자신이 연 파일 stream을 try-with-resources로 항상 닫는다. read 준비 콜백과 write 캡처 콜백은 파일 개방 성공 후 한 번 실행한다. 콜백/Codec 예외를 그대로 전파한다. 출력은 먼저 truncate하며 원자적 교체를 제공하지 않는다(#64).
-- Load 준비에서 B가 Clock 정지·Clear한다. 파일 없음은 기존 보드/Clock 유지, 내용 오류는 빈 보드/정지, 성공·실패 모두 EDITED 알림이다(#63에서 정책 변경 예정). read가 반환할 때 입력 stream은 이미 닫혔다. 이후 B가 transfer(LOAD)로 적용한다.
+- B의 Load는 부작용 없는 `read(Path)`로 데이터를 읽고 입력 stream을 닫은 후 Memento로 변환한다. 모두 성공하면 Clock 정지·Clear·transfer(LOAD), 잠금 밖 EDITED 1회다. 개방/해석/입력 종료/변환 실패에는 보드·암세포·Clock을 변경하지 않고 EDITED도 보내지 않는다. `read(Path, Runnable)`의 afterOpen 계약 자체는 유지한다. 상세 정책은 [B의 005](../../application/docs/005-safe-load.md)를 따른다.
 - B는 Load 전체 및 Store의 Memento 캡처·값 변환을 기존 lock으로 직렬화한다. 인코딩 중에는 불변 데이터만 사용하므로 모델 lock이 필요 없다. C 자체는 보드 스레드를 조정하지 않는다. Codec 대역의 동시 사용 안전성은 주입자가 보장한다.
 - 카탈로그 순서는 block, blinker, glider이며 표시명은 Block, Blinker, Glider다. 좌표는 좌상단 기준 상대 위치다. 목록·패턴 데이터는 불변이며 알 수 없는 id(null 포함)는 Optional.empty다. `PatternPreset` 필드는 null을 거부한다. 화면 배치 원점·겹침·범위 처리와 없는 id에서 보드 무변경은 B/D #62의 계약이다.
 
