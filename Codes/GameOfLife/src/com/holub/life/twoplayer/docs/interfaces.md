@@ -83,7 +83,7 @@ final class TwoPlayerResident implements Cell {
 - **"소유자 지정 → toggle" 규칙**: 칸을 살릴 때는 `prepareOwner(owner)`를 부른 뒤 반드시 루트 `Neighborhood.toggle(row, column)`으로 살린다. 셀의 상태만 바꾸면 그 블록이 활성으로 표시되지 않아 다음 세대에 계산되지 않는다(`model/Neighborhood.java:120-128`, `313-320`). `NeighborhoodTwoPlayerBoard.place`가 이 순서를 지킨다.
 - `toggle`: 살아 있으면 `DEAD`로, `DEAD`면 정해 둔 소유자의 산 셀로 바꾸고, 정해 둔 소유자는 지운다. 정해 둔 소유자 없이 `DEAD` 칸을 toggle하면 `DEAD` 그대로다. 살아 있는 칸을 toggle하면 죽이므로, `place`는 살아 있는 칸을 먼저 거부한다.
 - 전이: rules.md 3장. 이웃은 같은 보드의 `TwoPlayerResident` 또는 `Cell.DUMMY`(`DEAD`)다.
-- 저장·암 메서드: `transfer`는 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`, `isCancer`는 false, `setCancer`·`cureCancer`는 아무것도 안 함(2인용 저장 미지원, rules.md 8장).
+- 저장·암 메서드: #71에 따라 `transfer(Memento, CellPosition, boolean)`을 구현하며 AWT 좌표에 의존하지 않는다. `transfer`는 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`, `isCancer`는 false, `setCancer`·`cureCancer`는 아무것도 안 함(2인용 저장 미지원, rules.md 8장).
 
 ---
 
