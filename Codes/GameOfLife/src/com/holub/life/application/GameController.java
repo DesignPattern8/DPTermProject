@@ -16,13 +16,14 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * one at a time, and tells {@link GameListener}s when the board changed.
  *
  * <p>Editing and generations go through {@link Board}. Load and Store still use the legacy {@link
- * Cell} memento path that {@code LegacyLifeCodec} reads and writes; {@code fileCells} must be the
- * same board that {@code board} wraps.
+ * Cell} memento path through immutable file data; {@code fileCells} must be the same board that
+ * {@code board} wraps.
  */
 public final class GameController {
   private final Board board;
   private final Cell fileCells;
   private final Clock clock;
+  private final BoardFileStore files;
   private final CancerGame cancerGame; // null: classic Life without cancer rules
   private final Object lock = new Object(); // Board calls must not overlap (model contract)
   private final List<GameListener> listeners = new CopyOnWriteArrayList<>();
@@ -31,8 +32,17 @@ public final class GameController {
     this(board, fileCells, clock, null);
   }
 
-  /** Runs {@code cancerGame} after every generation. It must act on the board that {@code board} wraps. */
+  /**
+   * Runs {@code cancerGame} after every generation. It must act on the board that {@code board}
+   * wraps.
+   */
   public GameController(Board board, Cell fileCells, Clock clock, CancerGame cancerGame) {
+    this(board, fileCells, clock, cancerGame, new BoardFileStore(new LegacyLifeCodec()));
+  }
+
+  public GameController(
+      Board board, Cell fileCells, Clock clock, CancerGame cancerGame, BoardFileStore files) {
+    this.files = java.util.Objects.requireNonNull(files, "files");
     this.board = board;
     this.fileCells = fileCells;
     this.clock = clock;
@@ -109,30 +119,26 @@ public final class GameController {
     return cancerGame == null ? null : cancerGame.resultMessage();
   }
 
-  /** Listeners are notified even when loading fails, as the original redrew after a failed load. */
+  /** Decode and close the input before changing the board or clock; only success emits EDITED. */
   public void load(File file) throws IOException {
-    try (InputStream in = BoardFileStore.openForLoad(file)) {
+    synchronized (lock) {
+      NeighborhoodState loaded = PersistenceMapper.restore(files.read(file.toPath()));
       clock.stop();
-      synchronized (lock) {
-        fileCells.clear();
-        NeighborhoodState memento = fileCells.createMemento();
-        LegacyLifeCodec.load(memento, in);
-        fileCells.transfer(memento, new Point(0, 0), Cell.LOAD);
-      }
-    } finally {
-      notifyListeners(GameListener.Change.EDITED);
+      fileCells.clear();
+      fileCells.transfer(loaded, new Point(0, 0), Cell.LOAD);
     }
+    notifyListeners(GameListener.Change.EDITED);
   }
 
   public void store(File file) throws IOException {
-    try (OutputStream out = BoardFileStore.openForStore(file)) {
-      clock.stop();
-      NeighborhoodState memento;
-      synchronized (lock) {
-        memento = fileCells.createMemento();
-      }
-      LegacyLifeCodec.flush(memento, out);
-    }
+    files.write(
+        file.toPath(),
+        () -> {
+          clock.stop();
+          synchronized (lock) {
+            return PersistenceMapper.capture(fileCells.createMemento());
+          }
+        });
   }
 
   private void notifyListeners(GameListener.Change change) {

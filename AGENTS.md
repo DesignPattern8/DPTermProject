@@ -29,6 +29,8 @@
 
 ### 1-2. PR을 쓸 때 docs에 문서화한다
 
+- A 모델은 사용자 요청에 따라 설계 결정·작업 기록을 루트 `docs/GTY.md`에 누적합니다. 공개 계약과 테스트 기준은 `model/docs/interfaces.md`·`model/docs/test-cases.md`에서 관리합니다.
+
 - REFACTOR / FEAT PR에는 **작업한 도메인 폴더의 `docs/` 문서를 같은 PR에 함께** 올립니다. 문서 없는 REFACTOR / FEAT PR은 머지하지 않습니다.
 - PR 본문(`.github/pull_request_template.md`)에는 요약과 문서 링크만 적고, 자세한 내용은 해당 도메인의 `docs/`에 씁니다.
 - PR에서 아래 세 가지는 비우지 않습니다.

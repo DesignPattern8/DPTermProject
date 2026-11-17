@@ -6,42 +6,65 @@ import com.holub.life.application.Speed;
 import com.holub.ui.MenuSite;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.*;
 
-/** The original Grid and Go actions, including the menu-open tick filter. */
+/** The original Grid and Go menus as one table of entries, plus the menu-open tick filter. */
 public final class GameMenu {
+  static final String GRID = "Grid";
+  static final String GO = "Go";
+
   private GameMenu() {}
 
-  public static void install(BoardPanel panel, GameController controller, Clock clock) {
-    MenuSite.addLine(
-        panel,
-        "Grid",
-        "Clear",
-        e -> controller.clear());
-    MenuSite.addLine(panel, "Grid", "Load", e -> load(controller));
-    MenuSite.addLine(panel, "Grid", "Store", e -> store(controller));
-    MenuSite.addLine(panel, "Grid", "Exit", e -> System.exit(0));
+  /** One menu item: the menu it belongs to, its label and what it does. */
+  public record Entry(String menu, String label, ActionListener action) {}
 
-    ActionListener modifier = e -> go(clock, ((JMenuItem) e.getSource()).getName());
-    MenuSite.addLine(clock, "Go", "Halt", modifier);
-    MenuSite.addLine(clock, "Go", "Tick (Single Step)", modifier);
-    MenuSite.addLine(clock, "Go", "Agonizing", modifier);
-    MenuSite.addLine(clock, "Go", "Slow", modifier);
-    MenuSite.addLine(clock, "Go", "Medium", modifier);
-    MenuSite.addLine(clock, "Go", "Fast", modifier);
+  /**
+   * The menu items in their original order: Grid (Clear, Load, Store, Exit), then Go (Halt, Tick,
+   * Agonizing, Slow, Medium, Fast). Building the table needs no window.
+   */
+  public static List<Entry> entries(
+      GameController controller, Clock clock, UserDialogs dialogs, Runnable exit) {
+    List<Entry> entries =
+        new ArrayList<>(
+            List.of(
+                new Entry(GRID, "Clear", e -> controller.clear()),
+                new Entry(GRID, "Load", e -> load(controller, dialogs)),
+                new Entry(GRID, "Store", e -> store(controller, dialogs)),
+                new Entry(GRID, "Exit", e -> exit.run())));
+    entries.addAll(goEntries(clock));
+    return List.copyOf(entries);
+  }
+
+  private static List<Entry> goEntries(Clock clock) {
+    return List.of(
+        new Entry(GO, "Halt", e -> clock.stop()),
+        new Entry(GO, "Tick (Single Step)", e -> clock.tick()),
+        new Entry(GO, "Agonizing", e -> clock.start(Speed.AGONIZING)),
+        new Entry(GO, "Slow", e -> clock.start(Speed.SLOW)),
+        new Entry(GO, "Medium", e -> clock.start(Speed.MEDIUM)),
+        new Entry(GO, "Fast", e -> clock.start(Speed.FAST)));
+  }
+
+  /** Install the menus with the original Swing dialogs and System.exit(0). */
+  public static void install(BoardPanel panel, GameController controller, Clock clock) {
+    for (Entry entry : entries(controller, clock, new SwingUserDialogs(), () -> System.exit(0))) {
+      // Same requesters as the original: the panel owns Grid, the clock owns Go.
+      Object requester = entry.menu().equals(GRID) ? panel : clock;
+      MenuSite.addLine(requester, entry.menu(), entry.label(), entry.action());
+    }
     clock.addClockListener(() -> onTick(controller));
   }
 
-  /** Map a Go menu item to the clock request. Like the original, any other item stops the clock. */
+  /** Run the Go menu item with this label. Like the original, any other name stops the clock. */
   static void go(Clock clock, String name) {
-    switch (name) {
-      case "Tick (Single Step)" -> clock.tick();
-      case "Agonizing" -> clock.start(Speed.AGONIZING);
-      case "Slow" -> clock.start(Speed.SLOW);
-      case "Medium" -> clock.start(Speed.MEDIUM);
-      case "Fast" -> clock.start(Speed.FAST);
-      default -> clock.stop(); // "Halt"
-    }
+    for (Entry entry : goEntries(clock))
+      if (entry.label().equals(name)) {
+        entry.action().actionPerformed(null);
+        return;
+      }
+    clock.stop();
   }
 
   /** Advance a generation unless a menu is open. Redrawing is done by the panel's GameListener. */
@@ -54,21 +77,19 @@ public final class GameMenu {
     return path != null && path.length > 0;
   }
 
-  private static void load(GameController controller) {
+  private static void load(GameController controller, UserDialogs dialogs) {
     try {
-      controller.load(FileDialogs.userSelected(".", ".life", "Life File", "Load"));
+      controller.load(dialogs.chooseFile("Load"));
     } catch (IOException e) {
-      JOptionPane.showMessageDialog(
-          null, "Read Failed!", "The Game of Life", JOptionPane.ERROR_MESSAGE);
+      dialogs.showError("Read Failed!");
     }
   }
 
-  private static void store(GameController controller) {
+  private static void store(GameController controller, UserDialogs dialogs) {
     try {
-      controller.store(FileDialogs.userSelected(".", ".life", "Life File", "Write"));
+      controller.store(dialogs.chooseFile("Write"));
     } catch (IOException e) {
-      JOptionPane.showMessageDialog(
-          null, "Write Failed!", "The Game of Life", JOptionPane.ERROR_MESSAGE);
+      dialogs.showError("Write Failed!");
     }
   }
 }

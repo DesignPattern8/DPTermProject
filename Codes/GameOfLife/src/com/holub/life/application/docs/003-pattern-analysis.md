@@ -1,6 +1,6 @@
 # [003] B 도메인 기존 패턴 분석과 GoF 리팩토링 방향
 
-- 상태: 채택 (D1~D6, 2026-11-07). 구현: [#44](https://github.com/DesignPattern8/DPTermProject/issues/44)
+- 상태: 채택 (D1~D6, 2026-11-07). Load 실패 시 Clear/정지/알림 계약은 대체됨(→ [005](005-safe-load.md), #63). 구현: [#44](https://github.com/DesignPattern8/DPTermProject/issues/44)
 - 작성: 시형 / 2026-11-07 / [#43](https://github.com/DesignPattern8/DPTermProject/issues/43)
 - 기준 코드: `main` `4afc828` (#25 도메인 추출 이후). 줄 번호는 이 커밋 기준이다.
 - 범위: `application/Clock`, `application/GameController`, 그리고 B의 실행 정책이 아직 남아 있는 `ui/GameMenu`의 Go·tick 부분. 코드는 바꾸지 않는다. 기능 추가(Undo/Redo 등)는 다루지 않는다.

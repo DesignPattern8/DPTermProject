@@ -1,0 +1,45 @@
+@startuml 003-after
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+title C after (#61)
+class Life
+class GameController
+class PersistenceMapper
+class BoardFileStore {
+  read(Path): PatternData
+  read(Path, Runnable): PatternData
+  write(Path, PatternData)
+  write(Path, Supplier<PatternData>)
+}
+interface PatternCodec {
+  read(InputStream): PatternData
+  write(PatternData, OutputStream)
+}
+class LegacyLifeCodec
+class "LegacyLifeCodec.CancerStateData" as CancerStateData
+class PatternData <<record>> {
+  cells: List<CellPosition>
+  cancerCells: Set<CellPosition>
+  toClassicSnapshot(rows, columns): BoardSnapshot
+}
+class CellPosition <<record, A>>
+class BoardSnapshot <<record, A>>
+class NeighborhoodState <<A>>
+class PatternPreset <<record>>
+class PresetCatalog
+Life --> GameController
+Life ..> BoardFileStore : injects
+Life ..> LegacyLifeCodec : assembles
+GameController --> BoardFileStore
+GameController --> PersistenceMapper
+PersistenceMapper ..> NeighborhoodState
+PersistenceMapper ..> PatternData
+BoardFileStore --> PatternCodec : owns file streams
+PatternCodec <|.. LegacyLifeCodec
+PatternCodec ..> PatternData
+LegacyLifeCodec --> CancerStateData : same wire format
+PatternData --> CellPosition
+PatternData ..> BoardSnapshot : classic projection
+PresetCatalog --> PatternPreset
+PatternPreset --> PatternData
+@enduml
