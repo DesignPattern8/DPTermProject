@@ -4,10 +4,12 @@ C는 파일 형식·파일 스트림 수명과 불변 프리셋 데이터를 제
 
 - [005 Legacy 입력 허용 타입·자원 한도 (#65)](005-legacy-input-policy.md)
 - [#65 테스트 우선 검증 결과](verification-065.md)
+- [004 실패 시 기존 파일 보존·원자적 교체](004-atomic-file-replacement.md)
 - [003 구현 결정·후속 작업](003-file-api-and-model-values.md)
 - [공개 인터페이스와 계약](interfaces.md)
 - [테스트 케이스](test-cases.md)
-- [검증 결과](verification.md)
+- [#64 안전한 Store 검증 결과](verification-064.md)
+- [#61 검증 결과](verification.md)
 - [002 당시 분석·제안 기록](002-public-contract-and-refactoring.md)
 - [001 최초 파일 인코딩 추출](001-domain-extraction.md)
 - [A 모델 인계 계약](../../model/docs/interfaces.md#후속-작업-인계)

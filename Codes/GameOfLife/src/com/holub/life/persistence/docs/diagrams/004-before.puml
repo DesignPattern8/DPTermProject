@@ -1,0 +1,16 @@
+@startuml 004-before
+title Store before #64 (084d6c7)
+participant GameController as B
+participant BoardFileStore as C
+participant PatternCodec as Codec
+participant "Target file" as Target
+B -> C : write(path, capture)
+C -> Target : open / truncate
+C -> B : capture (stop Clock, snapshot)
+B --> C : PatternData
+C -> Codec : write(data, target stream)
+Codec -> Target : partial bytes
+Codec --> C : IOException
+C -> Target : close
+C --> B : IOException\n(original content already lost)
+@enduml

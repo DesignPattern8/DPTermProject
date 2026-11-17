@@ -62,3 +62,25 @@
 | FIL-15 | 예외 | skip도 바이트 한도 적용 | 거대한 primitive 클래스 annotation | IOException, 실제 소비 ≤1 MiB | `LegacyInputPolicyTest#countsSkippedClassAnnotationsAgainstByteLimit` |
 
 기존 CL-M/CAN-P/C-01~14 및 고정 암세포 fixture 테스트는 유지한다. readObject 표식은 정수 카운터만 변경하는 무해한 테스트 객체다.
+## #64 안전한 Store — 구현 전 정의 (2026-11-16)
+
+정상/경계/예외 기대를 먼저 정의하고 아래 회귀 테스트를 작성한다. 기존 C/APP/CAN 테스트는 유지한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| SAFE-01 | 예외 | capture 실패 시 원본 보존 | 기존 파일 + 예외 Supplier | 동일 바이트·파일 목록, 동일 예외 | `SafeBoardFileStoreTest#captureFailurePreservesExistingFile` |
+| SAFE-02 | 예외 | 부분 기록 실패 시 원본 보존 | 일부 기록 후 IOException Codec | 원본 바이트 유지·임시 파일 없음 | `SafeBoardFileStoreTest#partialWriteFailurePreservesExistingFile` |
+| SAFE-03 | 경계/예외 | 새 경로 실패 시 찌꺼기 제거 | 없는 대상 + 기록 실패 | 대상/임시 파일 모두 없음 | `SafeBoardFileStoreTest#failedNewSaveLeavesNoFiles` |
+| SAFE-04 | 정상 | 완성 전 원본 비변경 | Codec 기록 중 원본 읽기 | 원본 바이트를 계속 읽을 수 있음 | `SafeBoardFileStoreTest#targetRemainsReadableWhileEncoding` |
+| SAFE-05 | 정상 | 기존/새 파일 저장 성공 | 기존 파일과 없는 경로에 PatternData | 같은 패턴 복원·임시 파일 없음 | `SafeBoardFileStoreTest#successfulSaveReplacesOrCreatesOnlyTarget` |
+| SAFE-06 | 경계 | 기존 POSIX 권한 보존 | rw-r----- 파일 | 교체 후 같은 rwx 권한 | `SafeBoardFileStoreTest#preservesExistingPosixPermissions` |
+| SAFE-07 | 예외 | 링크 대상 거부 | 일반/깨진 symbolic link | capture 미호출·링크/원본 유지 | `SafeBoardFileStoreTest#rejectsSymbolicLinksBeforeCapture` |
+| SAFE-08 | 예외 | 잘못된 경로 준비 실패 | 디렉터리/부모 없음/부모가 파일 | capture 미호출·원본 유지 | `SafeBoardFileStoreTest#rejectsInvalidTargetsBeforeCapture` |
+| SAFE-09 | 예외 | 읽기 전용 파일 덮어쓰기 방지 | POSIX r--r----- 파일 | capture 미호출·내용/권한 유지 | `SafeBoardFileStoreTest#rejectsReadOnlyTargetBeforeCapture` |
+| SAFE-10 | 예외 | 이동 실패 원본 보존 | 실패 이동 대역 + 기존/없는 대상 | 이전 상태 유지·임시 파일 삭제 | `AtomicCommitTest#moveFailurePreservesTargetAndCleansTemporaryFile` |
+| SAFE-11 | 예외 | 비원자적 fallback 금지 | AtomicMoveNotSupportedException 대역 | 같은 예외·원본 보존·이동 1회 | `AtomicCommitTest#unsupportedAtomicMoveDoesNotRetry` |
+| SAFE-12 | 정상 | 같은 폴더와 stream 종료 확인 | 이동 직전 임시 파일/stream 확인 | 형제 경로·완성 바이트·닫힌 stream | `AtomicCommitTest#commitsCompletedSiblingAfterStreamClosed` |
+| SAFE-13 | 예외 | 정리 실패도 보고 | 이동 실패 후 삭제 불가 임시 경로 | 원래 예외 + suppressed 삭제 예외 | `AtomicCommitTest#cleanupFailureIsSuppressedOnOriginalFailure` |
+| SAFE-14 | 예외 | B 연동에서 원본·모델 유지 | 암세포/일반 셀 보드 + 실패 Codec | 파일·셀 상태 유지, Clock 정지, 알림 없음 | `GameControllerPersistenceTest#failedStorePreservesFileAndBoard` |
+
+POSIX 권한·심볼릭 링크 테스트는 해당 파일 시스템 기능이 있을 때 실행한다. 임시 테스트 자원은 @TempDir 또는 finally에서 정리한다.
