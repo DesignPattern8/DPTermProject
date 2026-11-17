@@ -1,0 +1,31 @@
+@startuml 005-after
+title Load after #63
+participant "D / caller" as D
+participant GameController as G
+participant BoardFileStore as F
+participant PatternCodec as C
+participant Clock as T
+participant "Cell / board" as B
+participant GameListener as L
+D -> G : load(file)
+group controller lock
+  G -> F : read(path)
+  F -> F : open input
+  F -> C : read(input)
+  C --> F : data or IOException
+  F -> F : close input
+  F --> G : PatternData or IOException
+  break open / read / close failure
+    G --> D : IOException, state unchanged, no EDITED
+  end
+  G -> G : PersistenceMapper.restore(data)
+  break conversion failure
+    G --> D : exception, state unchanged, no EDITED
+  end
+  G -> T : stop()
+  G -> B : clear()
+  G -> B : transfer(loaded, LOAD)
+end
+G -> L : EDITED once, outside lock
+G --> D : return
+@enduml

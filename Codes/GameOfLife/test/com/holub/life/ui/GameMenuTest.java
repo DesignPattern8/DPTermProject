@@ -207,11 +207,14 @@ class GameMenuTest {
 
   @Test
   void loadFailureShowsReadFailed() throws Exception {
+    board.toggle(5, 6);
+    Set<Point> before = liveCells();
     Path file = directory.resolve("bad.life");
     Files.write(file, new byte[] {1, 2, 3, 4});
     dialogs.choice = file.toFile();
     run("Grid", "Load");
     assertEquals(List.of("Read Failed!"), dialogs.errors);
+    assertEquals(before, liveCells());
   }
 
   @Test

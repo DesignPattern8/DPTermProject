@@ -3,9 +3,9 @@ package com.holub.life.application;
 import com.holub.life.model.Board;
 import com.holub.life.model.Cell;
 import com.holub.life.model.CellPosition;
+import com.holub.life.model.NeighborhoodState;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
-import com.holub.life.persistence.PatternData;
 import java.awt.Point;
 import java.io.*;
 import java.util.List;
@@ -119,22 +119,15 @@ public final class GameController {
     return cancerGame == null ? null : cancerGame.resultMessage();
   }
 
-  /** Listeners are notified even when loading fails, as the original redrew after a failed load. */
+  /** Decode and close the input before changing the board or clock; only success emits EDITED. */
   public void load(File file) throws IOException {
-    try {
-      synchronized (lock) {
-        PatternData data =
-            files.read(
-                file.toPath(),
-                () -> {
-                  clock.stop();
-                  fileCells.clear();
-                });
-        fileCells.transfer(PersistenceMapper.restore(data), new Point(0, 0), Cell.LOAD);
-      }
-    } finally {
-      notifyListeners(GameListener.Change.EDITED);
+    synchronized (lock) {
+      NeighborhoodState loaded = PersistenceMapper.restore(files.read(file.toPath()));
+      clock.stop();
+      fileCells.clear();
+      fileCells.transfer(loaded, new Point(0, 0), Cell.LOAD);
     }
+    notifyListeners(GameListener.Change.EDITED);
   }
 
   public void store(File file) throws IOException {

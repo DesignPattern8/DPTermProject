@@ -4,6 +4,7 @@
 - 변경 이력: 2026-11-16, #64 — write의 기존 파일 직접 truncate를 임시 파일 기록·원자적 교체로 변경. [004](004-atomic-file-replacement.md). 공개 시그니처는 유지한다.
 - 변경 이력: 2026-11-14, #61 — 구 정적 load/flush/open API를 인스턴스 파일 API로 이전. 구현 결정은 [003](003-file-api-and-model-values.md). 팀원 합의 완료를 주장하지 않으며 변경 계약은 #61과 PR에서 검토한다.
 
+- 변경 이력: 2026-11-17, #63 — C 공개 API 변경 없음. B의 Load가 read(Path)를 사용하고 성공 이후에만 보드를 교체한다. [이슈 계약](https://github.com/DesignPattern8/DPTermProject/issues/63).
 - 변경 이력: 2026-11-16, #65 — 공개 시그니처 유지, Legacy 입력 허용 클래스와 자원 한도 축소, 쓰기 원소 한도 추가. [005](005-legacy-input-policy.md)와 #65 PR에서 검토하며 별도 팀원 합의 완료를 주장하지 않는다.
 
 ## 시그니처
@@ -40,6 +41,8 @@ public final class PresetCatalog {
 - 첫 객체를 해석하는 동안 소비하는 바이트 ≤1 MiB, 깊이 ≤8, 참조 ≤65,536, 개별 배열 길이 ≤32,768, 생존/암세포 목록은 각각 ≤16,384개다. 금지 타입/그래프 초과는 `InvalidClassException`, 바이트/원소 초과는 `IOException`이다. 첫 객체 뒤의 데이터는 기존처럼 해석하지 않는다.
 - Legacy 쓰기는 각 목록의 원소 수를 출력 시작 전에 검사한다. 초과하면 `IOException`이고 전달된 stream을 변경하지 않는다. 다만 현재 `BoardFileStore`의 선행 truncate는 별도 #64 변경 대상이다. 직렬화 바이트 형식과 좌표 해석은 유지한다.
 - 일반 파일은 `LinkedList<Point>`를 기록한다. 암세포 파일은 기존 `LegacyLifeCodec$CancerStateData`, UID=1, Collection/Set 필드 형식을 유지한다. Point x=column/y=row다.
+- Store는 자신이 연 파일 stream을 try-with-resources로 항상 닫는다. read 준비 콜백과 write 캡처 콜백은 파일 개방 성공 후 한 번 실행한다. 콜백/Codec 예외를 그대로 전파한다. 출력은 먼저 truncate하며 원자적 교체를 제공하지 않는다(#64).
+- B의 Load는 부작용 없는 `read(Path)`로 데이터를 읽고 입력 stream을 닫은 후 Memento로 변환한다. 모두 성공하면 Clock 정지·Clear·transfer(LOAD), 잠금 밖 EDITED 1회다. 개방/해석/입력 종료/변환 실패에는 보드·암세포·Clock을 변경하지 않고 EDITED도 보내지 않는다. `read(Path, Runnable)`의 afterOpen 계약 자체는 유지한다. 상세 정책은 [B의 005](../../application/docs/005-safe-load.md)를 따른다.
 - Store는 자신이 연 stream을 try-with-resources로 닫는다. read 콜백은 입력 파일 개방 후, write 캡처는 같은 폴더의 임시 파일 준비·개방 후 한 번 실행한다. write는 기록·close·권한 적용 성공 후 원자적으로 대상 파일을 교체한다. 기존 파일을 먼저 truncate하지 않는다. 공개 write 시그니처와 B의 호출 방식은 유지한다.
 - write는 일반 파일 또는 없는 대상만 지원한다. 최종 심볼릭 링크·디렉터리·특수 파일·쓰기 불가 대상은 capture 전에 IOException으로 거부한다. 부모 경로는 실제 경로로 해석하고 자동 생성하지 않는다. POSIX 기존 rwx 권한은 복사하고 새 파일은 임시 파일의 제한적인 기본 권한을 유지한다. owner/ACL/확장 속성·하드 링크 관계 보존은 보장하지 않는다.
 - 캡처·기록·close·권한·이동 실패는 원래 예외를 전파하고 임시 파일 삭제를 시도한다. 삭제 실패는 잔여 경로를 담은 suppressed 예외로 제공한다. 원자적 이동/교체가 불가능하면 실패하며 비원자적 fallback은 없다. 강제 종료·전원 중단에 대한 내구성과 외부 프로세스의 동시 변경은 범위 밖이다. 상세 정책은 004를 따른다.

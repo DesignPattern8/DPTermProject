@@ -10,6 +10,8 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 - [전체 이전 구조·전후 UML](002-domain-layout.md)
 - [기존 패턴 분석과 GoF 리팩토링 (채택, #43·#44)](003-pattern-analysis.md)
 - [Board 연결과 보드 호출 직렬화 (채택, #55)](004-board-connection.md)
+- [Load 성공 후 적용·실패 상태 보존 (#63)](005-safe-load.md)
+- [#63 검증 결과](verification-063.md)
 - [검증 결과](verification.md)
 
 - [main 병합 후 CI 복구 (#29)](verification.md#2026-11-04-main-병합-후-ci-복구-29)

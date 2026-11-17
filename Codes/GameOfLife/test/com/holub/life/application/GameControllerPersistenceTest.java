@@ -102,8 +102,8 @@ class GameControllerPersistenceTest {
     Path bad = directory.resolve("bad");
     Files.write(bad, new byte[] {1, 2, 3});
     assertThrows(IOException.class, () -> controller.load(bad.toFile()));
-    assertEquals(1, ticks.stops);
-    assertTrue(root.createMemento().liveCells().isEmpty());
-    assertEquals(List.of(GameListener.Change.EDITED, GameListener.Change.EDITED), changes);
+    assertEquals(0, ticks.stops);
+    assertEquals(List.of(new Point(3, 2)), root.createMemento().liveCells());
+    assertTrue(changes.isEmpty());
   }
 }
