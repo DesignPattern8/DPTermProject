@@ -34,7 +34,10 @@ class GameControllerPersistenceTest {
     root.toggle(1, 9);
     root.toggle(9, 1);
     root.toggle(7, 7);
-    var expected = new ArrayList<>(root.createMemento().liveCells());
+    var expected =
+        root.createMemento().liveCells().stream()
+            .map(cell -> new Point(cell.column(), cell.row()))
+            .toList();
     Path file = directory.resolve("board.life");
     controller.store(file.toFile());
     try (var in = new ObjectInputStream(Files.newInputStream(file))) {
@@ -96,14 +99,14 @@ class GameControllerPersistenceTest {
     assertThrows(
         FileNotFoundException.class, () -> controller.load(directory.resolve("missing").toFile()));
     assertEquals(0, ticks.stops);
-    assertTrue(root.createMemento().isAlive(new Point(3, 2)));
+    assertTrue(root.createMemento().isAlive(new CellPosition(2, 3)));
     assertThrows(IOException.class, () -> controller.store(directory.toFile()));
     assertEquals(0, ticks.stops);
     Path bad = directory.resolve("bad");
     Files.write(bad, new byte[] {1, 2, 3});
     assertThrows(IOException.class, () -> controller.load(bad.toFile()));
     assertEquals(0, ticks.stops);
-    assertEquals(List.of(new Point(3, 2)), root.createMemento().liveCells());
+    assertEquals(List.of(new CellPosition(2, 3)), root.createMemento().liveCells());
     assertTrue(changes.isEmpty());
   }
 }

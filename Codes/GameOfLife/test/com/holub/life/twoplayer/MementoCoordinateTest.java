@@ -17,7 +17,6 @@ import com.holub.life.model.NeighborhoodState;
 import com.holub.life.model.Resident;
 import com.holub.life.persistence.LegacyLifeCodec;
 import com.holub.life.persistence.PatternData;
-import java.awt.Point;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -236,8 +235,8 @@ class MementoCoordinateTest {
     assertEquals(expected, PersistenceMapper.capture(restored));
   }
 
-  private static Point position(int row, int column) {
-    return new Point(column, row);
+  private static CellPosition position(int row, int column) {
+    return new CellPosition(row, column);
   }
 
   private static Neighborhood neighborhood(int depth) {
