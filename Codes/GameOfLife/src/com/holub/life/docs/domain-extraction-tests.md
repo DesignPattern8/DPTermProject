@@ -3,6 +3,7 @@
 - 최초 추출 기준: e38ce7a. 2026-11-04 main 병합 후 #16·#17·#18의 확정 계약을 반영한다(#29). 새 기능·버그 수정·새 패턴 도입 없이 메서드를 추출한다.
 - 기존 CL-G/E/M/C 33개와 smoke 1개의 입력·기대값은 유지한다. 패키지 import와 추출된 메서드 호출만 조정한다.
 - 구현 전 아래 케이스를 정의하고 원본으로 기대값을 확보한다.
+- #63에서 EXT-A03의 과거 Clear 기대값을 상태 보존으로 변경했다. [B의 현재 Load 계약](../application/docs/005-safe-load.md)을 따른다. EXT-M01~03은 별도 테스트 helper의 원본 순서 특성 기록이며 GameController의 현재 정책을 나타내지 않는다.
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
@@ -16,7 +17,7 @@
 | EXT-M03 | 예외 | null 컬렉션을 파일 오류로 처리 | 직렬화된 null | IOException, 빈 보드 | LoadFailureCharacterizationTest#nullCollectionThrowsIOException |
 | EXT-A01 | 정상 | 제어 추출 후 한 세대 진행 | blinker | 한 tick 뒤 기존 수직 좌표 | GameControllerTest#tickAdvancesOneGeneration |
 | EXT-A02 | 예외 | 파일 열기 실패 시 Clear 이전에 실패 | 존재하지 않는 경로 | 기존 보드 유지 | GameControllerTest#missingFileKeepsBoard |
-| EXT-A03 | 예외 | 파일 해석 실패 시 Clear 이후에 실패 | garbage 파일 | 기존 보드가 비워짐 | GameControllerTest#invalidFileClearsBoard |
+| EXT-A03 | 예외 | 파일 해석 실패 시 보드 보존 (#63에서 변경) | garbage 파일 | IOException, 기존 보드 유지 | GameControllerTest#invalidFileKeepsBoard |
 | EXT-A04 | 경계 | 기존 타이머 주기·즉시 시작·취소 유지 | 수동 Timer 대역 | 지연 0, 요청 주기, 교체/정지 시 취소 | ClockTest#scheduleAndStopKeepOriginalTiming |
 | EXT-U01 | 정상 | Go 메뉴 속도·Tick 매핑 유지 | 각 메뉴 명령 | 500/150/70/30/0ms 및 단일 tick | GameMenuTest#goCommandsKeepOriginalActions |
 | EXT-U02 | 경계 | 메뉴 선택 중 tick 억제 유지 | 선택 경로 유/무 | 선택 중 미진행, 해제 후 진행 | GameMenuTest#openMenuSuppressesTick |
@@ -31,5 +32,7 @@
 | EXT-A06 | 예외 | 출력 파일 열기 실패 시 기존 보드 유지 | 디렉터리를 저장 경로로 전달 | IOException, 기존 셀 유지 | GameControllerTest#invalidOutputDoesNotClearBoard |
 
 | EXT-N01 | 정상/경계/예외 | 실제 Swing 연결의 전후 동작 보존 | 메뉴 10개, 클릭, Tick, Store, Clear, Load, 취소, 잘못된 파일, Exit | 원본/변경본 모두 같은 검증 통과 및 Exit 코드 0 | NativeUiSmoke#main |
+
+EXT-N01의 invalid-load 단계는 #63에서 기존 배치 보존으로 기대값을 변경한다. 나머지 메뉴·취소·오류 표시 계약은 유지한다.
 
 EXT-N01은 디스플레이가 있는 환경에서 별도 프로세스로 실행한다. CI의 headless JUnit을 비활성화하거나 건너뛰게 하지 않는다.

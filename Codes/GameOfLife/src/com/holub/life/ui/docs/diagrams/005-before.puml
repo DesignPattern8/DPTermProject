@@ -1,0 +1,52 @@
+@startuml 005-before
+' D 도메인 메뉴 연결 리팩토링 전 (refactor/44-b-application b543703, #45)
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "ui (D)" {
+  class GameMenu <<final, static>> {
+    + {static} install(BoardPanel, GameController, Clock)
+    ~ {static} go(Clock, name : String)
+    ~ {static} onTick(GameController)
+    - {static} menuIsActive() : boolean
+    - {static} load(GameController)
+    - {static} store(GameController)
+  }
+  class FileDialogs <<static>> {
+    + {static} userSelected(startHere, extension, description, selectButtonText) : File
+  }
+  class BoardPanel
+  class LifeFrame
+}
+
+package "com.holub.ui" {
+  class MenuSite <<static>> {
+    + {static} addLine(requester, menu, name, ActionListener)
+  }
+}
+
+package "application (B)" {
+  class Clock
+  class GameController
+  enum Speed
+}
+
+package "javax.swing" {
+  class JOptionPane
+}
+
+LifeFrame --> GameMenu : install()
+GameMenu ..> MenuSite : addLine x10
+GameMenu ..> FileDialogs : userSelected()
+GameMenu ..> JOptionPane : showMessageDialog()
+GameMenu ..> Clock : go(): name switch
+GameMenu ..> Speed
+GameMenu ..> GameController
+GameMenu ..> BoardPanel : requester
+
+note right of GameMenu
+  Go 6항목이 리스너 하나를 공유하고
+  getName() 문자열 switch로 분기.
+  Exit는 System.exit(0) 직접 호출.
+end note
+@enduml

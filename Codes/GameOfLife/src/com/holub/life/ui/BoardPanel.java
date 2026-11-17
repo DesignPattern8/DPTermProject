@@ -3,6 +3,7 @@ package com.holub.life.ui;
 import com.holub.life.application.GameController;
 import com.holub.life.application.GameListener;
 import com.holub.life.model.Cell;
+import com.holub.life.model.CellPosition;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
@@ -48,9 +49,9 @@ public final class BoardPanel extends JPanel {
             Rectangle bounds = getBounds();
             bounds.x = 0;
             bounds.y = 0;
-            Point position = GridCoordinateMapper.position(outermostCell, e.getPoint(), bounds);
-            if (SwingUtilities.isRightMouseButton(e)) controller.treat(position.y, position.x);
-            else controller.toggle(position.y, position.x);
+            CellPosition cell = GridCoordinateMapper.cellAt(outermostCell, e.getPoint(), bounds);
+            if (SwingUtilities.isRightMouseButton(e)) controller.treat(cell.row(), cell.column());
+            else controller.toggle(cell.row(), cell.column());
           }
         });
 
