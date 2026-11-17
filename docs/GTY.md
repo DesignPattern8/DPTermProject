@@ -12,7 +12,8 @@
 | 클래식 보드 Facade | [#49](https://github.com/DesignPattern8/DPTermProject/issues/49) | [#50](https://github.com/DesignPattern8/DPTermProject/pull/50) | main 병합, 당시 전체 68개 테스트 통과 |
 | 클래식 생사 판정 함수 추출 | [#52](https://github.com/DesignPattern8/DPTermProject/issues/52) | [#54](https://github.com/DesignPattern8/DPTermProject/pull/54) | main 병합, 당시 전체 87개 테스트 통과 |
 | 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | [#83](https://github.com/DesignPattern8/DPTermProject/pull/83) | refactor/base 병합·이슈 종료, JDK 26 CI 통과 |
-| legacy Load 경계 활성화 | [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) | 커밋 전 | A 모델 수정 완료, 최신 base 포함 JDK 26 전체 346개 통과 |
+| legacy Load 경계 활성화 | [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) | [#89](https://github.com/DesignPattern8/DPTermProject/pull/89) | refactor/base 병합, 로컬·CI 통과 |
+| 보드별 전이 상태 분리 | [#74](https://github.com/DesignPattern8/DPTermProject/issues/74) | PR 준비 | 구현·검증 완료 |
 
 ## 001. 모델과 화면 메서드 분리
 
@@ -279,7 +280,7 @@ A의 GTY 누적 기록 안내와 C의 신규 파일 API 연동 문서 링크를 
 
 ## 006. legacy Load 경계 활성화 (#81)
 
-- 상태: 채택 · A 모델 수정 완료, 커밋 전
+- 상태: 채택 · A 모델 수정 완료, [PR #89](https://github.com/DesignPattern8/DPTermProject/pull/89) 병합
 - 담당 A 모델 · 태영 · 2026-11-17
 - 착수 기준 `refactor/base` `422833e`, 작업 브랜치 `fix/81-load-boundary`. 작업 중 최신 `refactor/base` `03fe4ed`를 반영했다.
 - 사용자 최종 요청에 따라 A의 모델 수정 범위를 먼저 진행한다. B와 #81 공동 담당이며, 최신 기준선에는 #63의 안전한 Load 실패 처리(PR #82)가 반영돼 있다.
@@ -383,3 +384,117 @@ STORE의 기존 방향 합치기·활성 정보 부수효과와 `return amActive
 
 - PR base는 `refactor/base`, 연결은 `Refs #81`이다. 공동 이슈이므로 A 범위 PR 병합만으로 닫지 않고 B의 작업 범위 완료도 확인한다.
 - #70·#71·#74는 별도 후속 작업이다. 규칙 Strategy 도입도 이번 버그 수정과 분리한다.
+
+## 007. 보드별 전이 읽기 허가 분리 (#74)
+
+- 상태: 채택 · 구현·검증 완료
+- 담당 A 모델 · 태영 · 2026-11-17
+- 기준 `refactor/base` `333057b`(PR #89 병합), 브랜치 `fix/74-board-transition`
+- A는 `Neighborhood` 내부의 공유 상태를 담당한다. B는 [이슈 댓글](https://github.com/DesignPattern8/DPTermProject/issues/74#issuecomment-6944284960)에 따라 한 번에 한 모드만 tick하는 실행 정책을 별도로 담당한다.
+
+### 문제
+
+모든 `Neighborhood`가 static 읽기 허가와 중첩 깊이를 공유해 한 보드의 전이가 다른 보드의 그리기를 막는다. 두 보드가 서로 다른 스레드에서 진행하면 깊이 증가·감소가 섞여 상태가 깨질 수 있다. 중첩 셀에서 예외가 나면 기존 `transition()`은 해제 코드까지 도달하지 않아 읽기가 계속 금지된다.
+
+### 대안과 결정
+
+| 후보 | 이 코드에서의 결과 | 판단 |
+| --- | --- | --- |
+| A. 블록마다 인스턴스 필드 | 간단하지만 같은 루트의 먼저 끝난 자식과 아직 시작하지 않은 형제 블록이 읽기를 허용한다. 기존 전체 보드 단위 허가를 보존하지 못함. | 기각 |
+| B. 트리별 비공개 공유 상태 | 루트가 읽기 허가·중첩 깊이를 만들고 중첩 블록 생성에 같은 객체를 전달. 공개 생성자·create()는 독립 상태를 만든다. | 채택 |
+| C. Facade에서 상태 주입 | CompositeBoard뿐 아니라 legacy 직접 생성·2인용 생성과 조립 경로까지 바꿔야 한다. | 이번 범위에서 기각 |
+| D. 기존 공유 상태 + 실행 직렬화만 문서화 | 앱의 현재 ModeSwitch에는 맞지만 모델의 보드 간 간섭과 예외 시 영구 잠김이 남는다. | B의 실행 정책과 별개로 모델 개선 필요 |
+
+비공개 상태 객체를 트리마다 공유하고 `try/finally`로 중첩 깊이·읽기 허가를 복구한다. 같은 프로토타입으로 여러 보드를 만들어도 상태를 공유하지 않으며, 공개 `create()`도 새 루트 상태를 만든다. 새 GoF 패턴을 추가하는 작업은 아니다.
+
+### 검증 계획
+
+[모델 테스트 기준 GATE-01~08](../Codes/GameOfLife/src/com/holub/life/model/docs/test-cases.md#보드별-전이-읽기-허가-74)을 먼저 정의했다. JDK 26.0.2.1+1에서 기존 전체 346개가 통과했다. 전이 중 관찰·두 스레드의 정확한 실행 순서를 콜백·래치로 고정해 실패를 재현하고 수정 후 전체 회귀를 확인한다.
+
+### 전후 코드와 수정 이유
+
+```java
+// 전: 서로 다른 보드까지 하나의 상태를 사용하고 예외가 나면 복구하지 못함
+private static final ConditionVariable readingPermitted = new ConditionVariable(true);
+private static int nestingLevel = -1;
+// ... transition(): 깊이 증가 → 순회 → 깊이 감소·허가 복구
+
+// 후: 한 트리에만 공유되는 비공개 상태
+private static final class TransitionState {
+  private final ConditionVariable readingPermitted = new ConditionVariable(true);
+  private int nestingLevel = -1;
+}
+private final TransitionState transitionState;
+
+// transition(): 전이 시작 시 해당 보드만 닫고 모든 종료 경로에서 복구
+if (++transitionState.nestingLevel == 0) transitionState.readingPermitted.set(false);
+try {
+  // 기존 셀 전이와 활성 경계 수집
+} finally {
+  if (transitionState.nestingLevel-- == 0) transitionState.readingPermitted.set(true);
+}
+```
+
+`TransitionState`의 **타입 선언만 static**이며, 그 안의 허가·깊이는 인스턴스 필드다. 공개 생성자는 새 상태를 만들고, 비공개 생성자는 같은 루트의 중첩 블록에 그 상태를 전달한다. `Neighborhood` 프로토타입을 복제할 때도 새 트리의 상태를 사용한다. 공개 `create()`는 새 루트의 공개 생성자로 위임하므로 원본과 공유하지 않는다. `beginRedraw()`는 소속 보드의 허가를 읽는다.
+
+`StaticLockCheck`는 삭제된 private static 필드의 반사 조회·강제 초기화를 제거하고, 공개 `beginRedraw(true)`로 검사한다. 두 Clock 진단은 각 보드 100 tick이 끝났다는 래치를 기다린 뒤 관찰하고 finally에서 Clock·Timer를 종료한다. 기존 `ModeSwitch`의 한 모드 실행 정책은 바꾸지 않고, static 상태를 현재 원인으로 설명하던 주석만 맞췄다.
+
+### 실제 비용
+
+| 항목 | 결과 |
+| --- | --- |
+| 구조 비용 | 제품 동작 변경은 `Neighborhood.java` 1개, 559→552줄(39줄 추가·46줄 삭제). `ModeSwitch.java`는 주석 1줄 교체, 109줄 유지. 비공개 중첩 타입 1개 추가, 공개 타입·API·외부 의존성 증감 0. |
+| 테스트 비용 | `NeighborhoodReadGateTest` 1개·352줄, 6개 메서드·10개 실행 추가. 기존 수동 `StaticLockCheck` 130→135줄(52줄 추가·47줄 삭제). |
+| 간접성·결합도 | 전이·그리기에서 상태 필드 접근 1단계 추가, 새 메서드 호출 계층 없음. 기존 ConditionVariable 의존 유지, AWT·Swing 의존 추가 없음. B·C의 공개 호출부 변경 없음. |
+| 런타임 비용 | 루트 생성마다 상태 객체·ConditionVariable 각 1개, 각 Neighborhood마다 상태 참조 1개. 기존에는 전체에 ConditionVariable 1개였다. 기존 재귀 순회와 O(N) 계산량 유지, tick마다 객체 할당 추가 없음. 실제 시간·힙 크기는 측정하지 않음. |
+| 검증·확장 | Swing 창 없이 실제 Composite 트리와 public API로 확인한다. 중첩 깊이가 늘어도 같은 루트 상태를 전달하며, 공개 생성·create() 경로의 추가 수정이 필요 없다. |
+
+### 육하원칙
+
+| 항목 | 기록 |
+| --- | --- |
+| 누가 | 태영의 A 모델 작업. #74 공동 담당 중 모델 상태 격리와 실패 복구 범위. |
+| 언제 | 2026-11-17, PR #89 병합 후 최신 refactor/base에서 착수. |
+| 어디서 | 원래 IntelliJ 프로젝트의 `fix/74-board-transition`, 모델·회귀 테스트·공개 계약·GTY. |
+| 무엇을 | 전이 읽기 허가·깊이를 보드 트리별로 분리하고 finally로 복구했다. 독립 보드·복제·예외 회귀와 수동 진단을 보완했다. |
+| 왜 | 전역 상태 때문에 다른 보드까지 읽기를 막고 동시 전이가 서로 간섭하며, 예외 발생 시 읽기 금지가 남기 때문이다. 단순히 블록별 필드로 바꾸면 같은 보드의 조기 그리기를 허용해 잘못된다. |
+| 어떻게 | 테스트 기준 정의 → 기존 전체 346개 통과 → 새 10개 중 7개 실패 재현 → 트리별 상태 전달·finally 적용 → 관련 49개·전체 356개 통과 → 수동 두 Clock 진단·문서·검토 순서로 진행했다. |
+
+### 검증 결과
+
+- 환경: macOS arm64, Eclipse Temurin JDK `26.0.2.1+1`, 저장소의 Java 26 도구 체인. 저장소 빌드 설정·의존성 변경 없음.
+- 기준선 전체 **346개 통과**. 새 테스트는 구현 전에 추가해 정상·경계 8개 중 5개, 실패 복구 2개 중 2개의 실패를 확인했다. 기존 static 상태가 실패 테스트 사이에 남지 않도록 실패 복구 그룹은 별도 Gradle 실행으로 재현했다.
+- 수정 후 관련 **49개 통과**: 신규 읽기 허가 10개, 기존 렌더링 5개, Load 경계 17개, 2인용 규칙 17개.
+- 최종 전체 **356개 통과**, 실패·오류·건너뜀 0. 클래식·암세포·2인용·모드 전환·파일 호환 테스트를 포함한다.
+- 새 테스트는 2중·3중 트리 전체의 허가, 별도 루트·공유 프로토타입·공개 create() 격리, 다른 보드/같은 트리 중첩 호출, 래치로 순서를 고정한 두 스레드, RuntimeException·AssertionError 후 원래 오류 전파·다음 전이 복구를 검사한다. sleep이나 확률적 타이밍에 기대지 않는다.
+- 수동 `StaticLockCheck`: 순차 실행 뒤 false **0/200000**, 두 스레드 5회 모두 **0/10000**, Fast 속도의 실제 두 Clock이 각 100 tick을 완료한 뒤 **0/10000**. 무작위 스케줄의 보조 진단이며 결정적 JUnit 검증을 대신하지 않는다.
+- 공개 계약과 현재 2인용·UI 문서의 static 공유 설명을 갱신했다. 코드·호출부·정리 경로를 별도로 읽어 검토했다.
+- 네이티브 UI 수동 조작과 성능·힙 벤치마크는 하지 않았다. 전후 클래스 그림과 같은 개발 기록은 개인 Notion의 10번에 남긴다.
+
+실제 실행 명령(`Codes/GameOfLife`에서 JDK 26의 JAVA_HOME 지정):
+
+```sh
+# 기준선
+./gradlew test --no-daemon --rerun-tasks
+# 수정 후 관련 테스트
+./gradlew test --no-daemon \
+  --tests com.holub.life.model.NeighborhoodReadGateTest \
+  --tests com.holub.life.RenderingExtractionTest \
+  --tests com.holub.life.model.LegacyLoadBoundaryTest \
+  --tests com.holub.life.twoplayer.TwoPlayerRuleTest
+# 최종 전체
+./gradlew test --no-daemon
+# 기존 수동 진단 (test로 컴파일한 뒤)
+java -ea -Djava.awt.headless=true \
+  -cp build/classes/java/main:build/classes/java/test \
+  com.holub.life.twoplayer.ui.StaticLockCheck
+```
+
+#74는 REFACTOR 제목의 이슈지만 보드 간 간섭과 실패 후 상태를 바로잡아 동작이 달라진다. 따라서 이번 브랜치·PR은 `fix`와 BUG 유형으로 분류하고, 기존 한 보드의 정상 동작은 회귀 테스트로 유지한다. 커밋은 테스트·버그 수정·문서/주석으로 구분하고 `refactor/base` 대상으로 일반 PR을 작성한다.
+
+### 계약과 후속 작업
+
+- 같은 보드의 수정은 호출자가 기존처럼 직렬화한다. 이 상태는 전이 중 그리기의 진입 허가이며, `beginRedraw()` 이후 전체 프레임을 잠그는 read lock을 새로 제공하지 않는다.
+- 예외는 그대로 전파한다. finally는 조정 상태를 복구하며 이미 반영된 셀을 rollback하지 않는다.
+- 기존 private static 필드를 반사로 읽던 수동 `StaticLockCheck`는 public 동작 관찰로 갱신했다. 과거 재현 결과는 기존 문서·커밋 이력에 보존한다.
+- `Refs #74`, PR base는 `refactor/base`. 공동 이슈이므로 A의 모델 처리와 B의 실행 정책 완료 범위를 구분한다.

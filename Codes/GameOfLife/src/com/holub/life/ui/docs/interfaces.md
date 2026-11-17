@@ -94,7 +94,7 @@ public final class ClassicMode implements GameMode {
 
 - `ModeSwitch`는 만들 때 시계에 리스너를 하나 단다. tick마다 메뉴가 열려 있으면 건너뛰고(기존 `onTick`과 같음), 아니면 잠금 안에서 지금 모드의 `tick()`만 부른다.
 - `select`: 시계를 멈추고 → 잠금을 잡아(진행 중인 tick이 끝나길 기다림) 지금 모드를 바꾸고 → 카드를 바꾸고 창을 `pack()`하고 → `fileCommandsEnabled`에 새 모드의 값을 넘긴다. 등록하지 않은 모드면 `IllegalArgumentException`.
-- 모든 모드의 tick과 전환이 한 잠금 안에서 돌므로 두 모드의 보드가 동시에 세대를 진행하지 않는다(`Neighborhood`의 `static` 잠금, #74).
+- 모든 모드의 tick과 전환이 한 잠금 안에서 돌므로 두 모드의 보드가 동시에 세대를 진행하지 않는다. #74에서 `Neighborhood`의 읽기 허가·전이 깊이는 보드별로 분리했으며, 이 앱 실행 정책은 그대로 유지한다. [A 모델 계약](../../model/docs/interfaces.md)
 - `GameMode.tick()`은 시계 스레드(Go → Tick이면 EDT)에서 잠금을 잡은 채 불린다. 오래 걸리면 모드 전환이 기다린다. 다른 스레드를 기다리는 일(예: `invokeAndWait`)을 하면 안 된다.
 - `GameMenu.install`은 원래 동작 그대로다(Grid·Go 메뉴 + 클래식 tick 리스너). `LifeFrame`은 `installMenus` + `ModeSwitch`를 쓴다. `otherModes`가 비어 있으면 Mode 메뉴를 달지 않는다.
 - `setFileCommandsEnabled`는 Grid의 Clear·Load·Store만 켜고 끈다. Exit은 그대로.

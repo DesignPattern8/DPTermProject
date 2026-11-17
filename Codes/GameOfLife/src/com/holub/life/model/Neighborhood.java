@@ -24,12 +24,13 @@ import java.util.Random;
  */
 
 public final class Neighborhood implements Cell {
-  /**
-   * Block if reading is not permitted because the grid is transitioning to the next state. Only one
-   * lock is used (for the outermost neighborhood) since all updates must be requested through the
-   * outermost neighborhood.
-   */
-  private static final ConditionVariable readingPermitted = new ConditionVariable(true);
+  /** Shared by every nested block of one board, but never by independent boards. */
+  private static final class TransitionState {
+    private final ConditionVariable readingPermitted = new ConditionVariable(true);
+    private int nestingLevel = -1;
+  }
+
+  private final TransitionState transitionState;
 
   /**
    * Returns true only if none of the cells in the Neighborhood changed state during the last
@@ -48,11 +49,22 @@ public final class Neighborhood implements Cell {
    * is deliberately not put into the grid, so you can reuse it if you like.
    */
   public Neighborhood(int gridSize, Cell prototype) {
+    this(gridSize, prototype, new TransitionState());
+  }
+
+  private Neighborhood(int gridSize, Cell prototype, TransitionState transitionState) {
     this.gridSize = gridSize;
     this.grid = new Cell[gridSize][gridSize];
+    this.transitionState = transitionState;
 
-    for (int row = 0; row < gridSize; ++row)
-      for (int column = 0; column < gridSize; ++column) grid[row][column] = prototype.create();
+    for (int row = 0; row < gridSize; ++row) {
+      for (int column = 0; column < gridSize; ++column) {
+        grid[row][column] =
+            prototype instanceof Neighborhood block
+                ? new Neighborhood(block.gridSize, block.grid[0][0], transitionState)
+                : prototype.create();
+      }
+    }
   }
 
   /**
@@ -218,44 +230,25 @@ public final class Neighborhood implements Cell {
    * @see #figureNextState
    */
   public boolean transition() {
-    // The condition variable is set and reset only by the
-    // outermost neighborhood. It's actually incorrect
-    // for an inner block to touch it because the whole
-    // board has to be locked for edge cells in a subblock
-    // to compute their next state correctly. There's no
-    // race condition since the only place that transition()
-    // is called is from the clock tick, and recursively
-    // from here. As long as the recompute time is less
-    // than the tick interval, everything's copacetic.
+    if (++transitionState.nestingLevel == 0) transitionState.readingPermitted.set(false);
 
-    boolean someSubcellChangedState = false;
-
-    if (++nestingLevel == 0) readingPermitted.set(false);
-
-    activeEdges.clear(); /*(1)*/
-
-    for (int row = 0; row < gridSize; ++row) // {=transition.start}
-    for (int column = 0; column < gridSize; ++column) {
-        if (grid[row][column].transition()) {
-          rememberThatCellAtEdgeChangedState(row, column);
-          someSubcellChangedState = true;
-        } // {=transition.end}
+    try {
+      boolean someSubcellChangedState = false;
+      activeEdges.clear(); /*(1)*/
+      for (int row = 0; row < gridSize; ++row) {
+        for (int column = 0; column < gridSize; ++column) {
+          if (grid[row][column].transition()) {
+            rememberThatCellAtEdgeChangedState(row, column);
+            someSubcellChangedState = true;
+          }
+        }
       }
-
-    if (nestingLevel-- == 0) readingPermitted.set(true);
-
-    return someSubcellChangedState;
+      return someSubcellChangedState;
+    } finally {
+      // Every recursive exit, including a failed leaf transition, must restore this board's gate.
+      if (transitionState.nestingLevel-- == 0) transitionState.readingPermitted.set(true);
+    }
   }
-
-  // The following variable is used only by the transition()
-  // method. Since Java doesn't support static local variables,
-  // I am forced to declare it in class scope, but I deliberately
-  // don't put it up at the top of the class defintion because
-  // it's not really an attribute of the class---it's just
-  // an implemenation detail of the immediately preceding
-  // method.
-  //
-  private static int nestingLevel = -1;
 
   /**
    * Modifies activeEdges to indicate whether the addition of the cell at (row,column) makes an edge
@@ -297,8 +290,8 @@ public final class Neighborhood implements Cell {
   public boolean beginRedraw(boolean drawAll) throws InterruptedException {
     if (!amActive && !oneLastRefreshRequired && !drawAll) return false;
     oneLastRefreshRequired = false;
-    if (!readingPermitted.isTrue()) return false;
-    readingPermitted.waitForTrue();
+    if (!transitionState.readingPermitted.isTrue()) return false;
+    transitionState.readingPermitted.waitForTrue();
     return true;
   }
 

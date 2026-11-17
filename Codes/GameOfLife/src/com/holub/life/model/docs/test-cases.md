@@ -83,3 +83,18 @@ Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의
 | LDB-05 | 경계 | 빈 LOAD의 불필요한 활성화 방지 | clear한 중첩 보드에 빈 Memento LOAD | 반환 false, 모든 블록이 비활성·방향 NONE이며 빈 상태 유지 | `LegacyLoadBoundaryTest#emptyMementoLeavesClearedBlocksInactive` |
 | LDB-06 | 예외 | #63의 실패 시 상태 보존 계약 유지 | 잘못된 파일 또는 없는 파일 Load, 실행 중/정지 상태 | 일반·암세포 배치와 Clock 예약·속도 보존, 변경 알림 없음 | 기존 `GameControllerLoadTest#malformedInputsPreserveCellsAndCancer`, `#failedLoadKeepsRunningClockAndNextGeneration`, `#missingFilePreservesStateWithoutNotification` |
 | LDB-07 | 정상·경계 | 기존 저장 형식·복원 호환 | 기존 클래식 Point Collection, 암세포 형식, 중복·빈 데이터 | 기존 형식·좌표·중복 해석 및 STORE 동작 유지 | 기존 `ClassicMementoTest`, `CancerCodecTest`, `LegacyLifeCodecTest` |
+
+## 보드별 전이 읽기 허가 (#74)
+
+같은 루트 아래의 모든 중첩 블록은 하나의 읽기 허가 상태를 공유하고, 서로 다른 보드는 독립적이어야 한다. 순서·중첩 관찰에는 일회성 전이 콜백을, 두 스레드의 실제 겹침에는 CountDownLatch를 사용하며 sleep·무작위 재현에 의존하지 않는다. 같은 보드의 변경 직렬화는 기존 호출자 계약을 유지한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| GATE-01 | 정상·경계 | 같은 트리 전체의 읽기 허가 공유 | 2중·3중 보드의 leaf 전이 중 루트와 모든 중첩 블록 조회 | 전이 중 모두 false, 종료 후 모두 true | `NeighborhoodReadGateTest#sameBoardBlocksShareReadGate` |
+| GATE-02 | 경계 | 보드·프로토타입·복제 간 독립성 | 별도 생성한 루트, 같은 Neighborhood 프로토타입으로 만든 두 루트, 공개 create()로 복제한 루트 | 한쪽 전이 중 다른 보드와 원본 프로토타입은 읽기 허용 | `NeighborhoodReadGateTest#independentBoardsKeepReadGatesSeparate` |
+| GATE-03 | 경계 | 서로 다른 보드 전이가 중첩되어도 독립 종료 | A의 전이 콜백에서 B 전이를 실행하고 각 단계의 읽기 허가 관찰 | B가 먼저 끝나면 B만 열리고 A는 계속 닫힘, 최종 둘 다 열림 | `NeighborhoodReadGateTest#nestedBoardTransitionsKeepGatesIndependent` |
+| GATE-04 | 경계 | 두 스레드의 보드별 독립 종료 | A·B 각각 전이 콜백에서 래치 대기, A 먼저 해제 | 두 보드 전이 중 각각 닫힘, A 종료 후 B 대기 중에도 A는 열림 | `NeighborhoodReadGateTest#concurrentBoardTransitionsFinishIndependently` |
+| GATE-05 | 경계 | 중첩 블록의 전이가 끝나도 루트는 닫힘 유지 | 루트의 전이 콜백에서 같은 트리의 다른 하위 블록 전이 호출 | 하위 호출 전후 루트와 모든 자식의 읽기 허가가 false | `NeighborhoodReadGateTest#nestedSubtreeTransitionKeepsOuterGateClosed` |
+| GATE-06 | 예외 | 예외·Error 후 허가와 깊이 복구 | 중첩 leaf의 전이에서 RuntimeException 또는 Error를 한 번 발생 | 원래 오류 전파, 전체 트리 허가 복구, 다음 전이도 정상적으로 닫히고 열림 | `NeighborhoodReadGateTest#transitionFailureReleasesWholeBoard` |
+| GATE-07 | 정상·경계 | 기존 게임·렌더링·복원 동작 유지 | 기존 클래식·암세포·2인용·안정 블록 마지막 그리기·legacy Load 경계 테스트 | 기존 반환값·규칙·부분 그리기·복원 결과 유지 | 기존 `RenderingExtractionTest`, `ClassicGenerationTest`, `CancerModelTest`, `TwoPlayerRuleTest`, `LegacyLoadBoundaryTest` |
+| GATE-08 | 경계 | 기존 수동 재현 도구의 현재 구현 호환 | `StaticLockCheck`의 순차·두 보드·두 Clock 실행 후 public beginRedraw(true) 관찰 | 종료 후 건너뜀 0, private static 필드 반사 없이 실행 | `com.holub.life.twoplayer.ui.StaticLockCheck#main` (JUnit 외 수동 확인) |
