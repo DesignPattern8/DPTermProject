@@ -1,6 +1,6 @@
 package com.holub.life.model;
 
-/** Classic board operations. Callers must serialize access to a board. */
+/** Classic and cancer board operations. Callers must serialize access to a board. */
 public interface Board {
   int rows();
 
@@ -13,9 +13,9 @@ public interface Board {
 
   void clear();
 
-  /** Captures the current layout as an immutable value. */
+  /** Captures live and cancer cell positions as an immutable value. */
   BoardSnapshot snapshot();
 
-  /** Replaces the entire layout with a snapshot of the same dimensions. */
+  /** Replaces live and cancer cell states with a snapshot of the same dimensions. */
   void restore(BoardSnapshot snapshot);
 }

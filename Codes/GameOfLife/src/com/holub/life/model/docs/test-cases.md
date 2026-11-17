@@ -53,3 +53,19 @@ Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의
 | CAN-M12 | 경계 | 암세포 수는 하위 블록 경계를 넘어 모두 센다 | 하위 블록 경계 (7,7)·(7,8)·(8,7)·(8,8)과 (63,63)의 암세포 | `cancerCount()` = 5 | `CancerModelTest#cancerCountSpansSubBlocks` |
 | CAN-M13 | 정상 | Clear는 암세포 상태도 지운다 | 암세포 2칸, `clear()` | 암세포 0개, 살아 있는 칸 0개 | `CancerModelTest#clearRemovesCancer` |
 | CAN-M14 | 경계 | 복합 셀과 DUMMY는 암세포가 되지 않는다 | `Neighborhood`와 `Cell.DUMMY`에 `setCancer()` | 둘 다 `isCancer()` = false | `CancerModelTest#compositeAndDummyCellsAreNeverCancer` |
+
+## 암세포 스냅샷 (#73)
+
+`BoardSnapshot`의 `cancerCells`는 `liveCells`의 부분집합이며 두 집합 모두 불변이다. 기존 3인자 생성자는 암세포가 없는 스냅샷을 만든다. 캡처는 보드 상태를 바꾸지 않고, 복원은 생사·암 여부와 다음 세대의 경계 계산을 함께 보존한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| SNAP-C01 | 정상 | 생사·암 상태의 전체 복원 | 일반·암세포 혼합 배치를 캡처하고 다른 배치로 바꾼 뒤 복원 | 캡처한 생사·암 여부로 돌아오고 추가한 셀은 제거된다. | `CancerSnapshotTest#restoresLiveAndCancerCellsTogether` |
+| SNAP-C02 | 경계 | 복원 직후 블록 경계의 암세포 탄생 | 하위 블록 마지막 행의 암세포 3개를 캡처·복원하고 한 세대 진행 | 직접 편집한 보드와 같고 인접 블록에도 암세포가 태어난다. | `CancerSnapshotTest#restoredCancerKeepsBoundaryBirthOnFirstStep` |
+| SNAP-C03 | 경계 | 캡처의 읽기 전용 동작 | 경계의 일반·암세포 혼합 배치를 캡처 | 생사·암 여부와 루트·하위 블록의 활성 정보가 유지된다. | `CancerSnapshotTest#captureKeepsMixedCellStatesAndActiveEdges` |
+| SNAP-C04 | 경계 | 두 좌표 집합의 방어 복사 | 가변 집합으로 스냅샷을 만든 뒤 원본 및 반환 집합 변경 시도 | 원본 변경에 영향받지 않고 반환 집합 변경은 거부된다. | `CancerSnapshotTest#snapshotDefensivelyCopiesBothCellSets` |
+| SNAP-C05 | 예외 | 잘못된 암세포 좌표 거부 | 음수·크기 밖·생존 집합에 없는 암세포 좌표 | `IllegalArgumentException`, 기존 보드 유지 | `CancerSnapshotTest#rejectsCancerOutsideLiveCellsBeforeRestore` |
+| SNAP-C06 | 예외 | 크기 불일치 복원 거부 | 기존 암세포 보드에 다른 크기의 유효 스냅샷 복원 요청 | `IllegalArgumentException`, 생사·암 상태 유지 | `CancerSnapshotTest#sizeMismatchKeepsExistingCancerCells` |
+| SNAP-C07 | 정상 | 3인자 생성자 호환·이전 암 상태 제거 | 기존 암세포 보드에 3인자 생성자로 만든 클래식 스냅샷 복원 | 지정된 일반 세포만 남고 암세포 집합은 비어 있다. | `CancerSnapshotTest#classicSnapshotClearsPreviousCancerState` |
+| SNAP-C08 | 경계 | 빈 보드 캡처·복원 | 빈 보드 캡처 후 암세포를 배치하고 복원 | 생존·암세포 집합 모두 비어 있다. | `CancerSnapshotTest#emptySnapshotRemovesAllCellStates` |
+| SNAP-C09 | 예외 | null 암세포 집합·원소 거부 | null 집합 또는 null 원소가 든 암세포 집합 | `NullPointerException` | `CancerSnapshotTest#rejectsNullCancerCollectionsAndElements` |

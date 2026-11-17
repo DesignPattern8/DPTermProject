@@ -3,6 +3,7 @@ package com.holub.life.application;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.model.*;
+import com.holub.life.persistence.*;
 import java.awt.Point;
 import java.io.*;
 import java.nio.file.*;
@@ -49,7 +50,46 @@ class GameControllerPersistenceTest {
   }
 
   @Test
-  void preservesStateOnOpenAndDecodeFailure() throws Exception {
+  void failedStorePreservesFileAndBoard() throws Exception {
+    // Given
+    root.toggle(1, 2);
+    ((Neighborhood) root.childAt(0, 0)).childAt(3, 4).setCancer();
+    var before = PersistenceMapper.capture(root.createMemento());
+    var original = new byte[] {10, 20, 30};
+    Path target = Files.write(directory.resolve("board.life"), original);
+    var failure = new IOException("partial write failed");
+    var codec =
+        new PatternCodec() {
+          public PatternData read(InputStream in) {
+            throw new UnsupportedOperationException();
+          }
+
+          public void write(PatternData data, OutputStream out) throws IOException {
+            out.write(1);
+            throw failure;
+          }
+        };
+    var controller =
+        new GameController(
+            new CompositeBoard(root), root, new Clock(ticks), null, new BoardFileStore(codec));
+    var changes = new ArrayList<GameListener.Change>();
+    controller.addGameListener(changes::add);
+
+    // When
+    assertSame(failure, assertThrows(IOException.class, () -> controller.store(target.toFile())));
+
+    // Then
+    assertArrayEquals(original, Files.readAllBytes(target));
+    assertEquals(before, PersistenceMapper.capture(root.createMemento()));
+    assertEquals(1, ticks.stops);
+    assertTrue(changes.isEmpty());
+    try (var files = Files.list(directory)) {
+      assertEquals(List.of(target), files.toList());
+    }
+  }
+
+  @Test
+  void preservesOpenAndDecodeFailureOrder() throws Exception {
     root.toggle(2, 3);
     var changes = new ArrayList<GameListener.Change>();
     controller.addGameListener(changes::add);

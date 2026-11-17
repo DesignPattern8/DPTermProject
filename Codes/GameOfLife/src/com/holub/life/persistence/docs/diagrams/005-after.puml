@@ -1,0 +1,40 @@
+@startuml 005-after
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+title Legacy input after (#65)
+interface PatternCodec
+class LegacyLifeCodec {
+  read(InputStream): PatternData
+  write(PatternData, OutputStream)
+  {static} checkInput(FilterInfo): Status
+  {static} requireCellCount(int)
+}
+class "LegacyLifeCodec.LimitedInputStream" as LimitedInputStream {
+  remaining: long
+  read() / read(byte[], int, int)
+  skip(long)
+}
+class FilterInputStream <<JDK>>
+class ObjectInputStream <<JDK>>
+interface ObjectInputFilter <<JDK>>
+class "LegacyLifeCodec.CancerStateData" as CancerStateData
+class PatternData <<record>>
+PatternCodec <|.. LegacyLifeCodec
+FilterInputStream <|-- LimitedInputStream
+LegacyLifeCodec ..> LimitedInputStream : wrap caller input / 1 MiB
+ObjectInputStream --> LimitedInputStream : consumes first object
+LegacyLifeCodec ..> ObjectInputStream : configure before readObject()
+ObjectInputStream --> ObjectInputFilter : filter callback
+ObjectInputFilter ..> LegacyLifeCodec : existing JVM filter + checkInput
+LegacyLifeCodec ..> CancerStateData : unchanged wire format
+LegacyLifeCodec ..> PatternData : validate shape + count after read
+note bottom of LimitedInputStream
+  Both read and skip consume the budget.
+  Caller owns the stream; no mark/reset.
+end note
+note bottom of ObjectInputFilter
+  Exact class allowlist.
+  depth <= 8 / references <= 65536
+  array length <= 32768
+end note
+@enduml
