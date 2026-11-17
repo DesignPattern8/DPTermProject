@@ -17,7 +17,9 @@ boolean Neighborhood.beginRedraw(boolean drawAll) throws InterruptedException
 
 - 변경: 2026-11-17, [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) — `transfer(LOAD)`는 활성화된 자식의 격자 위치를 기준으로 각 중첩 블록의 경계를 표시한다. 복원 직후 첫 세대에도 인접 블록의 탄생을 계산한다. 이미 활성인 자식도 보수적으로 포함할 수 있다. 공개 시그니처·좌표·파일 형식과 기존 반환 정책은 유지하며, STORE의 기존 활성 정보 부수효과도 유지한다. [설계·검증 기록](../../../../../../../../docs/GTY.md#006-legacy-load-경계-활성화-81)
 
-beginRedraw는 기존 마지막 갱신 플래그를 소비하고 ConditionVariable 읽기 조건을 확인한다. 읽기 접근은 기존 동시성 계약을 유지하며 새 스레드 안전성을 보장하지 않는다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
+- 변경: 2026-11-17, [#74](https://github.com/DesignPattern8/DPTermProject/issues/74) — 공개 생성자와 `create()`로 만든 루트는 독립된 전이 상태를 가지며, 같은 루트 아래 모든 중첩 블록은 읽기 허가·재귀 깊이를 공유한다. 같은 프로토타입으로 만든 보드끼리도 상태를 공유하지 않는다. `transition()` 중 전체 트리의 `beginRedraw(true)`는 false이며, 정상 종료·예외·Error로 빠져나오면 가장 바깥 호출이 읽기를 다시 허용한다. 예외는 그대로 전파하고 셀 상태 rollback은 제공하지 않는다. [설계·검증 기록](../../../../../../../../docs/GTY.md#007-보드별-전이-읽기-허가-분리-74)
+
+beginRedraw는 기존 마지막 갱신 플래그를 소비하고 해당 보드의 ConditionVariable 읽기 조건을 확인한다. `beginRedraw()` 이후 전체 그리기 구간을 잠그지는 않는다. 같은 보드의 계산·수정·캡처는 호출자가 기존처럼 직렬화한다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
 
 ## 클래식 보드 계약
 
