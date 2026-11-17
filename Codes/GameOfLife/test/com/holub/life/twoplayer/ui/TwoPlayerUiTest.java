@@ -7,6 +7,7 @@ import com.holub.life.application.GameController;
 import com.holub.life.application.Speed;
 import com.holub.life.application.TickSource;
 import com.holub.life.model.CompositeBoard;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
 import com.holub.life.twoplayer.Coordinate;
@@ -19,7 +20,6 @@ import com.holub.life.ui.GameMode;
 import com.holub.life.ui.ModeSwitch;
 import java.awt.Component;
 import java.awt.Graphics;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
@@ -135,7 +135,7 @@ class TwoPlayerUiTest {
   }
 
   private boolean classicAlive(int row, int column) {
-    return classicBoard.createMemento().isAlive(new Point(column, row));
+    return classicBoard.createMemento().isAlive(new CellPosition(row, column));
   }
 
   private boolean classicBlinkerIsHorizontal() {

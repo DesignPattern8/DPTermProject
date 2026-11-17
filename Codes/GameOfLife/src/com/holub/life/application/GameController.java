@@ -6,7 +6,6 @@ import com.holub.life.model.CellPosition;
 import com.holub.life.model.NeighborhoodState;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
-import java.awt.Point;
 import java.io.*;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -125,7 +124,7 @@ public final class GameController {
       NeighborhoodState loaded = PersistenceMapper.restore(files.read(file.toPath()));
       clock.stop();
       fileCells.clear();
-      fileCells.transfer(loaded, new Point(0, 0), Cell.LOAD);
+      fileCells.transfer(loaded, new CellPosition(0, 0), Cell.LOAD);
     }
     notifyListeners(GameListener.Change.EDITED);
   }

@@ -1,6 +1,7 @@
 # 실행 계약
 
 - 제공 B / 사용 D·Life / 변경 2026-11-03, #24
+- 변경: 2026-11-17, #71 — A 모델 좌표 계약에 맞춰 legacy LOAD 원점은 CellPosition(0, 0), PersistenceMapper는 같은 불변 좌표를 담는 컬렉션 복사로 맞췄다. 공개 Controller·Mapper 시그니처, 잠금·Clock·알림·실패 처리와 createMemento/transfer 경로는 유지한다. [B 댓글](https://github.com/DesignPattern8/DPTermProject/issues/71#issuecomment-6944309778)에 따른 Board.snapshot()/restore() 전환은 #88의 별도 작업이다.
 
 ```java
 GameController(Board board, Cell fileCells, Clock clock)  // fileCells: board가 감싼 같은 Neighborhood (파일 경로용, 과도기)

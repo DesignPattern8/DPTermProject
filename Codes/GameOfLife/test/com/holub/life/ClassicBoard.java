@@ -2,6 +2,7 @@ package com.holub.life;
 
 import com.holub.life.application.PersistenceMapper;
 import com.holub.life.model.Cell;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.NeighborhoodState;
 import com.holub.life.model.Resident;
@@ -74,7 +75,7 @@ final class ClassicBoard {
     outermost.clear();
     NeighborhoodState memento =
         PersistenceMapper.restore(new LegacyLifeCodec().read(new ByteArrayInputStream(bytes)));
-    outermost.transfer(memento, new Point(0, 0), Cell.LOAD);
+    outermost.transfer(memento, new CellPosition(0, 0), Cell.LOAD);
     return this;
   }
 
