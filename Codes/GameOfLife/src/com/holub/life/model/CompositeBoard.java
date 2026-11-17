@@ -4,11 +4,11 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
-/** Board facade over the existing classic cell hierarchy. */
+/** Board facade over the existing classic and cancer cell hierarchy. */
 public final class CompositeBoard implements Board {
   private final Neighborhood neighborhood;
 
-  /** Wraps the root of a nonempty classic square board built from Resident cells. */
+  /** Wraps the root of a nonempty square board built from Resident cells. */
   public CompositeBoard(Neighborhood neighborhood) {
     this.neighborhood = Objects.requireNonNull(neighborhood, "neighborhood");
   }
@@ -46,9 +46,10 @@ public final class CompositeBoard implements Board {
   @Override
   public BoardSnapshot snapshot() {
     Set<CellPosition> liveCells = new HashSet<>();
+    Set<CellPosition> cancerCells = new HashSet<>();
     // The legacy memento traversal can update active edges.
-    collectLiveCells(neighborhood, 0, 0, liveCells);
-    return new BoardSnapshot(rows(), columns(), liveCells);
+    collectCells(neighborhood, 0, 0, liveCells, cancerCells);
+    return new BoardSnapshot(rows(), columns(), liveCells, cancerCells);
   }
 
   @Override
@@ -61,19 +62,44 @@ public final class CompositeBoard implements Board {
     for (CellPosition position : snapshot.liveCells()) {
       neighborhood.toggle(position.row(), position.column());
     }
+    for (CellPosition position : snapshot.cancerCells()) {
+      cellAt(position.row(), position.column()).setCancer();
+    }
   }
 
-  private static void collectLiveCells(Cell cell, int row, int column, Set<CellPosition> liveCells) {
+  private Cell cellAt(int row, int column) {
+    Cell cell = neighborhood;
+    while (cell instanceof Neighborhood block) {
+      int childWidth = block.childAt(0, 0).widthInCells();
+      cell = block.childAt(row / childWidth, column / childWidth);
+      row %= childWidth;
+      column %= childWidth;
+    }
+    return cell;
+  }
+
+  private static void collectCells(
+      Cell cell,
+      int row,
+      int column,
+      Set<CellPosition> liveCells,
+      Set<CellPosition> cancerCells) {
     if (cell instanceof Neighborhood block) {
       int childWidth = block.childAt(0, 0).widthInCells();
       for (int r = 0; r < block.gridSize(); r++) {
         for (int c = 0; c < block.gridSize(); c++) {
-          collectLiveCells(
-              block.childAt(r, c), row + r * childWidth, column + c * childWidth, liveCells);
+          collectCells(
+              block.childAt(r, c),
+              row + r * childWidth,
+              column + c * childWidth,
+              liveCells,
+              cancerCells);
         }
       }
     } else if (cell.isAlive()) {
-      liveCells.add(new CellPosition(row, column));
+      CellPosition position = new CellPosition(row, column);
+      liveCells.add(position);
+      if (cell.isCancer()) cancerCells.add(position);
     }
   }
 }
