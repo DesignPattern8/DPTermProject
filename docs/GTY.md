@@ -11,7 +11,8 @@
 | 공통 보드 계약 정의 | [#47](https://github.com/DesignPattern8/DPTermProject/issues/47) | [#48](https://github.com/DesignPattern8/DPTermProject/pull/48) | main 병합, 좌표·스냅샷·도메인별 인계 기준 작성 |
 | 클래식 보드 Facade | [#49](https://github.com/DesignPattern8/DPTermProject/issues/49) | [#50](https://github.com/DesignPattern8/DPTermProject/pull/50) | main 병합, 당시 전체 68개 테스트 통과 |
 | 클래식 생사 판정 함수 추출 | [#52](https://github.com/DesignPattern8/DPTermProject/issues/52) | [#54](https://github.com/DesignPattern8/DPTermProject/pull/54) | main 병합, 당시 전체 87개 테스트 통과 |
-| 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | [#83](https://github.com/DesignPattern8/DPTermProject/pull/83) | PR 작성, 최신 base 충돌 해소·통합 검증은 005 참고 |
+| 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | [#83](https://github.com/DesignPattern8/DPTermProject/pull/83) | refactor/base 병합·이슈 종료, JDK 26 CI 통과 |
+| legacy Load 경계 활성화 | [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) | 커밋 전 | A 모델 수정 완료, 최신 base 포함 JDK 26 전체 346개 통과 |
 
 ## 001. 모델과 화면 메서드 분리
 
@@ -274,4 +275,111 @@ A의 GTY 누적 기록 안내와 C의 신규 파일 API 연동 문서 링크를 
 
 - `Codes/GameOfLife`에서 기존과 같은 JDK 25.0.3 및 임시 초기화 파일로 `./gradlew test --no-daemon --init-script /private/tmp/dp73-jdk25.init.gradle` 실행: 전체 189개 통과, 실패·오류·건너뜀 0. 최초 #73 검증 169개에 C가 추가한 20개가 함께 실행됐다. JDK 26에서는 미검증이다.
 - README·GTY의 로컬 파일 링크 26개, 변경 Java·Markdown의 충돌 표시 제거, `git diff --check`와 `git diff --cached --check`를 확인했다.
-- 미해결 충돌 파일은 0개이며 Git은 병합 커밋을 기다리는 상태다. README 해결 결과와 GTY 기록을 스테이징한다. 커밋·푸시 후 기존 PR #83에 반영된다.
+- 당시 미해결 충돌 파일 0개로 스테이징했다. 이후 사용자가 병합 커밋 `608e6f0`을 푸시하고 PR #83을 `refactor/base`에 병합했다(`84d23db`). #73 종료와 PR의 JDK 26 CI 통과도 확인했다. 위 JDK 25 수치는 충돌 해결 당시의 로컬 결과다.
+
+## 006. legacy Load 경계 활성화 (#81)
+
+- 상태: 채택 · A 모델 수정 완료, 커밋 전
+- 담당 A 모델 · 태영 · 2026-11-17
+- 착수 기준 `refactor/base` `422833e`, 작업 브랜치 `fix/81-load-boundary`. 작업 중 최신 `refactor/base` `03fe4ed`를 반영했다.
+- 사용자 최종 요청에 따라 A의 모델 수정 범위를 먼저 진행한다. B와 #81 공동 담당이며, 최신 기준선에는 #63의 안전한 Load 실패 처리(PR #82)가 반영돼 있다.
+
+### 문제와 원인
+
+정상 파일의 `(7,7), (7,8), (7,9)`를 Load하면 셀 배치는 맞지만 첫 세대의 `(8,8)` 출생이 빠진다. `Resident.transfer(LOAD)`는 현재·다음 생사를 동시에 맞추므로 직후 `isDisruptiveTo()`가 `NONE`이다. 기존 `Neighborhood.transfer()`는 활성 여부를 켜도 변경된 자식이 놓인 경계를 표시하지 않아, 비어 있는 인접 블록이 계산에 참여하지 못한다.
+
+#73의 `Board.restore()`는 `toggle()`로 블록·경계를 활성화한다. 실제 파일 Load는 `Neighborhood.transfer(LOAD)`를 사용하므로 이 경로의 활성화를 보완해야 한다. 기존 테스트의 Load 후 블링커는 블록 내부 좌표여서 해당 결함을 검출하지 못했다.
+
+### 후보와 결정
+
+| 후보 | 변경 범위·비용 | 판단 |
+| --- | --- | --- |
+| A. 기존 Composite/Memento 경계 처리 보완 | `Neighborhood.transfer()`에서 LOAD가 활성화한 자식의 격자 위치로 기존 경계 표시 함수를 호출. 공개 타입·파일 형식·호출부 변경 없음. | 채택 |
+| B. Board Facade 복원으로 파일 경로 이전 | B의 `GameController`와 C 값 변환을 `BoardSnapshot`에 연결해 `Board.restore()`를 사용. #71 후속 방향과 맞지만 파일 순서·좌표·암세포 변환, 저장 호출부와 계약을 함께 검토해야 함. | 별도 연동 작업에서 검토 |
+
+이번에는 모델 내부에서 같은 결함을 사용하는 모든 legacy 호출 경로를 고친다. STORE의 기존 활성 정보 부수효과와 `Neighborhood.transfer()`의 반환 정책은 유지한다. B의 실패 시 상태 보존·Clock·알림 정책, C 저장 형식, 규칙·동시성 설계는 이번 수정 범위에 추가하지 않는다.
+
+### 테스트 순서
+
+[테스트 기준 LDB-01~07](../Codes/GameOfLife/src/com/holub/life/model/docs/test-cases.md#legacy-load-경계-활성화-81)을 먼저 정의했다. 프로젝트 지정 JDK 26.0.2.1에서 기존 전체 233개가 통과하는 기준선을 확인했다. 새 회귀 테스트 17개 중 10개 실패로 문제를 재현한 뒤 구현을 적용했다.
+
+### 전/후 비교
+
+[Neighborhood.transfer()](../Codes/GameOfLife/src/com/holub/life/model/Neighborhood.java)에서 활성 자식의 위치를 경계에 표시한다. 각 부모가 자기 격자 내 좌표로 같은 작업을 수행하므로 중첩 깊이가 달라도 다음 블록으로 전파된다.
+
+```java
+// 전
+if (grid[row][column].transfer(memento, upperLeft, load)) amActive = true;
+
+// 후
+if (grid[row][column].transfer(memento, upperLeft, load)) {
+  amActive = true;
+  // LOAD makes leaves stable, so wake neighbors from the changed child's position.
+  if (load) rememberThatCellAtEdgeChangedState(row, column);
+}
+```
+
+`활성 여부만 설정 → 자기 격자 기준 경계도 표시 → 다음 세대에 인접 블록 계산`으로 보완했다. `(7,7), (7,8), (7,9)`를 불러온 첫 세대는 이전의 `{(6,8), (7,8)}`에서 `{(6,8), (7,8), (8,8)}`로 바로잡힌다. 새 GoF 패턴을 추가하는 작업은 아니며 기존 Composite/Memento 경로의 버그 수정이다.
+
+### 실제 비용과 계약
+
+| 항목 | 결과 |
+| --- | --- |
+| 구조 비용 | 제품 소스 `Neighborhood.java` 1개, 555→559줄(5줄 추가·1줄 삭제), 제품 타입 증감 0. 테스트 클래스 1개·227줄, 5개 메서드·17개 실행 추가. |
+| 간접성 | LOAD에서 자식이 활성으로 보고될 때 기존 비공개 경계 표시 함수 호출 1회 추가. 세대 계산 경로는 유지. |
+| 결합도 | 공개 시그니처·외부 라이브러리·패키지 의존 증감 0. B·C 제품 코드 수정 없음. |
+| 런타임 비용 | 기존 재귀 순회에 상수 시간 경계 표시를 추가해 전체 `O(N)` 순회 유지. 새 필드·컬렉션 없음. 실제 시간·힙 사용량은 측정하지 않음. |
+| 검증·확장 | Swing 창 없이 실제 파일 읽기→Controller→모델 경로 검증. 3중 구조도 같은 위치 기반 경계 표시 사용. |
+
+STORE의 기존 방향 합치기·활성 정보 부수효과와 `return amActive`를 유지한다. LOAD에서 자식의 반환값이 실제 변경뿐 아니라 이전 활성 상태를 포함할 수 있어 보수적으로 더 계산할 수 있다. 이 반환 정책의 재정의와 STORE 부수효과 제거는 이번 범위에 넣지 않는다. [모델 계약](../Codes/GameOfLife/src/com/holub/life/model/docs/interfaces.md)에 LOAD 경계 보존 동작을 추가했다.
+
+### 육하원칙
+
+| 항목 | 기록 |
+| --- | --- |
+| 누가 | 태영의 A 모델 작업, #81 공동 담당 중 모델 수정 범위 |
+| 언제 | 2026-11-17, 최신 refactor/base 기준, 커밋 전 |
+| 어디서 | 원래 IntelliJ 프로젝트의 `fix/81-load-boundary`, 모델·테스트·계약 문서 |
+| 무엇을 | legacy LOAD가 활성화한 자식의 위치를 경계에 표시하고, 파일 Load·직접 Memento 복원의 회귀 테스트를 추가했다. |
+| 왜 | 복원 직후 안정 상태가 된 셀의 방향 정보만 읽으면 이웃 블록의 계산을 깨우지 못해 첫 세대 출생이 누락되기 때문이다. |
+| 어떻게 | 테스트 기준 정의 → 기존 233개 통과 → 새 17개 중 10개 실패 재현 → 경계 표시 함수 재사용 → 관련 43개·전체 250개 통과 → 최신 base 통합 후 전체 346개 통과 → 문서·링크 점검 순서로 진행했다. |
+
+### 검증
+
+- 환경: macOS arm64, Eclipse Temurin JDK `26.0.2.1+1`, 저장소의 JDK 26 도구 체인. 공식 배포본을 저장소 밖 임시 폴더에 준비하고 SHA-256을 확인했다. 저장소 빌드 설정은 변경하지 않았다.
+- 기준선: 기존 전체 233개 통과.
+- 수정 전: 신규 17개 중 10개 실패, 오류·건너뜀 0. 클래식 경계 6개, 암세포 경계 3개, 직접 Memento 복원 1개에서 누락을 확인했다.
+- 수정 후: 관련 43개 통과. 신규 17개와 #63의 Load 실패 보존, 기존 클래식·암세포 파일 테스트를 확인했다.
+- 최초 수정 후 전체: 기존 233 + 신규 17 = **250개 통과**, 실패·오류·건너뜀 0.
+- 최신 base 반영 후 최종 전체: **346개 통과**, 실패·오류·건너뜀 0. 신규 경계 회귀 17개도 모두 통과했다. 2인용·모드 전환 등 통합된 테스트를 함께 실행했다.
+- 블록 내부·하단·우측·모서리·보드 가장자리·3중 구조에서 첫 세대와 4세대 진행을 검사했다. 암세포 종류 보존·경계 탄생, 빈 복원, Controller 밖 직접 LOAD도 확인했다.
+- 관련 로컬 파일·제목 링크 43개와 `git diff --check`를 확인했다. 개인 Notion 개발 기록의 09번에도 원인·수정·대안·육하원칙·최신 base 반영과 검증 결과를 남겼다.
+- UI 수동 실행과 성능 측정은 하지 않았다.
+
+실제 Gradle 실행 명령(`Codes/GameOfLife`에서 JDK 26의 JAVA_HOME을 지정):
+
+```sh
+# 기준선
+./gradlew test --no-daemon --rerun-tasks
+# 수정 전 회귀 테스트
+./gradlew test --tests com.holub.life.model.LegacyLoadBoundaryTest --no-daemon
+# 수정 후 관련 테스트
+./gradlew test --no-daemon \
+  --tests com.holub.life.model.LegacyLoadBoundaryTest \
+  --tests com.holub.life.application.GameControllerLoadTest \
+  --tests com.holub.life.ClassicMementoTest \
+  --tests com.holub.life.persistence.CancerCodecTest
+# 최종 전체
+./gradlew test --no-daemon
+```
+
+### 작업 중 기준 브랜치 갱신
+
+사용자 요청으로 main·feature 통합이 반영된 최신 `origin/refactor/base` `03fe4ed`를 가져왔다. 커밋 전 #81 파일 6개를 저장소 밖에 백업하고, `git merge --ff-only origin/refactor/base`로 반영했다. 기존 HEAD가 새 base의 조상이어서 새 병합 커밋 없이 fast-forward됐고 충돌은 없었다. 반영 전후 파일별 SHA-256이 같아 진행 중인 코드·문서·새 테스트가 그대로 보존됐음을 확인했다.
+
+추가된 2인용 경로는 `toggle`·세대 계산을 사용하고 UI 파일 명령을 지원하지 않는다. `TwoPlayerResident.transfer()`도 false의 no-op이므로 이번 LOAD 한정 분기는 정상 2인용 실행에 추가 영향을 주지 않는다. 실제 2인용·모드 전환 회귀는 최종 전체 테스트에 포함했다.
+
+### 후속 작업
+
+- PR base는 `refactor/base`, 연결은 `Refs #81`이다. 공동 이슈이므로 A 범위 PR 병합만으로 닫지 않고 B의 작업 범위 완료도 확인한다.
+- #70·#71·#74는 별도 후속 작업이다. 규칙 Strategy 도입도 이번 버그 수정과 분리한다.

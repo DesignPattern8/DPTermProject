@@ -15,6 +15,8 @@ boolean Neighborhood.beginRedraw(boolean drawAll) throws InterruptedException
 
 좌표 순서는 행·열이다. toggle은 기존 클릭처럼 amAlive와 상위 블록 활성 상태를 바꾼다. 경계 밖 좌표를 보정하지 않는다. Point는 x=열/y=행을 유지한다. Memento는 기존 가변 컬렉션이며 중복·순서를 보존한다. createMemento는 내부에서 transfer(STORE)를 호출한다. transfer의 활성 정보 부수효과도 유지한다. Resident와 DUMMY의 createMemento는 UnsupportedOperationException이다.
 
+- 변경: 2026-11-17, [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) — `transfer(LOAD)`는 활성화된 자식의 격자 위치를 기준으로 각 중첩 블록의 경계를 표시한다. 복원 직후 첫 세대에도 인접 블록의 탄생을 계산한다. 이미 활성인 자식도 보수적으로 포함할 수 있다. 공개 시그니처·좌표·파일 형식과 기존 반환 정책은 유지하며, STORE의 기존 활성 정보 부수효과도 유지한다. [설계·검증 기록](../../../../../../../../docs/GTY.md#006-legacy-load-경계-활성화-81)
+
 beginRedraw는 기존 마지막 갱신 플래그를 소비하고 ConditionVariable 읽기 조건을 확인한다. 읽기 접근은 기존 동시성 계약을 유지하며 새 스레드 안전성을 보장하지 않는다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
 
 ## 클래식 보드 계약
