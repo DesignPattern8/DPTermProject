@@ -88,6 +88,10 @@ B를 채택한다.
 - 테스트: `./gradlew test` 116개 통과(main 병합 후 112 + 새 4). 기존 테스트는 수정하지 않았다. Linux, OpenJDK 21(toolchain만 21로 바꾸는 init 스크립트).
 - `NativeUiSmoke`(EXT-N01): 수정 없이 Xvfb에서 통과, 종료 코드 0.
 
+## 추가 근거 (2026-11-14, #60 이후)
+
+암세포 기능(#60)이 렌더러에 암세포 색(`cell.isCancer()` → 마젠타)을 넣었다. A의 `BoardSnapshot`은 살아 있는 칸 좌표(`liveCells`)만 담고 암세포 여부는 담지 않는다(`model/BoardSnapshot.java`). 그래서 스냅샷만으로는 지금 화면을 그릴 수 없다. A안(스냅샷 렌더링)을 기각한 근거에 이 점을 더한다. 스냅샷 렌더링을 다시 보려면 A가 셀 상태(생존·암세포, 2인용이면 소유자)를 스냅샷에 넣어야 한다.
+
 ## 후속 작업
 
 - B와 협의: `GameListener.boardChanged`에 `BoardSnapshot`을 실을지(B `003` 후속 작업). 실리면 A안의 시점 문제가 사라지므로 렌더러를 다시 비교한다.

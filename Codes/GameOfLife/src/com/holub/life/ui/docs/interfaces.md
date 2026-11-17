@@ -45,3 +45,23 @@ public static CellPosition GridCoordinateMapper.cellAt(Cell cell, Point here, Re
 
 - `position(cell, here, surface)`와 같은 계산(블록마다 정수 나눗셈)이고 결과만 `CellPosition(row = y, column = x)`로 돌려준다. 범위 밖 픽셀의 예외(`ArrayIndexOutOfBoundsException`)도 같다.
 - `BoardPanel`은 이 값을 `GameController.toggle(row, column)`에 넘긴다.
+
+# 결과 메시지와 암세포 화면 (#67)
+
+- 제공 D / 사용 `LifeFrame`(조립), 테스트 / 변경 2026-11-14, #67 ([009](009-game-result-dialog.md))
+- 바뀐 것: `UserDialogs`에 메서드 추가(구현체는 D 안의 `SwingUserDialogs`와 테스트 대역뿐), 클래스 추가. 다른 도메인 시그니처 변경 없음.
+
+```java
+public interface UserDialogs {
+  ...
+  void showMessage(String message);          // 추가
+}
+public SwingUserDialogs(Component messageParent)   // 추가. 기존 무인자 생성자는 messageParent = null
+public final class GameResultAnnouncer implements GameListener {
+  public GameResultAnnouncer(GameController controller, UserDialogs dialogs, Executor onUiThread)
+}
+```
+
+- `GameResultAnnouncer.boardChanged`: `GAME_OVER`일 때만 알림을 받은 스레드에서 `controller.gameResultMessage()`를 읽고, `onUiThread`에 `dialogs.showMessage(message)`를 넘긴다. 다른 알림은 무시한다. `LifeFrame`은 `SwingUtilities::invokeLater`를 넘긴다.
+- `SwingUserDialogs.showMessage`: `JOptionPane.showMessageDialog(messageParent, message, "Game of Life", INFORMATION_MESSAGE)`. 이벤트 스레드에서 부른다. `showError`는 계속 부모 없이(`null`) 띄운다(원본).
+- 사용하는 다른 도메인 API(#60): B `GameController.treat(int, int)`, `GameController.gameResultMessage()`, `GameListener.Change.GAME_OVER`, A `Cell.isCancer()`.
