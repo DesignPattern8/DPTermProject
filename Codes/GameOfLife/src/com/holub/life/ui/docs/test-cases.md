@@ -20,7 +20,7 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R04 | 정상 | Store 항목이 고른 파일에 저장하는지 확인 (왕복) | 셀 3개, 대역이 새 파일을 고름 | 버튼 문구 `"Write"`로 요청, 파일을 다시 불러오면 같은 3칸, 오류 표시 없음 | `GameMenuTest#storeEntryWritesChosenFile` |
 | UI-R05 | 예외 | 잘못된 파일은 오류 표시와 기존 보드 보존 (#63) | 살아 있는 보드에서 바이트 `{1,2,3,4}` 파일을 고름 | 오류 표시 `["Read Failed!"]` (1회), 기존 배치 유지 | `GameMenuTest#loadFailureShowsReadFailed` |
 | UI-R06 | 예외 | 저장할 수 없는 경로면 원본 문구로 실패를 알리는지 확인 | 디렉터리를 고름 | 오류 표시 `["Write Failed!"]` (1회), 보드 그대로 | `GameMenuTest#storeFailureShowsWriteFailed` |
-| UI-R07 | 예외(특성) | 파일 선택을 취소했을 때 원본처럼 동작하는지 확인 | 대역이 `FileNotFoundException`을 던짐(원본 `FileDialogs`의 취소), Load 후 Store | 보드 그대로, 오류 표시 `["Read Failed!", "Write Failed!"]` (원본 동작. 버그 후보, 006 참고) | `GameMenuTest#cancelKeepsOriginalFailureMessage` |
+| UI-R07 | 예외 | 파일 선택을 취소하면 아무 일도 일어나지 않는지 확인 (#57에서 기대값 변경) | 대역이 "선택 없음"(빈 `Optional`)을 돌려줌, Load 후 Store | 보드 그대로, 게임 알림 0회, 오류 표시 없음 (`[]`). 이전 기대값은 원본 동작 `["Read Failed!", "Write Failed!"]`였음 | `GameMenuTest#cancelDoesNothing` |
 | UI-R08 | 정상 | Exit 항목이 종료 동작을 부르는지 확인 (실제 종료 대신 주입) | Exit 실행 | 주입한 `exit` 1회 호출 | `GameMenuTest#exitEntryRunsExitAction` |
 | UI-R09 | 경계 | Go 항목 각각이 맞는 `Clock` 요청을 하고, 표에 없는 이름은 원본처럼 정지하는지 확인 | 기록용 `TickSource` 대역, Go 항목 6개 실행 후 `go(clock, "Unknown")` | Agonizing/Slow/Medium/Fast → `start(500/150/70/30)`, Halt → `stop`, Tick → 리스너 1회, `"Unknown"` → `stop` | `GameMenuTest#goEntriesMapToClockRequests` |
 
@@ -48,3 +48,12 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R17 | 정상 | 게임 종료 알림에 결과 메시지를 한 번 띄우는지 확인 | 이긴 상태의 컨트롤러(#60 CAN-C03과 같은 절차), 기록용 대화상자, 즉시 실행기 | `showMessage` 1회, 내용 = `controller.gameResultMessage()` ("승리" 포함) | `GameResultAnnouncerTest#gameOverShowsResultOnce` |
 | UI-R18 | 예외 | 게임 종료가 아닌 알림에는 메시지를 띄우지 않는지 확인 | 같은 구독자에 `EDITED`, `GENERATION` 전달 | `showMessage` 0회, 실행기에도 작업 0개 | `GameResultAnnouncerTest#otherChangesShowNothing` |
 | UI-R19 | 경계 | 대화상자는 실행기(제품에서는 이벤트 스레드)에서 띄우는지 확인 | `GAME_OVER` 전달, 작업을 모아 두기만 하는 실행기 | 전달 직후 `showMessage` 0회, 모아 둔 작업 실행 후 1회 | `GameResultAnnouncerTest#messageWaitsForExecutor` |
+
+## 파일 선택 취소 (#57, BUG)
+
+구현 전에 정의한다. 원본은 파일 선택 창의 취소를 `FileNotFoundException`으로 알렸고, 메뉴가 다른 읽기·쓰기 실패와 똑같이 잡아 `"Read Failed!"`/`"Write Failed!"`를 띄웠다. #57 정책: **취소는 D의 대화상자 단계에서 판단하고, B를 호출하지 않으며, 오류창을 띄우지 않는다.** 실제 읽기·쓰기 실패는 지금처럼 표시한다. 동작이 바뀌는 수정이므로 UI-R07 기대값을 바꾸고(위 표), 취소와 진짜 실패를 구분하는 케이스를 더한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R20 | 예외 | 고른 파일이 없으면(취소가 아니라 B의 `FileNotFoundException`) 지금처럼 실패를 알리는지 확인 | 살아 있는 셀 1개, 대역이 존재하지 않는 경로를 고름 | 오류 표시 `["Read Failed!"]` 1회, 보드 그대로 | `GameMenuTest#missingChosenFileStillShowsReadFailed` |
+| EXT-N01 (취소 단계) | 예외 | 실제 `JFileChooser`에서 취소하면 오류창이 뜨지 않는지 확인 | `NativeUiSmoke`의 Load 취소 단계 | 오류창(`JOptionPane`) 없음, 보드 셀 3개 그대로 | `NativeUiSmoke#main` |
