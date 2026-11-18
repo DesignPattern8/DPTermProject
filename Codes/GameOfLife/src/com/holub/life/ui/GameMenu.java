@@ -5,9 +5,11 @@ import com.holub.life.application.GameController;
 import com.holub.life.application.Speed;
 import com.holub.ui.MenuSite;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.swing.*;
 
 /** The original Grid and Go menus as one table of entries, plus the menu-open tick filter. */
@@ -96,17 +98,23 @@ public final class GameMenu {
     return path != null && path.length > 0;
   }
 
+  /** Cancelling the chooser does nothing: no load, no error box (#57). */
   private static void load(GameController controller, UserDialogs dialogs) {
+    Optional<File> file = dialogs.chooseFile("Load");
+    if (file.isEmpty()) return;
     try {
-      controller.load(dialogs.chooseFile("Load"));
+      controller.load(file.get());
     } catch (IOException e) {
       dialogs.showError("Read Failed!");
     }
   }
 
+  /** Cancelling the chooser does nothing: no store, no error box (#57). */
   private static void store(GameController controller, UserDialogs dialogs) {
+    Optional<File> file = dialogs.chooseFile("Write");
+    if (file.isEmpty()) return;
     try {
-      controller.store(dialogs.chooseFile("Write"));
+      controller.store(file.get());
     } catch (IOException e) {
       dialogs.showError("Write Failed!");
     }
