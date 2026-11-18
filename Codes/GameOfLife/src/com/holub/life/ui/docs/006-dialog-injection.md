@@ -68,5 +68,21 @@ A를 채택한다. B는 `GameMenu`를 인스턴스 클래스로 바꾸고 `LifeF
 
 ## 후속 작업
 
-- 취소 시 실패 메시지가 뜨는 동작은 별도 이슈로 다룬다(UI-R07이 지금 동작을 고정한다).
+- ~~취소 시 실패 메시지가 뜨는 동작은 별도 이슈로 다룬다(UI-R07이 지금 동작을 고정한다).~~ → #57에서 수정 (아래)
 - `NativeUiSmoke`는 실제 `SwingUserDialogs` 경로를 계속 확인한다.
+
+## 추가: 파일 선택 취소 (#57, BUG, 2026-11-18)
+
+리팩토링(006)에서 고정해 둔 "취소해도 실패 메시지" 동작을 버그로 고쳤다. 취소는 B를 부르기 전 D의 대화상자 단계에서만 알 수 있다. B의 `load`도 없는 파일에 `FileNotFoundException`을 던지므로 예외 타입만으로는 "취소"와 "없는 파일"을 구분할 수 없기 때문이다.
+
+취소를 `UserDialogs`에서 어떻게 표현할지 비교했다.
+
+| 후보 | 내용 | 판단 |
+| --- | --- | --- |
+| A. `Optional<File>` | 취소 = 빈 값 | ✅ 채택. 시그니처에 "선택하지 않을 수 있음"이 드러나고, 호출하는 쪽이 빈 값을 처리하지 않으면 컴파일 단계에서 `File`로 쓸 수 없다 |
+| B. 전용 예외 `SelectionCancelled` | `chooseFile`은 그대로 `File`, 취소만 다른 예외 | ❌ 정상적인 사용자 행동을 예외로 표현한다. 지금처럼 `IOException` 하위 타입으로 두면 같은 `catch`에 다시 섞일 수 있다 |
+| C. `null` | 취소 = `null` | ❌ 시그니처로 알 수 없고 빠뜨리면 `controller.load(null)`이 된다 |
+
+- 바뀐 것: `UserDialogs.chooseFile` 반환형(D 내부 인터페이스, 구현은 `SwingUserDialogs`와 테스트 대역 2개). `GameMenu.load/store`에 빈 값 확인 2줄씩. `FileDialogs.userSelected`의 기존 예외 계약은 그대로 두고 `SwingUserDialogs`가 변환한다.
+- 테스트: UI-R07 기대값 변경(`cancelDoesNothing`: 오류 없음, 알림 0회, 보드 그대로), UI-R20 추가(없는 파일은 지금처럼 `"Read Failed!"`), `NativeUiSmoke` 취소 단계에 "오류창이 뜨지 않음" 확인 추가. 수정 전 코드에서 이 스모크 검사가 실패(종료 코드 1)하고 수정 후 통과하는 것을 확인했다.
+- 결과: `./gradlew test` 357개 통과(기준 `refactor/base` `c2d09a9` 356 + 1). Linux, OpenJDK 21(toolchain만 21로 바꾸는 init 스크립트), `NativeUiSmoke`는 Xvfb.
