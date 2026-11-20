@@ -30,7 +30,7 @@ class GameResultAnnouncerTest {
     final List<String> messages = new ArrayList<>();
 
     @Override
-    public File chooseFile(String selectButtonText) {
+    public Optional<File> chooseFile(String selectButtonText) {
       throw new AssertionError("not used");
     }
 

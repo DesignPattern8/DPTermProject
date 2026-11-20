@@ -78,18 +78,17 @@ class GameMenuTest {
 
   // ---- UI-R01~R09: menu entry table and injected dialogs (ui/docs/test-cases.md) ----
 
-  /** Records requested button texts and shown errors; returns a preset file or throws. */
+  /** Records requested button texts and shown errors; returns a preset file, or nothing when cancelled. */
   private static class RecordingDialogs implements UserDialogs {
     File choice;
-    FileNotFoundException failure;
+    boolean cancelled;
     final List<String> buttons = new ArrayList<>();
     final List<String> errors = new ArrayList<>();
 
     @Override
-    public File chooseFile(String selectButtonText) throws FileNotFoundException {
+    public Optional<File> chooseFile(String selectButtonText) {
       buttons.add(selectButtonText);
-      if (failure != null) throw failure;
-      return choice;
+      return cancelled ? Optional.empty() : Optional.of(choice);
     }
 
     @Override
@@ -228,14 +227,27 @@ class GameMenuTest {
   }
 
   @Test
-  void cancelKeepsOriginalFailureMessage() {
+  void cancelDoesNothing() {
     board.toggle(5, 6);
     Set<Point> before = liveCells();
-    dialogs.failure = new FileNotFoundException("No file selected by user");
+    List<GameListener.Change> changes = new ArrayList<>();
+    controller.addGameListener(changes::add);
+    dialogs.cancelled = true;
     run("Grid", "Load");
     run("Grid", "Store");
     assertEquals(before, liveCells());
-    assertEquals(List.of("Read Failed!", "Write Failed!"), dialogs.errors);
+    assertTrue(changes.isEmpty());
+    assertEquals(List.of(), dialogs.errors);
+  }
+
+  @Test
+  void missingChosenFileStillShowsReadFailed() {
+    board.toggle(5, 6);
+    Set<Point> before = liveCells();
+    dialogs.choice = directory.resolve("missing.life").toFile();
+    run("Grid", "Load");
+    assertEquals(List.of("Read Failed!"), dialogs.errors);
+    assertEquals(before, liveCells());
   }
 
   @Test

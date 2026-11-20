@@ -109,6 +109,20 @@ public class NativeUiSmoke {
     throw new AssertionError("No visible " + type.getSimpleName());
   }
 
+  static void noDialogFor(long millis) throws Exception {
+    long deadline = System.nanoTime() + millis * 1_000_000L;
+    while (System.nanoTime() < deadline) {
+      boolean[] shown = {false};
+      edt(
+          () -> {
+            for (Window w : Window.getWindows())
+              if (w.isShowing() && descendant(w, JOptionPane.class) != null) shown[0] = true;
+          });
+      check(!shown[0], "no dialog expected");
+      Thread.sleep(30);
+    }
+  }
+
   static void fileMenu(String name, File file, boolean cancel, boolean errorExpected)
       throws Exception {
     SwingUtilities.invokeLater(() -> item("Grid", name).doClick());
@@ -121,6 +135,7 @@ public class NativeUiSmoke {
             chooser.approveSelection();
           }
         });
+    if (!errorExpected) noDialogFor(500);
     if (errorExpected) {
       JOptionPane error = waitFor(JOptionPane.class);
       check(
@@ -174,8 +189,8 @@ public class NativeUiSmoke {
       check(cells().isEmpty(), "clear menu");
       fileMenu("Load", save, false, false);
       check(cells().size() == 3, "load menu");
-      fileMenu("Load", save, true, true);
-      check(cells().size() == 3, "cancel before clear");
+      fileMenu("Load", save, true, false);
+      check(cells().size() == 3, "cancel keeps board");
       File bad = Path.of(args[0], "bad.life").toFile();
       Files.write(bad.toPath(), new byte[] {1, 2, 3, 4});
       Set<Point> beforeFailure = cells();
@@ -183,7 +198,7 @@ public class NativeUiSmoke {
       check(cells().equals(beforeFailure), "read failure preserves board");
       System.out.println(
           "PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel"
-              + " error, invalid-load preservation");
+              + " without error, invalid-load preservation");
       System.out.println("EXIT_MENU_REQUESTED");
       System.out.flush();
       edt(() -> item("Grid", "Exit").doClick());

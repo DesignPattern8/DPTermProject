@@ -23,16 +23,17 @@ public static List<GameMenu.Entry> GameMenu.entries(
     GameController controller, Clock clock, UserDialogs dialogs, Runnable exit)
 
 public interface UserDialogs {
-  File chooseFile(String selectButtonText) throws FileNotFoundException;
+  Optional<File> chooseFile(String selectButtonText);   // #57: 취소 = Optional.empty()
   void showError(String message);
 }
 public final class SwingUserDialogs implements UserDialogs
 ```
 
 - `entries`: 변경할 수 없는 목록 10개를 원본 순서(Grid: Clear, Load, Store, Exit → Go: Halt, Tick (Single Step), Agonizing, Slow, Medium, Fast)로 돌려준다. 만들 때 Swing 창이나 `MenuSite`가 필요 없다. 항목 동작은 `ActionEvent`를 쓰지 않으므로 `null`로 실행해도 된다.
-- Load/Store 동작: `dialogs.chooseFile("Load")`/`("Write")`로 고른 파일을 `controller.load`/`store`에 넘긴다. 선택 취소(`FileNotFoundException`)를 포함한 `IOException`은 `dialogs.showError("Read Failed!")`/`("Write Failed!")`로 알린다. 원본 동작이다.
+- Load/Store 동작: `dialogs.chooseFile("Load")`/`("Write")`로 고른 파일을 `controller.load`/`store`에 넘긴다. 고른 파일의 `IOException`(없는 파일, 형식 오류, 쓸 수 없는 경로)은 `dialogs.showError("Read Failed!")`/`("Write Failed!")`로 알린다.
+- 선택 취소(#57, 2026-11-18 변경): `chooseFile`이 빈 `Optional`을 돌려주면 `controller`를 부르지 않고 오류창도 띄우지 않는다. 보드·실행 상태·파일·게임 알림 모두 그대로다. 원본(및 #46 이전 계약)은 취소도 `FileNotFoundException`으로 받아 실패 메시지를 띄웠다.
 - Exit 동작: `exit.run()`. `install`은 `() -> System.exit(0)`을 넘긴다.
-- `SwingUserDialogs.chooseFile`: `FileDialogs.userSelected(".", ".life", "Life File", text)`. `showError`: `JOptionPane.showMessageDialog(null, message, "The Game of Life", ERROR_MESSAGE)`. 둘 다 Swing 이벤트 스레드에서 부른다(메뉴 동작에서 부르므로 지금은 항상 그렇다).
+- `SwingUserDialogs.chooseFile`: `FileDialogs.userSelected(".", ".life", "Life File", text)`. `FileDialogs`가 "선택 없음"을 알리는 `FileNotFoundException`은 빈 `Optional`로 바꾼다(`FileDialogs` 자체 계약은 그대로). `showError`: `JOptionPane.showMessageDialog(null, message, "The Game of Life", ERROR_MESSAGE)`. 둘 다 Swing 이벤트 스레드에서 부른다(메뉴 동작에서 부르므로 지금은 항상 그렇다).
 
 # 클릭 → `CellPosition` (#9)
 
