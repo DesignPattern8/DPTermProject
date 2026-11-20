@@ -22,3 +22,4 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 
 - [C Legacy 입력 허용 타입·자원 한도 (#65)](../../persistence/docs/005-legacy-input-policy.md): 지원하지 않는 타입·초과 입력은 IOException. B의 Load 실패 후 보드·Clock 정책은 #63에서 별도로 변경한다.
 - [C 안전한 Store 계약 (#64)](../../persistence/docs/004-atomic-file-replacement.md): capture는 임시 파일 준비 후 호출하며 저장 실패 시 기존 파일을 보존한다. Clock 정지·Store 무알림 계약은 유지한다.
+- [C 스냅샷 파일 API·블록 순서 (#92)](../../persistence/docs/006-snapshot-file-api.md): 크기를 받는 read와 writeSnapshot, 조립 시 블록 폭 설정을 제공한다. B의 파일용 Cell·PersistenceMapper 제거와 연결은 #88에서 진행한다.
