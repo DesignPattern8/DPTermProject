@@ -480,9 +480,9 @@ public final class Neighborhood implements Cell {
     Resident[][] board = residentBoard();
     int size = board.length;
 
-    // 클릭한 칸과 주변 한 칸(대각선 포함)을 치료
-    for (int dr = -1; dr <= 1; dr++) {
-      for (int dc = -1; dc <= 1; dc++) {
+    // 클릭한 칸을 중심으로 5x5 범위 치료
+    for (int dr = -2; dr <= 2; dr++) {
+      for (int dc = -2; dc <= 2; dc++) {
         int r = row + dr;
         int c = column + dc;
 

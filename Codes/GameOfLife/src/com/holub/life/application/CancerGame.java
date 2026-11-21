@@ -11,7 +11,7 @@ import java.util.Random;
  */
 public final class CancerGame {
   public static final int GENERATIONS_PER_PHASE = 100;
-  public static final int INITIAL_TREATMENT_CHARGES = 3;
+  public static final int INITIAL_TREATMENT_CHARGES = 5;
 
   /** 25% of the 64x64 board. */
   public static final int LOSING_CANCER_COUNT = 1024;
