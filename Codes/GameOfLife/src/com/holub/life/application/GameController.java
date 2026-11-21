@@ -106,11 +106,22 @@ public final class GameController {
    */
   public boolean treat(int row, int column) {
     if (cancerGame == null) return false;
+
     boolean treated;
+    boolean ended;
+
     synchronized (lock) {
       treated = cancerGame.treat(row, column);
+      ended = treated && cancerGame.isOver();
     }
+
     if (treated) notifyListeners(GameListener.Change.EDITED);
+
+    if (ended) {
+      clock.stop();
+      notifyListeners(GameListener.Change.GAME_OVER);
+    }
+
     return treated;
   }
 
