@@ -12,6 +12,7 @@ import java.util.Random;
 public final class CancerGame {
   public static final int GENERATIONS_PER_PHASE = 100;
   public static final int INITIAL_TREATMENT_CHARGES = 3;
+
   /** 25% of the 64x64 board. */
   public static final int LOSING_CANCER_COUNT = 1024;
 
@@ -22,7 +23,6 @@ public final class CancerGame {
 
   private int treatmentCharges = INITIAL_TREATMENT_CHARGES;
   private int generation = 0;
-  private boolean cancerHasAppeared = false;
   private boolean gameOver = false;
   private String resultMessage = null;
 
@@ -45,14 +45,8 @@ public final class CancerGame {
     board.applyInvasion(INVASION_PROBABILITY, random);
 
     int tumors = board.cancerCount();
-    if (tumors > 0) cancerHasAppeared = true;
-
     if (tumors >= LOSING_CANCER_COUNT) {
       finish("암세포가 보드의 25% 이상을 차지하였습니다. 패배입니다.");
-      return true;
-    }
-    if (cancerHasAppeared && tumors == 0) {
-      finish("암세포를 모두 제거하였습니다. 승리입니다.");
       return true;
     }
 
@@ -67,8 +61,15 @@ public final class CancerGame {
    */
   public boolean treat(int row, int column) {
     if (treatmentCharges <= 0) return false;
+
     board.treatAt(row, column);
     treatmentCharges--;
+
+    int tumorsBefore = board.cancerCount();
+    if (tumorsBefore > 0 && board.cancerCount() == 0) {
+      finish("암세포를 모두 제거하였습니다. 승리입니다."); // 사용자가 직접 치료하여 모든 암세포가 제거된 경우에만 승리
+    }
+
     return true;
   }
 
