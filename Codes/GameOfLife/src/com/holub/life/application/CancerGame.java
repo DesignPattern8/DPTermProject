@@ -60,14 +60,15 @@ public final class CancerGame {
    * @return false if no charges were left, in which case nothing changes.
    */
   public boolean treat(int row, int column) {
-    if (treatmentCharges <= 0) return false;
+    if (treatmentCharges <= 0 || gameOver) return false;
 
-    board.treatAt(row, column);
+    boolean treated = board.treatAt(row, column);
+    if (!treated) return false; // 실제 치료가 이루어지지 않았다면 횟수를 차감하지 않음
+
     treatmentCharges--;
 
-    int tumorsBefore = board.cancerCount();
-    if (tumorsBefore > 0 && board.cancerCount() == 0) {
-      finish("암세포를 모두 제거하였습니다. 승리입니다."); // 사용자가 직접 치료하여 모든 암세포가 제거된 경우에만 승리
+    if (board.cancerCount() == 0) {
+      finish("암세포를 모두 제거하였습니다. 승리입니다.");
     }
 
     return true;
