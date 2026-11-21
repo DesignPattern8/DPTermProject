@@ -16,6 +16,8 @@ public final class CancerGame {
   /** 25% of the 64x64 board. */
   public static final int LOSING_CANCER_COUNT = 1024;
 
+  public static final int MIN_CANCER_COUNT_FOR_TREATMENT = 10;
+
   private static final double INVASION_PROBABILITY = 0.03;
 
   private final Neighborhood board;
@@ -61,6 +63,11 @@ public final class CancerGame {
    */
   public boolean treat(int row, int column) {
     if (treatmentCharges <= 0 || gameOver) return false;
+
+    int tumorsBefore = board.cancerCount();
+    if (tumorsBefore <= MIN_CANCER_COUNT_FOR_TREATMENT) {
+      return false; // 암세포 수가 치료 가능 최소 기준 이하이면 치료 불가
+    }
 
     boolean treated = board.treatAt(row, column);
     if (!treated) return false; // 실제 치료가 이루어지지 않았다면 횟수를 차감하지 않음
