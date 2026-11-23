@@ -191,6 +191,10 @@ public class NativeUiSmoke {
       check(cells().size() == 3, "load menu");
       fileMenu("Load", save, true, false);
       check(cells().size() == 3, "cancel keeps board");
+      edt(() -> item("Grid", "Clear").doClick());
+      edt(() -> item("Preset", "Glider").doClick());
+      click(10, 10);
+      check(cells().size() == 5, "preset glider placed");
       File bad = Path.of(args[0], "bad.life").toFile();
       Files.write(bad.toPath(), new byte[] {1, 2, 3, 4});
       Set<Point> beforeFailure = cells();
@@ -198,7 +202,7 @@ public class NativeUiSmoke {
       check(cells().equals(beforeFailure), "read failure preserves board");
       System.out.println(
           "PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel"
-              + " without error, invalid-load preservation");
+              + " without error, invalid-load preservation, preset glider");
       System.out.println("EXIT_MENU_REQUESTED");
       System.out.flush();
       edt(() -> item("Grid", "Exit").doClick());

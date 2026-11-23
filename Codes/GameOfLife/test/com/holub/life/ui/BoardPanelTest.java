@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.application.*;
 import com.holub.life.model.*;
+import java.awt.Cursor;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 
@@ -98,5 +100,47 @@ class BoardPanelTest {
     assertTrue(cellAt(cells, 25, 12).isAlive());
     assertFalse(cellAt(cells, 25, 12).isCancer());
     assertEquals(CancerGame.INITIAL_TREATMENT_CHARGES, cancer.treatmentCharges());
+  }
+
+  /** UI-R29 (#62, decision 010). */
+  @Test
+  void panelClickPlacesPresetAndRestoresCursor() {
+    Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    CompositeBoard board = new CompositeBoard(cells);
+    GameController controller = new GameController(board, new Clock(new IdleTickSource()));
+    UserDialogs dialogs =
+        new UserDialogs() {
+          @Override
+          public Optional<File> chooseFile(String selectButtonText) {
+            throw new AssertionError("not used");
+          }
+
+          @Override
+          public void showError(String message) {
+            fail("unexpected error: " + message);
+          }
+
+          @Override
+          public void showMessage(String message) {
+            throw new AssertionError("not used");
+          }
+        };
+    PresetPlacement placement = new PresetPlacement(controller, dialogs);
+    BoardPanel panel = new BoardPanel(cells, controller, placement);
+    panel.setSize(512, 512);
+
+    placement.select("glider");
+    assertEquals(Cursor.CROSSHAIR_CURSOR, panel.getCursor().getType());
+    panel.dispatchEvent(press(panel, 84, 84, false));
+
+    assertEquals(Cursor.DEFAULT_CURSOR, panel.getCursor().getType());
+    assertEquals(
+        Set.of(
+            new CellPosition(10, 11),
+            new CellPosition(11, 12),
+            new CellPosition(12, 10),
+            new CellPosition(12, 11),
+            new CellPosition(12, 12)),
+        board.snapshot().liveCells());
   }
 }
