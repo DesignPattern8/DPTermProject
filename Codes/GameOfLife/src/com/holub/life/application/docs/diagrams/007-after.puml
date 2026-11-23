@@ -1,0 +1,33 @@
+@startuml 007-after
+title Load / Store after #88 (Board snapshot path)
+participant "D / caller" as D
+participant GameController as G
+participant "BoardFileStore (C)" as F
+participant Clock as T
+participant "Board (A)" as B
+participant GameListener as L
+
+== Load ==
+D -> G : load(file)
+group controller lock
+  G -> F : read(path, board.rows(), board.columns())
+  F -> F : decode, clip and dedupe (PatternData.toSnapshot)
+  F --> G : BoardSnapshot or IOException
+  G -> T : stop()
+  G -> B : restore(snapshot)
+end
+G -> L : EDITED once, outside lock
+
+== Store ==
+D -> G : store(file)
+G -> F : writeSnapshot(path, capture)
+F -> F : check target, open staging file
+F -> G : capture.get()
+G -> T : stop()
+group controller lock
+  G -> B : snapshot()
+end
+G --> F : BoardSnapshot
+F -> F : order by block widths [8, 1], encode, atomic replace
+note over G : constructor GameController(Board, Clock, CancerGame, BoardFileStore)\nno file-only Cell, no java.awt.Point
+@enduml
