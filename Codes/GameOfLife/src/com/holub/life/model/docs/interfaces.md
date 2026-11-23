@@ -21,6 +21,23 @@ boolean Neighborhood.beginRedraw(boolean drawAll) throws InterruptedException
 
 beginRedraw는 기존 마지막 갱신 플래그를 소비하고 해당 보드의 ConditionVariable 읽기 조건을 확인한다. `beginRedraw()` 이후 전체 그리기 구간을 잠그지는 않는다. 같은 보드의 계산·수정·캡처는 호출자가 기존처럼 직렬화한다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
 
+## 암세포 셀 계약 (#70)
+
+- 제공 A 모델 / 사용 스냅샷 복원·수집, 암세포 모드의 `Resident`, D 화면.
+- 2026-11-23, [#70](https://github.com/DesignPattern8/DPTermProject/issues/70) · [설계·검증 기록](../../../../../../../../docs/GTY.md#009-암세포-셀-계약-분리-70).
+
+```java
+public interface CancerCell extends Cell {
+  boolean isCancer();
+  void setCancer();
+  void cureCancer();
+}
+```
+
+`Resident`가 구현한다. `isCancer()`는 암 표시를 조회하므로 살아 있는 암세포만 세는 호출부는 `isAlive()`도 확인한다. `setCancer()`는 살아 있는 암세포로 바꾸고 `cureCancer()`는 암세포를 죽인다. 셀 변경은 기존 보드 동기화와 활성 블록 규칙을 따른다.
+
+`Cell`로 조회한 값은 `instanceof CancerCell`로 지원 여부를 확인한 뒤 호출한다. `Neighborhood`, `Cell.DUMMY`, `TwoPlayerResident`는 이 계약을 구현하지 않는다. `Cell.Memento`의 좌표 기반 암 기록·조회는 파일 복원 경로에서 사용한다.
+
 ## 클래식 보드 계약
 
 - 변경: 2026-11-10, #47 계약 문서 → #49 모델 API 구현. [설계 결정](../../../../../../../../docs/GTY.md#002-클래식-보드-facade)

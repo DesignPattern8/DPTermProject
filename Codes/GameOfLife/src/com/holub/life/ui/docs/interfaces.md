@@ -65,7 +65,7 @@ public final class GameResultAnnouncer implements GameListener {
 
 - `GameResultAnnouncer.boardChanged`: `GAME_OVER`일 때만 알림을 받은 스레드에서 `controller.gameResultMessage()`를 읽고, `onUiThread`에 `dialogs.showMessage(message)`를 넘긴다. 다른 알림은 무시한다. `LifeFrame`은 `SwingUtilities::invokeLater`를 넘긴다.
 - `SwingUserDialogs.showMessage`: `JOptionPane.showMessageDialog(messageParent, message, "Game of Life", INFORMATION_MESSAGE)`. 이벤트 스레드에서 부른다. `showError`는 계속 부모 없이(`null`) 띄운다(원본).
-- 사용하는 다른 도메인 API(#60): B `GameController.treat(int, int)`, `GameController.gameResultMessage()`, `GameListener.Change.GAME_OVER`, A `Cell.isCancer()`.
+- 사용하는 다른 도메인 API(#60): B `GameController.treat(int, int)`, `GameController.gameResultMessage()`, `GameListener.Change.GAME_OVER`, A `Resident.isCancer()` (`CancerCell` 계약).
 
 # 게임 모드 전환 (`GameMode`, `ModeSwitch`, `ClassicMode`)
 
