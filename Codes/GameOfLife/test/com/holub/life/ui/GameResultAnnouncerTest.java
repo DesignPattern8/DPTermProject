@@ -54,7 +54,6 @@ class GameResultAnnouncerTest {
   private final GameController controller =
       new GameController(
           new CompositeBoard(board),
-          board,
           new Clock(new IdleTickSource()),
           new CancerGame(board, new NoNewCancer()));
   private final RecordingDialogs dialogs = new RecordingDialogs();

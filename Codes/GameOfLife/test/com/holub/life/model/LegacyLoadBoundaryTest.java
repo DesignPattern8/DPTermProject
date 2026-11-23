@@ -200,7 +200,7 @@ class LegacyLoadBoundaryTest {
           @Override
           public void stop() {}
         };
-    return new GameController(board, root, new Clock(ticks));
+    return new GameController(board, new Clock(ticks));
   }
 
   private static Set<CellPosition> line(int row, int column, boolean horizontal, int size) {

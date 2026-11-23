@@ -26,8 +26,7 @@ class BoardPanelTest {
   void clickTogglesCellUnderPointer() {
     Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
     CompositeBoard board = new CompositeBoard(cells);
-    GameController controller =
-        new GameController(board, cells, new Clock(new IdleTickSource()));
+    GameController controller = new GameController(board, new Clock(new IdleTickSource()));
     List<GameListener.Change> changes = new ArrayList<>();
     controller.addGameListener(changes::add);
     BoardPanel panel = new BoardPanel(cells, controller);
@@ -72,8 +71,7 @@ class BoardPanelTest {
     cellAt(cells, 25, 12).setCancer();
     CancerGame cancer = new CancerGame(cells, new NoNewCancer());
     GameController controller =
-        new GameController(
-            new CompositeBoard(cells), cells, new Clock(new IdleTickSource()), cancer);
+        new GameController(new CompositeBoard(cells), new Clock(new IdleTickSource()), cancer);
     List<GameListener.Change> changes = new ArrayList<>();
     controller.addGameListener(changes::add);
     BoardPanel panel = new BoardPanel(cells, controller);
@@ -91,8 +89,7 @@ class BoardPanelTest {
     Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
     CancerGame cancer = new CancerGame(cells, new NoNewCancer());
     GameController controller =
-        new GameController(
-            new CompositeBoard(cells), cells, new Clock(new IdleTickSource()), cancer);
+        new GameController(new CompositeBoard(cells), new Clock(new IdleTickSource()), cancer);
     BoardPanel panel = new BoardPanel(cells, controller);
     panel.setSize(512, 512);
 

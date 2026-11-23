@@ -43,8 +43,7 @@ class GameControllerCancerTest {
 
   private GameController cancerController() {
     GameController controller =
-        new GameController(
-            new CompositeBoard(board), board, clock, new CancerGame(board, NO_NEW_CANCER));
+        new GameController(new CompositeBoard(board), clock, new CancerGame(board, NO_NEW_CANCER));
     controller.addGameListener(changes::add);
     return controller;
   }
@@ -54,7 +53,7 @@ class GameControllerCancerTest {
   void classicControllerIgnoresTreatment() {
     // Given
     cellAt(board, 3, 3).setCancer();
-    GameController controller = new GameController(new CompositeBoard(board), board, clock);
+    GameController controller = new GameController(new CompositeBoard(board), clock);
     controller.addGameListener(changes::add);
 
     // When

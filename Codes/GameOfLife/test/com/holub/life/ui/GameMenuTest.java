@@ -62,7 +62,7 @@ class GameMenuTest {
       board.toggle(10, 10);
       board.toggle(10, 11);
       Clock clock = new Clock(new UtilTimerTickSource(timer));
-      GameController controller = new GameController(new CompositeBoard(board), board, clock);
+      GameController controller = new GameController(new CompositeBoard(board), clock);
       menus.setSelectedPath(new MenuElement[] {new JMenu("Go")});
       GameMenu.onTick(controller);
       assertTrue(board.createMemento().isAlive(new Point(9, 10)));
@@ -121,8 +121,7 @@ class GameMenuTest {
   private final Neighborhood board = new Neighborhood(8, new Neighborhood(8, new Resident()));
   private final RecordingTickSource ticks = new RecordingTickSource();
   private final Clock clock = new Clock(ticks);
-  private final GameController controller =
-      new GameController(new CompositeBoard(board), board, clock);
+  private final GameController controller = new GameController(new CompositeBoard(board), clock);
   private final RecordingDialogs dialogs = new RecordingDialogs();
   private final int[] exits = {0};
   private final List<GameMenu.Entry> entries =
