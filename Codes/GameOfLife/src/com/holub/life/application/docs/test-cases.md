@@ -60,18 +60,23 @@ GameControllerTest는 정상 세대, 실제 파일 왕복과 좌표당 1회 기�
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
-| CAN-A01 | 정상·경계 | 치료는 3번까지만 되고 그 뒤에는 보드를 바꾸지 않는다 | 서로 떨어진 암세포 4칸, 차례로 4번 치료 | 1~3번째는 true이고 횟수가 2→1→0으로 줄어든다. 4번째는 false이고 마지막 암세포가 남는다 | `CancerGameTest#treatmentIsLimitedToThreeCharges` |
-| CAN-A02 | 정상 | 암세포가 나타난 뒤 모두 없어지면 승리로 끝난다 | 암세포 2칸에서 한 세대 → 모두 치료 → 한 세대 | 두 번째 호출이 true, 승리 메시지 | `CancerGameTest#curingAllCancerWins` |
+| CAN-A01 | 정상·경계 | 치료는 5번까지만 되고 그 뒤에는 보드를 바꾸지 않는다 (#96에서 3→5회) | 서로 떨어진 암세포 6칸 + 멀리 떨어진 암세포 12칸 묶음(최소 기준 유지용), 차례로 6번 치료 | 1~5번째는 true이고 횟수가 4→3→2→1→0으로 줄어든다. 6번째는 false이고 마지막 암세포가 남는다 | `CancerGameTest#treatmentIsLimitedToFiveCharges` |
+| CAN-A02 | 정상 | 치료로 마지막 암세포를 없애면 그 자리에서 승리로 끝난다 (#96에서 tick 판정 → 치료 판정) | 한 치료 범위(5×5) 안의 3×4 암세포 묶음(12칸), 가운데 치료 | `treat` true, 게임 종료, 승리 메시지 | `CancerGameTest#curingAllCancerWins` |
 | CAN-A03 | 경계 | 암세포가 한 번도 나타나지 않았으면 0개여도 승리가 아니다 | 일반 세포 1칸, 발생 확률에 걸리지 않는 무작위 값 | 끝나지 않고 메시지 없음 | `CancerGameTest#noCancerYetIsNotAWin` |
 | CAN-A04 | 경계 | 암세포가 1024개(보드의 25%)가 되면 패배한다 | 32×32 암세포 묶음 | true, 패배 메시지 | `CancerGameTest#cancerCoveringQuarterOfBoardLoses` |
 | CAN-A05 | 경계 | 암세포가 1023개면 아직 패배가 아니다 | 32×32에서 한 칸 뺀 암세포 묶음 | 끝나지 않음 | `CancerGameTest#oneCellBelowQuarterDoesNotLose` |
-| CAN-A06 | 경계 | 끝난 게임은 더 이상 진행하지 않는다 | 승리 직후 다시 호출 | false, 메시지 유지 | `CancerGameTest#finishedGameDoesNotContinue` |
+| CAN-A06 | 경계 | 끝난 게임은 더 이상 진행하지 않는다 | CAN-A02처럼 치료로 승리한 직후 `afterGeneration` | false, 메시지 유지 | `CancerGameTest#finishedGameDoesNotContinue` |
 | CAN-A07 | 경계 | 발생 확률은 100세대마다 올라간다 | 일반 세포 1칸, 무작위 값 0.003 (1단계 0.001보다 크고 2단계 0.005보다 작음) | 100세대째까지 암세포 0개, 101세대째에 암세포 생김 | `CancerGameTest#outbreakProbabilityRisesAfterHundredGenerations` |
 | CAN-A08 | 정상 | 단계별 확률표 | 단계 1~5 | 0.001, 0.005, 0.02, 0.05, 0.05 | `CancerGameTest#phaseProbabilities` |
+| CAN-A09 | 경계 | 암세포가 10개 이하면 치료를 거부하고 횟수를 쓰지 않는다 (#96) | 한 치료 범위 안의 암세포 정확히 10칸 | false, 암세포 10개 유지, 횟수 5 유지 | `CancerGameTest#treatmentRefusedAtOrBelowMinimumCancerCount` |
+| CAN-A10 | 예외 | 치료 범위에 암세포가 없으면 횟수를 쓰지 않는다 (#96) | 멀리 떨어진 암세포 12칸, 일반 세포 (30,30)에서 치료 | false, 횟수 5 유지, 암세포 수 그대로 | `CancerGameTest#treatmentOfAreaWithoutCancerUsesNoCharge` |
+| CAN-A11 | 경계 | 치료 없이 암세포가 모두 사라지면 승리가 아니다 (#96) | 암세포 1칸으로 한 세대 → 치료 없이 제거 → 한 세대 | false, 끝나지 않고 메시지 없음 | `CancerGameTest#cancerVanishingWithoutTreatmentIsNotAWin` |
+| CAN-A12 | 예외 | 끝난 게임에서는 치료하지 않는다 (#96) | 32×32 암세포로 패배한 뒤 치료 | false, 횟수 5 유지, 암세포 1024개 유지 | `CancerGameTest#finishedGameRefusesTreatment` |
 | CAN-C01 | 정상 | 암 규칙 없이 만든 컨트롤러는 치료하지 않는다 | 기존 생성자, 암세포 1칸, `treat` | false, 암세포 유지, 알림 없음, 결과 메시지 null | `GameControllerCancerTest#classicControllerIgnoresTreatment` |
-| CAN-C02 | 정상 | 치료하면 전체 다시 그리기를 알리고, 횟수가 없으면 알리지 않는다 | 암 규칙 컨트롤러, 4번 치료 | 1~3번째에만 `EDITED` 알림 | `GameControllerCancerTest#treatmentNotifiesOnlyWhenUsed` |
-| CAN-C03 | 정상 | 승리하는 tick은 시계를 멈추고 `GAME_OVER`를 알린다 | 암세포 2칸(서로 붙어 안정) → tick → 치료 → tick | 시계 정지, 마지막 알림 `GAME_OVER`, 승리 메시지 | `GameControllerCancerTest#winningTickStopsClockAndReportsGameOver` |
+| CAN-C02 | 정상 | 치료하면 전체 다시 그리기를 알리고, 횟수가 없으면 알리지 않는다 | 암 규칙 컨트롤러, 떨어진 암세포 6칸 + 멀리 떨어진 12칸 묶음, 6번 치료 | 1~5번째에만 `EDITED` 알림 | `GameControllerCancerTest#treatmentNotifiesOnlyWhenUsed` |
+| CAN-C03 | 정상 | 마지막 암세포를 없애는 치료는 시계를 멈추고 `GAME_OVER`를 알린다 (#96에서 tick → 치료) | 3×4 암세포 묶음, 시계 시작 → 가운데 치료 | 시계 정지, 알림 `EDITED`→`GAME_OVER`, 승리 메시지 | `GameControllerCancerTest#winningTreatmentStopsClockAndReportsGameOver` |
 | CAN-C04 | 경계 | 끝난 뒤의 tick은 보드를 진행하지 않고 알리지 않는다 | CAN-C03 이후 블링커를 놓고 tick | false, 블링커 그대로, 알림 없음 | `GameControllerCancerTest#tickAfterGameOverDoesNothing` |
+| CAN-C05 | 예외 | 치료가 거부되면 시계를 멈추지 않고 알리지 않는다 (#96) | 암세포 1칸(최소 기준 이하), 시계 시작 → 치료 | false, 시계 계속, 알림 없음, 결과 메시지 null | `GameControllerCancerTest#refusedTreatmentLeavesClockRunningAndNotifiesNothing` |
 
 ## #63 안전한 Load — 구현 전 정의 (2026-11-17)
 

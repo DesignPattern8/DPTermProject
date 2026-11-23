@@ -92,6 +92,10 @@ public final class Resident implements Cell {
   }
 
   public void toggle(int row, int column) {
+    if (isCancer) {
+      return;
+    }
+
     amAlive = !amAlive;
   }
 

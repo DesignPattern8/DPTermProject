@@ -42,9 +42,9 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 
 | ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
 | --- | --- | --- | --- | --- | --- |
-| UI-R14 | 정상(특성) | 오른쪽 클릭이 포인터 아래 셀의 치료를 요청하는지 확인 | 암 규칙 컨트롤러, (행 25, 열 12)가 암세포, 512px 패널에서 픽셀 (x=100, y=200) 오른쪽 버튼 `MOUSE_PRESSED` | 그 셀은 더 이상 암세포가 아님, 남은 치료 횟수 3 → 2, 알림 `EDITED` 1회 | `BoardPanelTest#rightClickTreatsCellUnderPointer` |
-| UI-R15 | 경계(특성) | 암 규칙이 있어도 왼쪽 클릭은 치료하지 않고 토글만 하는지 확인 | UI-R14와 같은 컨트롤러, 빈 셀 (25,12)를 왼쪽 클릭 | (25,12)가 살아남(암세포 아님), 남은 치료 횟수 3 그대로 | `BoardPanelTest#leftClickTogglesEvenWithCancerRules` |
+| UI-R14 | 정상(특성) | 오른쪽 클릭이 포인터 아래 셀의 치료를 요청하는지 확인 | 암 규칙 컨트롤러, (행 25, 열 12)가 암세포, 치료 최소 기준(10개 초과)을 넘기도록 멀리 (54~56, 54~57)에 암세포 12칸, 512px 패널에서 픽셀 (x=100, y=200) 오른쪽 버튼 `MOUSE_PRESSED` | 그 셀은 더 이상 암세포가 아님, 남은 치료 횟수 5 → 4, 알림 `EDITED` 1회 | `BoardPanelTest#rightClickTreatsCellUnderPointer` |
+| UI-R15 | 경계(특성) | 암 규칙이 있어도 왼쪽 클릭은 치료하지 않고 토글만 하는지 확인 | UI-R14와 같은 컨트롤러, 빈 셀 (25,12)를 왼쪽 클릭 | (25,12)가 살아남(암세포 아님), 남은 치료 횟수 5 그대로 | `BoardPanelTest#leftClickTogglesEvenWithCancerRules` |
 | UI-R16 | 정상(특성) | 암세포는 마젠타, 일반 생존 셀은 빨강, 빈 셀은 연노랑으로 그리는지 확인 | (0,0) 암세포, (0,1) 생존, (0,2) 빈 셀. 512px `BufferedImage`에 전체 그리기 | 각 셀 중앙 픽셀(4,4), (12,4), (20,4)이 `MAGENTA`, `RED`, `Colors.LIGHT_YELLOW` | `BoardRendererTest#cancerCellsAreMagenta` |
-| UI-R17 | 정상 | 게임 종료 알림에 결과 메시지를 한 번 띄우는지 확인 | 이긴 상태의 컨트롤러(#60 CAN-C03과 같은 절차), 기록용 대화상자, 즉시 실행기 | `showMessage` 1회, 내용 = `controller.gameResultMessage()` ("승리" 포함) | `GameResultAnnouncerTest#gameOverShowsResultOnce` |
+| UI-R17 | 정상 | 게임 종료 알림에 결과 메시지를 한 번 띄우는지 확인 | 이긴 상태의 컨트롤러(CAN-C03과 같은 절차: 3×4 암세포 묶음을 한 번에 치료), 기록용 대화상자, 즉시 실행기 | `showMessage` 1회, 내용 = `controller.gameResultMessage()` ("승리" 포함) | `GameResultAnnouncerTest#gameOverShowsResultOnce` |
 | UI-R18 | 예외 | 게임 종료가 아닌 알림에는 메시지를 띄우지 않는지 확인 | 같은 구독자에 `EDITED`, `GENERATION` 전달 | `showMessage` 0회, 실행기에도 작업 0개 | `GameResultAnnouncerTest#otherChangesShowNothing` |
 | UI-R19 | 경계 | 대화상자는 실행기(제품에서는 이벤트 스레드)에서 띄우는지 확인 | `GAME_OVER` 전달, 작업을 모아 두기만 하는 실행기 | 전달 직후 `showMessage` 0회, 모아 둔 작업 실행 후 1회 | `GameResultAnnouncerTest#messageWaitsForExecutor` |

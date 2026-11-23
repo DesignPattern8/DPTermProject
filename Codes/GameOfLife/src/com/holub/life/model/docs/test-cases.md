@@ -47,12 +47,14 @@ Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의
 | CAN-M06 | 정상 | 자연 발생은 살아 있는 일반 세포 하나만 암세포로 바꾼다 | 살아 있는 세포 3칸, 확률 1 | 암세포 정확히 1개 | `CancerModelTest#naturalCancerConvertsExactlyOneCell` |
 | CAN-M07 | 정상 | 전이는 암세포에 붙어 있는 일반 세포만, 한 세대에 한 칸씩만 감염시킨다 | 한 줄로 놓인 암세포 1칸 + 일반 세포 2칸, 확률 1 | 붙어 있는 칸만 암세포가 되고 그 다음 칸은 일반 세포로 남는다 | `CancerModelTest#invasionInfectsOnlyDirectNeighborsInOneGeneration` |
 | CAN-M08 | 경계 | 전이 확률이 0이면 감염되지 않는다 | 암세포 옆 일반 세포, 확률 0 | 일반 세포가 그대로 남는다 | `CancerModelTest#invasionWithZeroProbabilityInfectsNothing` |
-| CAN-M09 | 정상 | 치료는 클릭한 칸 중심 3×3 안의 암세포만 없애고 일반 세포는 남긴다 | 3×3 안의 암세포 2칸·일반 세포 1칸, 3×3 밖 암세포 1칸 | 안쪽 암세포는 죽고, 일반 세포와 바깥 암세포는 남는다 | `CancerModelTest#treatmentCuresOnlyCancerInThreeByThreeArea` |
+| CAN-M09 | 정상·경계 | 치료는 클릭한 칸 중심 5×5 안의 암세포만 없애고 일반 세포는 남긴다 (#96에서 3×3→5×5) | (30,30) 치료. 5×5 안의 암세포 (29,29)·가장자리 (32,32), 일반 세포 (30,31), 5×5 밖 암세포 (33,33) | 안쪽 암세포는 죽고, 일반 세포와 바깥 암세포는 남는다 | `CancerModelTest#treatmentCuresOnlyCancerInFiveByFiveArea` |
 | CAN-M10 | 경계 | 보드 모서리 치료는 보드 안쪽 칸만 처리한다 | (0,0)과 (1,1)의 암세포, (0,0) 치료 | 예외 없이 두 칸 모두 치료된다 | `CancerModelTest#treatmentAtCornerStaysInsideBoard` |
 | CAN-M11 | 예외 | 보드 밖 좌표 치료는 아무것도 바꾸지 않는다 | (0,0) 암세포, (-5,-5)와 (100,100) 치료 | 예외 없이 암세포 1개 유지 | `CancerModelTest#treatmentOutsideBoardChangesNothing` |
 | CAN-M12 | 경계 | 암세포 수는 하위 블록 경계를 넘어 모두 센다 | 하위 블록 경계 (7,7)·(7,8)·(8,7)·(8,8)과 (63,63)의 암세포 | `cancerCount()` = 5 | `CancerModelTest#cancerCountSpansSubBlocks` |
 | CAN-M13 | 정상 | Clear는 암세포 상태도 지운다 | 암세포 2칸, `clear()` | 암세포 0개, 살아 있는 칸 0개 | `CancerModelTest#clearRemovesCancer` |
 | CAN-M14 | 경계 | 복합 셀과 DUMMY는 암세포가 되지 않는다 | `Neighborhood`와 `Cell.DUMMY`에 `setCancer()` | 둘 다 `isCancer()` = false | `CancerModelTest#compositeAndDummyCellsAreNeverCancer` |
+| CAN-M15 | 예외 | 치료 범위에 암세포가 없으면 `treatAt`은 false를 돌려주고 아무것도 바꾸지 않는다 (#96) | 5×5 안에 일반 세포만, 밖에 암세포 1칸 | false, 일반 세포 생존, 암세포 1개 유지 | `CancerModelTest#treatmentWithoutCancerInAreaReportsNothingCured` |
+| CAN-M16 | 예외 | 암세포는 토글로 상태를 바꿀 수 없다 (#96) | 암세포 (10,10)에 `toggle` | 여전히 살아 있는 암세포 | `CancerModelTest#toggleIgnoresCancerCell` |
 
 ## 암세포 스냅샷 (#73)
 
