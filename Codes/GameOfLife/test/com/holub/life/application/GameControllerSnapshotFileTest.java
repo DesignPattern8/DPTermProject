@@ -115,7 +115,8 @@ class GameControllerSnapshotFileTest {
     BoardSnapshot before = board.snapshot();
     clock.start(Speed.MEDIUM);
     Path file =
-        patternFile(new PatternData(List.of(new CellPosition(1, 1)), Set.of(new CellPosition(2, 2))));
+        patternFile(
+            new PatternData(List.of(new CellPosition(1, 1)), Set.of(new CellPosition(2, 2))));
     int stopsBefore = ticks.stops;
 
     // When

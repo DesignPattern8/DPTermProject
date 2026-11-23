@@ -1,50 +1,50 @@
 package com.holub.life.application;
 
 import com.holub.life.model.Board;
-import com.holub.life.model.Cell;
+import com.holub.life.model.BoardSnapshot;
 import com.holub.life.model.CellPosition;
-import com.holub.life.model.NeighborhoodState;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
-import java.awt.Point;
 import java.io.*;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Entry point for the UI's board requests (Facade). Runs the existing Universe model operations,
  * one at a time, and tells {@link GameListener}s when the board changed.
  *
- * <p>Editing and generations go through {@link Board}. Load and Store still use the legacy {@link
- * Cell} memento path through immutable file data; {@code fileCells} must be the same board that
- * {@code board} wraps.
+ * <p>Editing, generations, Load and Store all go through {@link Board}. Files are read and written
+ * as {@link BoardSnapshot}s by {@link BoardFileStore}, which owns coordinate filtering and file
+ * order.
  */
 public final class GameController {
+  /** Child-block widths of the default {@code Neighborhood(8, Neighborhood(8, Resident))} board. */
+  private static final List<Integer> DEFAULT_BLOCK_WIDTHS = List.of(8, 1);
+
   private final Board board;
-  private final Cell fileCells;
   private final Clock clock;
   private final BoardFileStore files;
   private final CancerGame cancerGame; // null: classic Life without cancer rules
   private final Object lock = new Object(); // Board calls must not overlap (model contract)
   private final List<GameListener> listeners = new CopyOnWriteArrayList<>();
 
-  public GameController(Board board, Cell fileCells, Clock clock) {
-    this(board, fileCells, clock, null);
+  public GameController(Board board, Clock clock) {
+    this(board, clock, null);
   }
 
   /**
    * Runs {@code cancerGame} after every generation. It must act on the board that {@code board}
-   * wraps.
+   * wraps. Files use the default 64x64 board's block layout.
    */
-  public GameController(Board board, Cell fileCells, Clock clock, CancerGame cancerGame) {
-    this(board, fileCells, clock, cancerGame, new BoardFileStore(new LegacyLifeCodec()));
+  public GameController(Board board, Clock clock, CancerGame cancerGame) {
+    this(board, clock, cancerGame, new BoardFileStore(new LegacyLifeCodec(), DEFAULT_BLOCK_WIDTHS));
   }
 
-  public GameController(
-      Board board, Cell fileCells, Clock clock, CancerGame cancerGame, BoardFileStore files) {
-    this.files = java.util.Objects.requireNonNull(files, "files");
+  /** {@code files} must be configured with the block layout of {@code board} for Store. */
+  public GameController(Board board, Clock clock, CancerGame cancerGame, BoardFileStore files) {
+    this.files = Objects.requireNonNull(files, "files");
     this.board = board;
-    this.fileCells = fileCells;
     this.clock = clock;
     this.cancerGame = cancerGame;
   }
@@ -122,21 +122,20 @@ public final class GameController {
   /** Decode and close the input before changing the board or clock; only success emits EDITED. */
   public void load(File file) throws IOException {
     synchronized (lock) {
-      NeighborhoodState loaded = PersistenceMapper.restore(files.read(file.toPath()));
+      BoardSnapshot loaded = files.read(file.toPath(), board.rows(), board.columns());
       clock.stop();
-      fileCells.clear();
-      fileCells.transfer(loaded, new Point(0, 0), Cell.LOAD);
+      board.restore(loaded);
     }
     notifyListeners(GameListener.Change.EDITED);
   }
 
   public void store(File file) throws IOException {
-    files.write(
+    files.writeSnapshot(
         file.toPath(),
         () -> {
           clock.stop();
           synchronized (lock) {
-            return PersistenceMapper.capture(fileCells.createMemento());
+            return board.snapshot();
           }
         });
   }
