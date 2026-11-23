@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Test;
 
 /** UI-R16 (#67, cancer feature #60): cell colors. See ui/docs/test-cases.md. */
 class BoardRendererTest {
-  private static Cell cellAt(Neighborhood board, int row, int column) {
+  private static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   @Test

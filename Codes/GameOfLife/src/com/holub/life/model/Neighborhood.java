@@ -360,18 +360,6 @@ public final class Neighborhood implements Cell {
     return m;
   }
 
-  public boolean isCancer() {
-    return false; // Neighborhood 자체는 개별 세포가 아니므로 암세포가 아님
-  }
-
-  public void setCancer() {
-    // 암세포 전환은 개별 Resident에만 적용
-  }
-
-  public void cureCancer() {
-    // 복합 셀 자체는 치료 대상이 아님
-  }
-
   /** 중첩된 Neighborhood를 실제 보드 좌표에 맞춰 펼친다. */
   private void fillResidents(Resident[][] board, int top, int left) {
     int subcellWidth = grid[0][0].widthInCells();

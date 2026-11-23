@@ -2,7 +2,6 @@ package com.holub.life.application;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.holub.life.model.Cell;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
 import java.util.Random;
@@ -40,9 +39,9 @@ class CancerGameTest {
     board = new Neighborhood(8, new Neighborhood(8, new Resident()));
   }
 
-  static Cell cellAt(Neighborhood board, int row, int column) {
+  static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   /** Fill rows/columns [0, size) with cancer, optionally leaving out the last cell. */

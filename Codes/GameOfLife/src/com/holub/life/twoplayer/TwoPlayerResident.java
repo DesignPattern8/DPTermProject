@@ -138,18 +138,4 @@ final class TwoPlayerResident implements Cell {
   public NeighborhoodState createMemento() {
     throw new UnsupportedOperationException("May not create memento of a unitary cell");
   }
-
-  /** 2인용 모드에는 암세포가 없다. */
-  @Override
-  public boolean isCancer() {
-    return false;
-  }
-
-  /** 2인용 모드에는 암세포가 없다. 아무것도 하지 않는다. */
-  @Override
-  public void setCancer() {}
-
-  /** 2인용 모드에는 암세포가 없다. 아무것도 하지 않는다. */
-  @Override
-  public void cureCancer() {}
 }

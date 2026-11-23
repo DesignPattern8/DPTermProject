@@ -40,7 +40,7 @@ class GameControllerPersistenceTest {
     try (var in = new ObjectInputStream(Files.newInputStream(file))) {
       assertEquals(expected, in.readObject());
     }
-    var cancer = ((Neighborhood) root.childAt(2, 3)).childAt(1, 2);
+    Resident cancer = (Resident) ((Neighborhood) root.childAt(2, 3)).childAt(1, 2);
     cancer.setCancer();
     controller.store(file.toFile());
     controller.clear();
@@ -53,7 +53,8 @@ class GameControllerPersistenceTest {
   void failedStorePreservesFileAndBoard() throws Exception {
     // Given
     root.toggle(1, 2);
-    ((Neighborhood) root.childAt(0, 0)).childAt(3, 4).setCancer();
+    Resident cancer = (Resident) ((Neighborhood) root.childAt(0, 0)).childAt(3, 4);
+    cancer.setCancer();
     var before = PersistenceMapper.capture(root.createMemento());
     var original = new byte[] {10, 20, 30};
     Path target = Files.write(directory.resolve("board.life"), original);

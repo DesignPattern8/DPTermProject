@@ -105,15 +105,6 @@ public interface Cell {
    */
   NeighborhoodState createMemento();
 
-  /** Return true if this cell is a live cancer cell. Composite cells are never cancer cells. */
-  boolean isCancer();
-
-  /** Turn this cell into a live cancer cell. */
-  void setCancer();
-
-  /** Kill this cell if it is a cancer cell. */
-  void cureCancer();
-
   /**
    * The DUMMY Singleton represents a permanently dead (thus stable) cell. It's used for the edges
    * of the grid. It's a singleton. The Dummy class is private, but it is accessed through the
@@ -162,13 +153,5 @@ public interface Cell {
         public NeighborhoodState createMemento() {
           throw new UnsupportedOperationException("Cannot create memento of dummy block");
         }
-
-        public boolean isCancer() {
-          return false;
-        }
-
-        public void setCancer() {}
-
-        public void cureCancer() {}
       };
 }

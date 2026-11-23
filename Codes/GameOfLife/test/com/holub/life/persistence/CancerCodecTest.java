@@ -18,9 +18,9 @@ class CancerCodecTest {
     return new Neighborhood(8, new Neighborhood(8, new Resident()));
   }
 
-  private static Cell cellAt(Neighborhood board, int row, int column) {
+  private static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   private static byte[] store(Neighborhood board) throws IOException {
