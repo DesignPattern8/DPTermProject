@@ -52,39 +52,54 @@ class CancerGameTest {
         if (!(leaveOutLast && r == size - 1 && c == size - 1)) cellAt(board, r, c).setCancer();
   }
 
+  /**
+   * 3×4 cancer block (12 cells, more than {@link CancerGame#MIN_CANCER_COUNT_FOR_TREATMENT}) that
+   * lies entirely inside the 5×5 treatment area centered on (row, column).
+   *
+   * @return the number of cancer cells placed.
+   */
+  static int cancerBlock(Neighborhood board, int row, int column) {
+    for (int r = row - 1; r <= row + 1; r++)
+      for (int c = column - 1; c <= column + 2; c++) cellAt(board, r, c).setCancer();
+    return 12;
+  }
+
+  /** Cancer block far from every treatment spot in these tests; keeps the count above 10. */
+  static int distantCancerBlock(Neighborhood board) {
+    return cancerBlock(board, 56, 56);
+  }
+
   @Test
-  @DisplayName("CAN-A01 치료는 3번까지만 되고 그 뒤에는 보드를 바꾸지 않는다")
-  void treatmentIsLimitedToThreeCharges() {
-    // Given
-    int[][] spots = {{5, 5}, {5, 20}, {5, 40}, {40, 5}};
+  @DisplayName("CAN-A01 치료는 5번까지만 되고 그 뒤에는 보드를 바꾸지 않는다")
+  void treatmentIsLimitedToFiveCharges() {
+    // Given: six lone cancer cells far apart, plus a distant block that keeps the count above 10
+    int distant = distantCancerBlock(board);
+    int[][] spots = {{5, 5}, {5, 20}, {5, 40}, {20, 5}, {20, 20}, {40, 5}};
     for (int[] s : spots) cellAt(board, s[0], s[1]).setCancer();
     CancerGame game = new CancerGame(board, NO_NEW_CANCER);
 
     // When / Then
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < CancerGame.INITIAL_TREATMENT_CHARGES; i++) {
       assertTrue(game.treat(spots[i][0], spots[i][1]));
-      assertEquals(2 - i, game.treatmentCharges());
+      assertEquals(CancerGame.INITIAL_TREATMENT_CHARGES - 1 - i, game.treatmentCharges());
     }
     assertFalse(game.treat(40, 5));
     assertTrue(cellAt(board, 40, 5).isCancer());
-    assertEquals(1, board.cancerCount());
+    assertEquals(distant + 1, board.cancerCount());
   }
 
   @Test
-  @DisplayName("CAN-A02 암세포가 나타난 뒤 모두 없어지면 승리로 끝난다")
+  @DisplayName("CAN-A02 치료로 마지막 암세포를 없애면 그 자리에서 승리로 끝난다")
   void curingAllCancerWins() {
     // Given
-    cellAt(board, 10, 10).setCancer();
-    cellAt(board, 10, 11).setCancer();
+    cancerBlock(board, 10, 10);
     CancerGame game = new CancerGame(board, NO_NEW_CANCER);
-    assertFalse(game.afterGeneration());
 
     // When
-    game.treat(10, 10);
-    boolean ended = game.afterGeneration();
+    boolean treated = game.treat(10, 10);
 
     // Then
-    assertTrue(ended);
+    assertTrue(treated);
     assertTrue(game.isOver());
     assertTrue(game.resultMessage().contains("승리"));
   }
@@ -123,11 +138,9 @@ class CancerGameTest {
   @Test
   @DisplayName("CAN-A06 끝난 게임은 더 이상 진행하지 않는다")
   void finishedGameDoesNotContinue() {
-    cellAt(board, 10, 10).setCancer();
+    cancerBlock(board, 10, 10);
     CancerGame game = new CancerGame(board, NO_NEW_CANCER);
-    game.afterGeneration();
     game.treat(10, 10);
-    game.afterGeneration();
     String message = game.resultMessage();
 
     assertFalse(game.afterGeneration());
@@ -159,5 +172,76 @@ class CancerGameTest {
     assertEquals(0.02, CancerGame.cancerProbabilityForPhase(3));
     assertEquals(0.05, CancerGame.cancerProbabilityForPhase(4));
     assertEquals(0.05, CancerGame.cancerProbabilityForPhase(5));
+  }
+
+  @Test
+  @DisplayName("CAN-A09 암세포가 10개 이하면 치료를 거부하고 횟수를 쓰지 않는다")
+  void treatmentRefusedAtOrBelowMinimumCancerCount() {
+    // Given: exactly 10 cancer cells inside one treatment area
+    for (int c = 8; c <= 12; c++) {
+      cellAt(board, 9, c).setCancer();
+      cellAt(board, 10, c).setCancer();
+    }
+    CancerGame game = new CancerGame(board, NO_NEW_CANCER);
+
+    // When
+    boolean treated = game.treat(10, 10);
+
+    // Then
+    assertFalse(treated);
+    assertEquals(CancerGame.MIN_CANCER_COUNT_FOR_TREATMENT, board.cancerCount());
+    assertEquals(CancerGame.INITIAL_TREATMENT_CHARGES, game.treatmentCharges());
+  }
+
+  @Test
+  @DisplayName("CAN-A10 치료 범위에 암세포가 없으면 횟수를 쓰지 않는다")
+  void treatmentOfAreaWithoutCancerUsesNoCharge() {
+    // Given
+    int distant = distantCancerBlock(board);
+    board.toggle(30, 30);
+    CancerGame game = new CancerGame(board, NO_NEW_CANCER);
+
+    // When
+    boolean treated = game.treat(30, 30);
+
+    // Then
+    assertFalse(treated);
+    assertEquals(CancerGame.INITIAL_TREATMENT_CHARGES, game.treatmentCharges());
+    assertEquals(distant, board.cancerCount());
+  }
+
+  @Test
+  @DisplayName("CAN-A11 치료 없이 암세포가 모두 사라지면 승리가 아니다")
+  void cancerVanishingWithoutTreatmentIsNotAWin() {
+    // Given: cancer appeared once
+    cellAt(board, 10, 10).setCancer();
+    CancerGame game = new CancerGame(board, NO_NEW_CANCER);
+    game.afterGeneration();
+
+    // When: it disappears without a treatment
+    cellAt(board, 10, 10).cureCancer();
+    boolean ended = game.afterGeneration();
+
+    // Then
+    assertFalse(ended);
+    assertFalse(game.isOver());
+    assertNull(game.resultMessage());
+  }
+
+  @Test
+  @DisplayName("CAN-A12 끝난 게임에서는 치료하지 않는다")
+  void finishedGameRefusesTreatment() {
+    // Given: a lost game
+    cancerSquare(32, false);
+    CancerGame game = new CancerGame(board, NO_NEW_CANCER);
+    game.afterGeneration();
+
+    // When
+    boolean treated = game.treat(10, 10);
+
+    // Then
+    assertFalse(treated);
+    assertEquals(CancerGame.INITIAL_TREATMENT_CHARGES, game.treatmentCharges());
+    assertEquals(CancerGame.LOSING_CANCER_COUNT, board.cancerCount());
   }
 }

@@ -70,6 +70,9 @@ class BoardPanelTest {
   void rightClickTreatsCellUnderPointer() {
     Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
     cellAt(cells, 25, 12).setCancer();
+    // More than CancerGame.MIN_CANCER_COUNT_FOR_TREATMENT cells far from (25, 12), so the
+    // treatment is allowed and does not end the game.
+    for (int r = 54; r <= 56; r++) for (int c = 54; c <= 57; c++) cellAt(cells, r, c).setCancer();
     CancerGame cancer = new CancerGame(cells, new NoNewCancer());
     GameController controller =
         new GameController(
