@@ -116,3 +116,23 @@ LOAD-09의 경계 배치 이후 세대 진행에서 별도 기존 결함 [#81](h
 2. **SNAP-09는 기존 동작을 유지하지 않는다.** 구현 전 관찰(임시 테스트로 실행, 커밋하지 않음): 기존 Load는 성공하고 `(2,2)`가 `isAlive() == false`, `isCancer() == true`가 된다(`Resident.transfer`가 `isAlive`·`isCancer`를 따로 읽음, `Resident.java:123-124`). 이 칸은 `board.snapshot()`에도 나오지 않는다(`cancerCells = []`). `BoardSnapshot`은 "암세포는 생존 세포"를 요구해(`BoardSnapshot.java` 생성자) 이 상태를 `restore()`로 만들 수 없다. C 계약(#93)대로 `IOException`으로 거부하고, B는 기존 Load 실패 경로(#82: 보드·Clock 유지, 알림 없음)로 처리한다. 앱이 저장한 파일은 암세포가 항상 생존 목록에 있어 해당하지 않는다.
 3. **#81** — 태영이 `fix/81-load-boundary`(`86733b8`)로 legacy Load 경로를 고쳤다. `CompositeBoard.restore()`는 `toggle`로 배치해 경계를 활성화하므로 이 작업 후에도 `LegacyLoadBoundaryTest`가 그대로 통과해야 한다.
 4. **생성자** — `Cell` 인자를 지운다: `(Board, Clock)`, `(Board, Clock, CancerGame)`, `(Board, Clock, CancerGame, BoardFileStore)`. 저장소를 넘기지 않으면 `new BoardFileStore(new LegacyLifeCodec(), List.of(8, 1))`(`Life`의 64×64 보드 구조). 기존 테스트에서 바뀌는 것은 생성자 호출과, 블록 폭 없이 만든 `new BoardFileStore(codec)`에 블록 폭을 넣는 준비 코드뿐이다(`writeSnapshot`은 블록 폭이 없으면 `IllegalStateException`).
+
+## #62 프리셋 선택·배치 B API — 구현 전 정의 (2026-11-24)
+
+D(병국)와 11/17 #62 댓글로 합의한 API와 정책을 고정한다. `presets()`는 C의 `PresetCatalog.list()` 순서를 그대로 B 값(`PresetChoice`)으로 바꾼다. `applyPreset(id, origin)`은 프리셋 좌상단 (0,0)을 `origin`에 맞춘다. 모드별 허용(Classic만)은 D가 `GameMode` 플래그로 처리하므로 B는 검사하지 않는다. 기존 생성자(`(Board, Clock)`, `(Board, Clock, CancerGame)`, `(Board, Clock, CancerGame, BoardFileStore)`)는 기본 `new PresetCatalog()`로 위임하므로 기존 테스트의 생성자 호출은 바뀌지 않는다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| PRE-01 | 정상 | 목록은 카탈로그 순서의 id·이름 | 기본 생성자 | `[block/Block, blinker/Blinker, glider/Glider]`, 보드 호출·알림 없음 | `GameControllerPresetTest#presetsFollowCatalogOrder` |
+| PRE-02 | 정상 | 빈 보드에 원점 기준으로 배치 | 빈 64×64, `glider` at `(10,20)` | `APPLIED`, 생존 칸 = 카탈로그 좌표 + `(10,20)` 5칸, `EDITED` 1번 | `GameControllerPresetTest#gliderIsPlacedRelativeToOrigin` |
+| PRE-03 | 경계 | 보드 오른쪽 아래 끝에 꼭 맞으면 배치 | 빈 보드, `block` at `(62,62)` | `APPLIED`, `(62..63, 62..63)` 4칸 | `GameControllerPresetTest#presetFittingBottomRightCornerIsApplied` |
+| PRE-04 | 예외 | 한 칸이라도 보드 밖이면 아무것도 놓지 않음 | 기존 생존 `(1,1)`, `block` at `(63,62)` / `blinker` at `(-1,0)` / `blinker` at `(0,62)` | 모두 `OUT_OF_BOUNDS`, 스냅샷이 전과 같음, 알림 없음 | `GameControllerPresetTest#presetCrossingAnyEdgeChangesNothing` |
+| PRE-05 | 경계 | 이미 산 칸과 겹쳐도 그 칸은 산 채로 둔다 | 생존 `(5,5)`, `block` at `(5,5)` | `APPLIED`, 4칸 모두 생존 (`toggle`이었다면 `(5,5)`가 죽음) | `GameControllerPresetTest#overlappingLiveCellStaysAlive` |
+| PRE-06 | 경계 | 암세포 칸과 겹쳐도 암세포는 그대로 | 암 규칙 보드, 암세포 `(5,5)`, `block` at `(5,5)` | `APPLIED`, `cancerCells == {(5,5)}`, 나머지 3칸은 일반 생존 | `GameControllerPresetTest#overlappingCancerCellIsLeftUntouched` |
+| PRE-07 | 예외 | 없는 id는 변경 없음 | 기존 생존 `(1,1)`, id `"nope"` | `UNKNOWN_ID`, 스냅샷 같음, 알림 없음 | `GameControllerPresetTest#unknownIdChangesNothing` |
+| PRE-08 | 정상 | 실행 중 배치는 시계를 멈추지 않음 | `Clock` 실행 중(수동 `TickSource`), `block` at `(0,0)` | `APPLIED`, 시계 계속 실행 | `GameControllerPresetTest#placingDoesNotStopRunningClock` |
+| PRE-09 | 예외 | 원점 없음은 호출 오류 | `origin == null` | `NullPointerException`, 보드 변경·알림 없음 | `GameControllerPresetTest#nullOriginIsRejected` |
+| PRE-10 | 정상 | 스냅샷 1번 보고 죽은 칸만 `toggle` (잠금 하나 안) | `Board` 대역의 스냅샷에 `(3,4)` 생존, `block` at `(3,3)` | 보드 호출 `[snapshot, toggle:3,3, toggle:4,3, toggle:4,4]`, `EDITED` 1번 | `GameControllerBoardTest#presetReadsSnapshotOnceAndTogglesOnlyDeadCells` |
+| PRE-11 | 정상 | 다른 스레드의 tick이 끝난 뒤에 배치 전체가 들어감 | `step()` 진행 중에 `applyPreset` | `step:end` 전에 보드 호출 없음, 이후 snapshot·toggle이 연달아 | `GameControllerBoardTest#presetWaitsForRunningStep` |
+
+기존 편집(`toggle`, APP-B03·B05), Clear, Load·Store 테스트는 기대값을 바꾸지 않는다.
