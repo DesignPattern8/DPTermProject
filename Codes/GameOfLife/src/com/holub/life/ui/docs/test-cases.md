@@ -57,3 +57,23 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | --- | --- | --- | --- | --- | --- |
 | UI-R20 | 예외 | 고른 파일이 없으면(취소가 아니라 B의 `FileNotFoundException`) 지금처럼 실패를 알리는지 확인 | 살아 있는 셀 1개, 대역이 존재하지 않는 경로를 고름 | 오류 표시 `["Read Failed!"]` 1회, 보드 그대로 | `GameMenuTest#missingChosenFileStillShowsReadFailed` |
 | EXT-N01 (취소 단계) | 예외 | 실제 `JFileChooser`에서 취소하면 오류창이 뜨지 않는지 확인 | `NativeUiSmoke`의 Load 취소 단계 | 오류창(`JOptionPane`) 없음, 보드 셀 3개 그대로 | `NativeUiSmoke#main` |
+
+## 프리셋 선택·배치 화면 (#62, 결정 [010](010-preset-placement-ui.md))
+
+구현 전에 정의한다. B의 실제 `GameController`(PR #99의 `presets()`·`applyPreset()`)와 실제 64×64 보드를 쓰고, 대화상자는 기록용 대역, 창은 띄우지 않는다. 좌표는 (행, 열). glider 상대 좌표는 C 카탈로그의 `(0,1) (1,2) (2,0) (2,1) (2,2)`.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R21 | 정상 | `Preset` 메뉴 항목이 B의 프리셋 목록 순서·이름과 같은지 확인 | `GameMenu.presetEntries(controller, placement)` | 메뉴 `Preset`, 라벨 `Block`, `Blinker`, `Glider` (순서 포함) | `PresetPlacementTest#presetMenuFollowsCatalogOrder` |
+| UI-R22 | 정상 | 프리셋을 고른 뒤 왼쪽 클릭한 칸을 좌상단으로 배치하는지 확인 | 빈 보드, `Glider` 항목 실행 → (10,10) 왼쪽 클릭 | 클릭을 소비(`true`), 살아 있는 칸 = {(10,11), (11,12), (12,10), (12,11), (12,12)}, 오류 없음, 대기 끝 | `PresetPlacementTest#leftClickPlacesSelectedPreset` |
+| UI-R23 | 정상 | 대기 중이 아니면 클릭을 가로채지 않는지 확인 (평소 토글·치료 유지) | 아무것도 고르지 않음, 왼쪽·오른쪽 클릭 | 둘 다 `false`, 보드 그대로 | `PresetPlacementTest#clicksPassThroughWhenNotWaiting` |
+| UI-R24 | 경계 | 대기 중 오른쪽 클릭은 취소만 하고 치료하지 않는지 확인 | 암 규칙 컨트롤러, (25,12) 암세포, `Glider` 선택 → (25,12) 오른쪽 클릭 | 클릭을 소비(`true`), 대기 끝, (25,12)는 여전히 암세포, 치료 횟수 그대로 | `PresetPlacementTest#rightClickCancelsWithoutTreating` |
+| UI-R25 | 경계 | 다른 메뉴 선택·모드 전환(= `cancel()`) 뒤에는 클릭이 평소대로 가는지 확인 | `Glider` 선택 → `cancel()` → (10,10) 왼쪽 클릭 | 클릭이 `false`(배치하지 않음), 보드 그대로 | `PresetPlacementTest#cancelReturnsToNormalClicks` |
+| UI-R26 | 예외 | 보드 밖으로 나가면 배치하지 않고 알리는지, 대기는 끝나는지 확인 (결정 4 A) | `Glider` 선택 → (63,63) 왼쪽 클릭 | 오류 `["Preset does not fit here."]` 1회, 보드 그대로, 대기 끝 | `PresetPlacementTest#outOfBoundsShowsErrorAndEndsWaiting` |
+| UI-R27 | 예외 | 없는 프리셋 id면 배치하지 않고 알리는지 확인 | `select("nope")` → (10,10) 왼쪽 클릭 | 오류 `["Unknown preset."]` 1회, 보드 그대로, 대기 끝 | `PresetPlacementTest#unknownIdShowsError` |
+| UI-R28 | 정상 | 대기 시작·끝을 알려 커서를 바꿀 수 있는지 확인 | 대기 변화 기록, `Glider` 선택 → 클릭 → 다시 선택 → `cancel()` | 기록 `[true, false, true, false]` | `PresetPlacementTest#waitingChangesAreReported` |
+| UI-R29 | 정상 | 실제 패널 클릭이 배치로 이어지고 커서가 돌아오는지 확인 | 512×512 `BoardPanel`(프리셋 포함), `Glider` 선택 → 픽셀 (x=84, y=84) 왼쪽 `MOUSE_PRESSED` | 선택 직후 커서 십자, 클릭 후 기본 커서, (10,10) 기준 glider 5칸이 살아 있음 | `BoardPanelTest#panelClickPlacesPresetAndRestoresCursor` |
+| EXT-N01 (프리셋 단계) | 정상 | 실제 메뉴에서 `Preset` → `Glider` → 클릭이 동작하는지 확인 | `NativeUiSmoke`에서 Clear 후 메뉴 클릭, 보드 클릭 | 살아 있는 칸 5개 | `NativeUiSmoke#main` |
+
+- UI-R01(기존 메뉴 10개)은 그대로 둔다. 프리셋 항목은 `entries()`가 아니라 `presetEntries()`에 있다(결정 2).
+- 2인용 모드에서 `Preset` 메뉴가 꺼지는 것은 `MenuSite`(창 필요)를 거치므로 headless JUnit으로 보지 않는다. 대기 취소는 UI-R25와 같은 `cancel()` 경로다.
