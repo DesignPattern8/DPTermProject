@@ -1,5 +1,38 @@
 # 저장 테스트
 
+## #92 스냅샷 파일 API — 구현 전 정의 (2026-11-18)
+
+[B에 공유한 계약](https://github.com/DesignPattern8/DPTermProject/issues/88#issuecomment-6953096811)을 기준으로 아래 케이스를 먼저 정의한다. 기존 C/SAFE/FIL 및 B의 순서·좌표 정책 테스트는 수정하지 않는다. B Controller 이전은 #88의 후속 작업이다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| SNAP-P01 | 정상 | 일반·암세포 변환과 원시 데이터 불변 | 혼합 패턴, 직사각형 크기 | 생존·암 집합 및 크기 보존, 원본 목록 불변 | `PatternDataSnapshotTest#preservesCancerAndSourceData` |
+| SNAP-P02 | 경계 | 두 집합에 동일한 범위 정책 적용 | 중복, 음수, 크기와 같은 좌표, int 극값, 유효 모서리 | 범위 밖 무시·중복 제거, 유효 암 유지 | `PatternDataSnapshotTest#clipsBothKindsAndDeduplicatesAtBoardBoundary` |
+| SNAP-P03 | 경계 | 빈 스냅샷 | 빈 패턴, 1×1·직사각형 | 지정 크기와 빈 두 집합 | `PatternDataSnapshotTest#supportsEmptyBoards` |
+| SNAP-P04 | 예외 | 잘못된 크기 | 0·음수 행/열 | IllegalArgumentException | `PatternDataSnapshotTest#rejectsNonPositiveDimensions` |
+| SNAP-P05 | 예외 | 생존 집합 밖 암 정보의 조용한 손실 방지 | 범위 안 암 좌표가 생존 목록에 없음 | IllegalArgumentException, 원시 데이터 유지 | `PatternDataSnapshotTest#rejectsCancerOutsideLiveSet` |
+| SNAP-F01 | 정상 | 파일 읽기에 대상 크기와 암 정보 전달 | 중복·범위 밖 좌표가 있는 암 파일 | 필터링된 스냅샷, 실제 Board.restore 후 같은 상태 | `SnapshotFileStoreTest#readsFilteredCancerSnapshotIntoBoard` |
+| SNAP-F02 | 정상 | 기존 일반/암 파일 호환 | 기존 write로 만든 파일 | 일반·암 스냅샷으로 읽기 | `SnapshotFileStoreTest#readsExistingClassicFile`, 기존 `LegacyLifeCodecTest#readsPreRefactoringCancerFixture` |
+| SNAP-F03 | 예외 | 잘못된 크기는 파일 접근 전 거부 | 없는 파일, 잘못된 행/열 | IOException 대신 IllegalArgumentException | `SnapshotFileStoreTest#rejectsInvalidDimensionsBeforeOpening` |
+| SNAP-F04 | 예외 | 모델 변환 실패를 파일 오류로 전달 | 생존 집합 밖 암 좌표 파일 | 원인이 IllegalArgumentException인 IOException | `SnapshotFileStoreTest#reportsUnrepresentableCancerAsIoFailure` |
+| SNAP-F05 | 정상·예외 | 입력 stream 종료 | 정상·해석 실패·변환 실패 Codec 대역 | 모든 경로에서 실제 stream 닫힘 | `SnapshotFileStoreTest#closesInputOnEveryReadOutcome` |
+| SNAP-F06 | 예외 | Codec 예외를 변환 오류로 오인하지 않음 | IOException/IllegalArgumentException을 던지는 Codec | 원래 예외 인스턴스 전파 | `SnapshotFileStoreTest#preservesCodecFailures` |
+| SNAP-F07 | 정상·경계 | 평면·중첩 출력 순서를 기존 순회와 비교 | 전체 생존 보드: 64×64 [8,1], 8×8 [4,1]/[1], 12×12 [6,2,1], 1×1 [1] | 직렬화된 목록이 createMemento 순서와 동일 | `SnapshotFileStoreTest#matchesLegacyTraversalForEachLayout` |
+| SNAP-F08 | 정상 | 암세포 왕복과 캡처 비변경 | 여러 블록에 걸친 혼합 보드 | 저장·읽기·복원 후 동일 스냅샷, 원본 보드 유지 | `SnapshotFileStoreTest#roundTripsCancerWithoutChangingBoard` |
+| SNAP-F09 | 경계 | 빈 보드 저장 | 빈 스냅샷 | 빈 legacy Collection, 재읽기 동일 | `SnapshotFileStoreTest#roundTripsEmptySnapshot` |
+| SNAP-F10 | 경계 | 설정 방어 복사 | 생성 후 전달한 폭 목록 변경 | 기존 블록 순서 유지 | `SnapshotFileStoreTest#copiesLayoutBeforeCallerMutation` |
+| SNAP-F11 | 예외 | 잘못된 순서 설정 거부 | 빈 목록, 0/음수, 증가/같은 폭, 비약수 단계, 마지막 값 != 1, null 목록/원소 | IllegalArgumentException 또는 NullPointerException | `SnapshotFileStoreTest#rejectsInvalidLayouts`, `SnapshotFileStoreTest#rejectsNullLayouts` |
+| SNAP-F12 | 예외 | 설정 없는 새 저장 경로 거부 | 1인자 Store, 기존 파일 | IllegalStateException, capture 미호출, 원본 유지 | `SnapshotFileStoreTest#requiresExplicitLayoutForSnapshotWrites` |
+| SNAP-F13 | 예외 | 크기와 설정 불일치 | 행 또는 열이 최상위 블록 폭의 배수가 아님 | IllegalArgumentException, 원본·파일 목록 유지 | `SnapshotFileStoreTest#rejectsIncompatibleDimensionsWithoutReplacingTarget` |
+| SNAP-F14 | 정상 | 캡처 시점·횟수와 파일 교체 | 기존 파일, capture에서 임시 파일·원본 관찰 | 준비 후 1회 capture, encode까지 원본 유지, 마지막에 교체 | `SnapshotFileStoreTest#capturesOnceAfterStagingBeforeEncoding` |
+| SNAP-F15 | 예외 | 개방 전 실패에는 캡처하지 않음 | 디렉터리·부모 없는 대상 | IOException, capture 0회 | `SnapshotFileStoreTest#doesNotCaptureWhenPreparationFails` |
+| SNAP-F16 | 예외 | 캡처 실패 정리 | 기존/새 경로, 예외 Supplier | 동일 예외, 원본 유지 또는 대상 없음, 임시 파일 없음 | `SnapshotFileStoreTest#captureFailurePreservesTargetAndCleansStage` |
+| SNAP-F17 | 예외 | 부분 기록 실패 정리 | 일부 기록 후 IOException Codec | 동일 예외, 기존 바이트 유지, 임시 파일 없음 | `SnapshotFileStoreTest#encodingFailurePreservesTargetAndClosesOutput` |
+| SNAP-F18 | 예외 | null 캡처 계약 | null Supplier 또는 null 반환 | NullPointerException, 원본·파일 목록 유지 | `SnapshotFileStoreTest#rejectsNullCaptureWithoutReplacingTarget` |
+| SNAP-F19 | 정상·경계 | 설정해도 raw API는 순서를 바꾸지 않음 | 중복·범위 밖 좌표를 포함한 원시 목록 | read/write raw 왕복 동일 | `SnapshotFileStoreTest#keepsRawApiIndependentOfLayout` |
+
+기존 `PatternDataTest#rejectsLossyCancerSnapshot`으로 클래식 전용 메서드의 암세포 거부를 유지한다. SAFE-10~13이 검증하는 이동 실패·원자적 이동 미지원·정리 실패 경로는 새 저장 API에서도 기존 write 경로를 재사용한다. 비정상 암 부분집합 거부는 새 스냅샷 API의 계약이며 raw/legacy 경로를 변경하지 않는다.
+
 [EXT-M01~03](../../docs/domain-extraction-tests.md), [기존 CL-M 케이스](../../docs/test-cases.md)를 따른다.
 
 2026-11-04 main 병합 후 #16·#17 계약을 적용한다(#29). 정상 저장은 좌표당 1회, 빈 Collection은 빈 보드, String/null/Point 아닌 원소는 IOException이다. ClassicMementoTest의 입력·기대값은 유지하고 직접 load 호출만 LegacyLifeCodec으로 이전한다. LoadFailureCharacterizationTest의 이전 버그 기대값은 main에서 수정된 계약으로 갱신한다. 실패 시 Clear 순서는 유지한다.

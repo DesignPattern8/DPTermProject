@@ -1,0 +1,40 @@
+@startuml 006-after
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+title C snapshot boundary after (#92)
+class BoardFileStore {
+  blockWidths: List<Integer>
+  BoardFileStore(codec, blockWidths)
+  read(Path, rows, columns): BoardSnapshot
+  writeSnapshot(Path, Supplier<BoardSnapshot>)
+  - orderedPattern(BoardSnapshot): PatternData
+  - comparePositions(CellPosition, CellPosition): int
+  read(Path): PatternData
+  write(Path, Supplier<PatternData>)
+}
+interface PatternCodec {
+  read(InputStream): PatternData
+  write(PatternData, OutputStream)
+}
+class LegacyLifeCodec
+class PatternData <<record>> {
+  cells: List<CellPosition>
+  cancerCells: Set<CellPosition>
+  toSnapshot(rows, columns): BoardSnapshot
+  toClassicSnapshot(rows, columns): BoardSnapshot
+}
+class BoardSnapshot <<A / unchanged>> {
+  rows / columns
+  liveCells / cancerCells: Set<CellPosition>
+}
+BoardFileStore --> PatternCodec
+PatternCodec <|.. LegacyLifeCodec
+BoardFileStore ..> PatternData : read then project / order then write
+BoardFileStore ..> BoardSnapshot : immutable value only
+PatternData ..> BoardSnapshot : clip, deduplicate, retain cancer
+note bottom of BoardFileStore
+  Layout is supplied at assembly, not inferred from dimensions.
+  writeSnapshot delegates to existing atomic write.
+  B migration is follow-up #88; no Board/Cell dependency.
+end note
+@enduml
