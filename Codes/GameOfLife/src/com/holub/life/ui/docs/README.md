@@ -26,7 +26,7 @@
 | 입력·알림 | 처리 | 테스트 |
 | --- | --- | --- |
 | 왼쪽 클릭 | `GameController.toggle(row, column)` (기존) | UI-R13, UI-R15 |
-| 오른쪽 클릭 | `GameController.treat(row, column)`: 그 칸과 주변 8칸 치료, 치료 횟수 1 사용 | UI-R14 |
+| 오른쪽 클릭 | `GameController.treat(row, column)`: 그 칸 중심 5×5 범위 치료. 실제로 암세포를 없앴을 때만 치료 횟수 1 사용, 암세포 10개 이하면 거부 (#96) | UI-R14 |
 | 암세포 칸 | 마젠타 (생존 빨강, 빈 칸 연노랑) | UI-R16 |
 | `GameListener.Change.GAME_OVER` | `GameResultAnnouncer` → `UserDialogs.showMessage` (이벤트 스레드) | UI-R17~R19 |
 | `GENERATION` / `EDITED` | `BoardPanel`의 부분 갱신 / 전체 다시 그리기 (기존) | EXT-R01~05 |

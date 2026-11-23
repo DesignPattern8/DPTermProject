@@ -182,19 +182,43 @@ class CancerModelTest {
   }
 
   @Test
-  @DisplayName("CAN-M09 치료는 클릭한 칸 중심 3×3 안의 암세포만 없애고 일반 세포는 남긴다")
-  void treatmentCuresOnlyCancerInThreeByThreeArea() {
+  @DisplayName("CAN-M09 치료는 클릭한 칸 중심 5×5 안의 암세포만 없애고 일반 세포는 남긴다")
+  void treatmentCuresOnlyCancerInFiveByFiveArea() {
     cancerAt(29, 29);
-    cancerAt(31, 31);
+    cancerAt(32, 32);
     board.toggle(30, 31);
     cancerAt(33, 33);
 
     board.treatAt(30, 30);
 
     assertFalse(cellAt(board, 29, 29).isAlive());
-    assertFalse(cellAt(board, 31, 31).isAlive());
+    assertFalse(cellAt(board, 32, 32).isAlive());
     assertTrue(cellAt(board, 30, 31).isAlive());
     assertTrue(cellAt(board, 33, 33).isCancer());
+  }
+
+  @Test
+  @DisplayName("CAN-M15 치료 범위에 암세포가 없으면 treatAt은 false를 돌려주고 아무것도 바꾸지 않는다")
+  void treatmentWithoutCancerInAreaReportsNothingCured() {
+    board.toggle(30, 31);
+    cancerAt(33, 33);
+
+    boolean cured = board.treatAt(30, 30);
+
+    assertFalse(cured);
+    assertTrue(cellAt(board, 30, 31).isAlive());
+    assertEquals(1, board.cancerCount());
+  }
+
+  @Test
+  @DisplayName("CAN-M16 암세포는 토글로 상태를 바꿀 수 없다")
+  void toggleIgnoresCancerCell() {
+    cancerAt(10, 10);
+
+    board.toggle(10, 10);
+
+    assertTrue(cellAt(board, 10, 10).isAlive());
+    assertTrue(cellAt(board, 10, 10).isCancer());
   }
 
   @Test
