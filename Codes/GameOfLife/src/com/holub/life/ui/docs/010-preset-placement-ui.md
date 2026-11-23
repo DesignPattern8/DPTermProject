@@ -80,7 +80,20 @@ A·C는 구현 전 추정, 구현 후 [구현 결과](#구현-결과)에 실측�
 
 ## 구현 결과
 
-(구현 후 실측값을 채운다)
+전 = `feature/62-b-preset-api` `b89c93c`, 후 = 브랜치 `feature/62-d-preset-ui`. 행 수는 `wc -l`.
+
+| 항목 | 전 | 후 |
+| --- | --- | --- |
+| 새 타입 | — | `PresetPlacement` 1개 (72행) |
+| 수정 파일 | — | `GameMenu` 122 → 165행, `BoardPanel` 96 → 113행, `LifeFrame` 46 → 54행. `Life`·B·C·2인용 코드 0 |
+| `ui` Java 소스 전체 | 694행 | 834행 (+144/−4) |
+| 평소 클릭 경로 | `cellAt` → `toggle`/`treat` | `cellAt` → `presets.click`(대기 아니면 `false`) → `toggle`/`treat` (+1단계) |
+| `ui`가 새로 쓰는 B 타입 | — | `PresetChoice`, `PresetResult` (`persistence.*` 직접 사용 0) |
+| 프리셋 화면 headless 테스트 | 0 | 9 (UI-R21~R29) |
+
+- 테스트: `./gradlew test` 430개 통과(기준 421 + 새 9). 기존 테스트(UI-R01 메뉴 10개 포함)는 수정하지 않았다. 환경: Linux, OpenJDK 21(toolchain만 21로 바꾸는 init 스크립트).
+- `NativeUiSmoke`(EXT-N01): Xvfb에서 통과, 종료 코드 0. 새 단계 "Clear → `Preset`/`Glider` → (10,10) 클릭 → 살아 있는 칸 5개" 포함.
+- 모드 전환(창 필요, 저장소에 넣지 않은 임시 프로그램, Xvfb): 실제 `Life`를 띄워 `Preset`/`Glider`로 대기를 시작한 뒤 `Mode`/`2 Players`를 고르면 `Preset` 항목과 `Grid`/`Load`가 비활성, `Mode`/`Classic`으로 돌아오면 `Preset`이 다시 활성.
 
 ## 후속 작업
 

@@ -16,10 +16,11 @@
 | [007-renderer-dispatch](007-renderer-dispatch.md) | 채택(현행 유지) | 렌더러 셀 타입 분기. 008에서 재검토 후 유지 |
 | [008-board-api-boundary](008-board-api-boundary.md) | 채택 | A의 Board API: 클릭 경계만 `CellPosition`, 렌더러는 트리 유지 |
 | [009-game-result-dialog](009-game-result-dialog.md) | 채택 | 암세포 게임 결과 메시지를 `UserDialogs.showMessage` + `GameResultAnnouncer`로 |
+| [010-preset-placement-ui](010-preset-placement-ui.md) | 채택 | `Preset` 메뉴 + `PresetPlacement`(배치 대기), 2인용에서 비활성 (#62) |
 
 001-screen-update~004는 #25 이전 구조(`68ad5e6`)에서 쓴 초안이다. 번호가 001-domain-extraction과 겹치지만 AGENTS.md 2-3에 따라 지우지 않고 상태만 바꿨다. 초안 코드(`ActiveBlockDecorator` 등 4개)는 #45 병합 커밋에서 제거했고 커밋 `4eeaa8b`에 남아 있다.
 
-- 다이어그램: [005-before](diagrams/005-before.puml) / [005-after](diagrams/005-after.puml), [009-before](diagrams/009-before.puml) / [009-after](diagrams/009-after.puml)
+- 다이어그램: [005-before](diagrams/005-before.puml) / [005-after](diagrams/005-after.puml), [009-before](diagrams/009-before.puml) / [009-after](diagrams/009-after.puml), [010-after](diagrams/010-after.puml)
 
 ### 암세포 기능(#60)이 바꾼 화면 동작
 
