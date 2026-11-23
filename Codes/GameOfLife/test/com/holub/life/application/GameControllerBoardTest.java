@@ -3,9 +3,11 @@ package com.holub.life.application;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.model.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.*;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.io.TempDir;
 
 /** GameController against a Board test double, without the classic cell tree. */
 class GameControllerBoardTest {
@@ -51,14 +53,18 @@ class GameControllerBoardTest {
 
     @Override
     public BoardSnapshot snapshot() {
-      throw new UnsupportedOperationException();
+      calls.add("snapshot");
+      return STORED;
     }
 
     @Override
     public void restore(BoardSnapshot snapshot) {
-      throw new UnsupportedOperationException();
+      calls.add(snapshot.equals(STORED) ? "restore:stored" : "restore:other");
     }
   }
+
+  private static final BoardSnapshot STORED =
+      new BoardSnapshot(64, 64, Set.of(new CellPosition(3, 4), new CellPosition(40, 50)));
 
   private Timer timer;
   private RecordingBoard board;
@@ -69,8 +75,7 @@ class GameControllerBoardTest {
   void setUp() {
     timer = new Timer(true);
     board = new RecordingBoard();
-    controller =
-        new GameController(board, Cell.DUMMY, new Clock(new UtilTimerTickSource(timer)));
+    controller = new GameController(board, new Clock(new UtilTimerTickSource(timer)));
     changes = Collections.synchronizedList(new ArrayList<>());
     controller.addGameListener(changes::add);
   }
@@ -144,5 +149,20 @@ class GameControllerBoardTest {
       board.releaseStep.countDown();
       threads.shutdownNow();
     }
+  }
+
+  @Test
+  @DisplayName("SNAP-08 저장은 Board.snapshot() 1번, 불러오기는 Board.restore() 1번만 부른다")
+  void storeAndLoadUseBoardSnapshotOnly(@TempDir Path directory) throws Exception {
+    // Given
+    Path file = directory.resolve("board.life");
+
+    // When
+    controller.store(file.toFile());
+    controller.load(file.toFile());
+
+    // Then: no clear/toggle around restore, no file-only cell path
+    assertEquals(List.of("snapshot", "restore:stored"), board.calls);
+    assertEquals(List.of(GameListener.Change.EDITED), changes);
   }
 }
