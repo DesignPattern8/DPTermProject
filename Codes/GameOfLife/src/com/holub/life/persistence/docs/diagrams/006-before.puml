@@ -1,0 +1,35 @@
+@startuml 006-before
+!pragma layout smetana
+skinparam classAttributeIconSize 0
+title C snapshot boundary before (#92)
+class BoardFileStore {
+  read(Path): PatternData
+  write(Path, Supplier<PatternData>)
+}
+interface PatternCodec {
+  read(InputStream): PatternData
+  write(PatternData, OutputStream)
+}
+class LegacyLifeCodec
+class PatternData <<record>> {
+  cells: List<CellPosition>
+  cancerCells: Set<CellPosition>
+  toClassicSnapshot(rows, columns): BoardSnapshot
+}
+class BoardSnapshot <<A / record>> {
+  rows / columns
+  liveCells / cancerCells: Set<CellPosition>
+}
+BoardFileStore --> PatternCodec
+PatternCodec <|.. LegacyLifeCodec
+BoardFileStore ..> PatternData
+PatternData ..> BoardSnapshot : classic projection only
+note bottom of PatternData
+  Raw file order, duplicates and outside coordinates survive.
+  toClassicSnapshot rejects any cancer cells.
+end note
+note bottom of BoardFileStore
+  Atomic replacement already exists (#64).
+  B supplies PatternData using its Memento mapper.
+end note
+@enduml
