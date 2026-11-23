@@ -5,9 +5,13 @@ import com.holub.life.model.BoardSnapshot;
 import com.holub.life.model.CellPosition;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
+import com.holub.life.persistence.PatternPreset;
+import com.holub.life.persistence.PresetCatalog;
 import java.io.*;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -25,6 +29,7 @@ public final class GameController {
   private final Board board;
   private final Clock clock;
   private final BoardFileStore files;
+  private final PresetCatalog presets;
   private final CancerGame cancerGame; // null: classic Life without cancer rules
   private final Object lock = new Object(); // Board calls must not overlap (model contract)
   private final List<GameListener> listeners = new CopyOnWriteArrayList<>();
@@ -43,7 +48,13 @@ public final class GameController {
 
   /** {@code files} must be configured with the block layout of {@code board} for Store. */
   public GameController(Board board, Clock clock, CancerGame cancerGame, BoardFileStore files) {
+    this(board, clock, cancerGame, files, new PresetCatalog());
+  }
+
+  public GameController(
+      Board board, Clock clock, CancerGame cancerGame, BoardFileStore files, PresetCatalog presets) {
     this.files = Objects.requireNonNull(files, "files");
+    this.presets = Objects.requireNonNull(presets, "presets");
     this.board = board;
     this.clock = clock;
     this.cancerGame = cancerGame;
@@ -112,6 +123,48 @@ public final class GameController {
     }
     if (treated) notifyListeners(GameListener.Change.EDITED);
     return treated;
+  }
+
+  /** Presets the UI can offer, in catalog order. */
+  public List<PresetChoice> presets() {
+    return presets.list().stream()
+        .map(preset -> new PresetChoice(preset.id(), preset.displayName()))
+        .toList();
+  }
+
+  /**
+   * Place preset {@code id} with its top-left cell at {@code origin}, all at once between
+   * generations. Live cells (cancer included) under the preset are left as they are. The clock
+   * keeps running.
+   *
+   * @return {@link PresetResult#APPLIED} if placed; otherwise nothing changed and no listener is
+   *     told.
+   */
+  public PresetResult applyPreset(String id, CellPosition origin) {
+    Objects.requireNonNull(origin, "origin");
+    Optional<PatternPreset> preset = presets.find(id);
+    if (preset.isEmpty()) return PresetResult.UNKNOWN_ID;
+    List<CellPosition> pattern = preset.get().data().cells();
+
+    synchronized (lock) {
+      int rows = board.rows();
+      int columns = board.columns();
+      for (CellPosition cell : pattern) {
+        int row = origin.row() + cell.row();
+        int column = origin.column() + cell.column();
+        if (row < 0 || row >= rows || column < 0 || column >= columns) {
+          return PresetResult.OUT_OF_BOUNDS;
+        }
+      }
+      Set<CellPosition> live = board.snapshot().liveCells();
+      for (CellPosition cell : pattern) {
+        CellPosition target =
+            new CellPosition(origin.row() + cell.row(), origin.column() + cell.column());
+        if (!live.contains(target)) board.toggle(target);
+      }
+    }
+    notifyListeners(GameListener.Change.EDITED);
+    return PresetResult.APPLIED;
   }
 
   /** The cancer game's win/lose message, or null if the game is running or has no cancer rules. */
