@@ -104,15 +104,15 @@ LOAD-09의 경계 배치 이후 세대 진행에서 별도 기존 결함 [#81](h
 | SNAP-02 | 정상 | 일반·암세포 혼합 왕복 | 일반 2칸 + 암세포 1칸 → Store → Clear → Load | `liveCells`·`cancerCells`가 저장 전과 같다 | `GameControllerSnapshotFileTest#cancerRoundTripRestoresBothCellKinds` |
 | SNAP-03 | 정상 | 저장 파일의 좌표 순서가 기존 순회 순서와 같다 (기존 `.life` 호환) | 서로 다른 블록의 3칸 | 파일의 `Collection<Point>`가 `createMemento()` 순서와 같다 | 기존 `GameControllerPersistenceTest#preservesTraversalAndCancer` (변경 없음) |
 | SNAP-04 | 경계 | 빈 패턴은 빈 보드로 복원 | 혼합 보드 → 빈 legacy 파일 | 보드·암세포 비움, Clock 정지, `EDITED` 1번 | 기존 LOAD-07 `GameControllerLoadTest#emptyPatternClearsBoardSuccessfully` (변경 없음) |
-| SNAP-05 | 경계 | 기존 파일의 중복·음수·범위 밖 좌표는 지금처럼 무시 | 중복·`(-1,0)`·`(64,0)` 포함 파일 | 유효 좌표만 배치, 중복 제거 | 기존 LOAD-09 `GameControllerLoadTest#loadedBoundaryPatternKeepsLegacyCoordinatePolicy` (변경 없음) + **필터링 위치 결정 후 추가 테스트 1개** (아래) |
-| SNAP-06 | 경계 | 일반 세포 목록에 없는 암세포 좌표·범위 밖 암세포 좌표의 처리 | `cells`에 없는 `cancerCells` 1칸, 범위 밖 암세포 1칸 | **구현 전에 현재 동작을 특성 테스트로 고정한 뒤 기대값 확정** (현재 `Resident.transfer`는 `isAlive`·`isCancer`를 따로 읽음, `BoardSnapshot`은 암세포 ⊆ 생존을 요구) | `GameControllerSnapshotFileTest#cancerOutsideLiveCellsKeepsLegacyBehavior` |
+| SNAP-05 | 경계 | 기존 파일의 중복·음수·범위 밖 좌표는 지금처럼 무시 | 중복·`(-1,0)`·`(64,0)` 포함 파일 | 유효 좌표만 배치, 중복 제거 | 기존 LOAD-09 `GameControllerLoadTest#loadedBoundaryPatternKeepsLegacyCoordinatePolicy` (변경 없음). 변환 자체는 C 테스트 `PatternDataSnapshotTest#clipsBothKindsAndDeduplicatesAtBoardBoundary`(#93) |
+| SNAP-06 | 경계 | 범위 밖 암세포 좌표는 일반 세포 좌표처럼 무시 | 일반 `(1,1)`·`(64,0)`, 암세포 `(64,0)` | `(1,1)`만 일반 세포로 복원, 암세포 없음, `EDITED` 1번 (기존 `transfer`도 범위 안 칸만 읽어 같은 결과) | `GameControllerSnapshotFileTest#outOfRangeCancerIsIgnoredLikeLiveCells` |
 | SNAP-07 | 예외 | 잘못된 파일이면 보드·암세포·Clock 유지, 알림 없음 (#82 계약) | garbage 파일, 실행 중 Clock, 혼합 보드 | `IOException`, 상태 유지, 알림 없음 | 기존 LOAD-01·02·04·10 (변경 없음) |
-| SNAP-08 | 정상 | B가 파일용 `Cell` 없이 `Board`만으로 저장·불러오기 | `Board` 대역(`snapshot`/`restore` 기록) + 메모리 Codec | Store는 `snapshot()` 1번, Load는 `restore()` 1번, `createMemento`/`transfer` 경로 없음 | `GameControllerBoardTest#storeAndLoadUseBoardSnapshotOnly` |
+| SNAP-08 | 정상 | B가 파일용 `Cell` 없이 `Board`만으로 저장·불러오기 | `Board` 대역(`snapshot`/`restore` 기록) + 실제 legacy 파일 | Store는 `snapshot()` 1번, Load는 `restore()` 1번, 그 외 보드 호출 없음 | `GameControllerBoardTest#storeAndLoadUseBoardSnapshotOnly` |
+| SNAP-09 | 예외 (**의도된 동작 변경**) | 생존 목록에 없는 범위 안 암세포 좌표가 든 파일은 거부 | 일반 `(1,1)`, 암세포 `(2,2)`인 파일, 실행 중 Clock, 혼합 보드 | `IOException`, 보드·암세포·Clock 유지, 알림 없음. 기존: 성공하고 `(2,2)`가 "죽은 암세포"가 됨 (아래 결정 2) | `GameControllerSnapshotFileTest#cancerOutsideLiveCellsIsRejected` |
 
-### 결정 대기 (구현 전에 확정)
+### 결정 (2026-11-23, #88 도현 댓글·#93 기준)
 
-1. **SNAP-05 좌표 필터링 위치 (C vs B)** — #88 댓글로 도현에게 질문함, 답 대기.
-   - C: `PatternData.toClassicSnapshot(rows, columns)`가 이미 범위 밖·중복을 걸러 `BoardSnapshot`을 만든다. 다만 지금은 **암세포가 있으면 `IllegalStateException`**이라 암세포 파일을 처리하지 못한다. C가 암세포까지 받는 변환을 제공하면 추가 테스트는 C의 `test-cases.md`에 둔다.
-   - B: `PersistenceMapper`가 `PatternData` → `BoardSnapshot` 변환에서 거른다. 추가 테스트는 `PersistenceMapperTest`에 둔다.
-2. **SNAP-03 저장 순서** — `BoardSnapshot.liveCells()`는 `Set`이라 순서가 없다. 기존 파일과 같은 순서(`createMemento()`의 블록 재귀 순회 순서)로 쓰려면 B 또는 C가 정렬해야 한다. A 인계 기준은 "파일 출력은 기존 순회 순서를 따른다"(C 항목). 1번과 같은 답에서 함께 정한다.
-3. **#81과의 관계** — `Board.restore()`는 `toggle` 경로로 배치하므로 #81(legacy `transfer(LOAD)` 뒤 블록 경계 첫 세대 출생 누락)의 증상이 사라질 수 있다. 이 작업의 테스트는 **다음 세대 결과를 단정하지 않고**(SNAP-01은 배치까지만), 구현 후 관찰한 결과만 #81에 기록한다(강령 2).
+1. **좌표 필터링·저장 순서는 C가 맡는다.** `BoardFileStore.read(path, rows, columns)`가 중복·범위 밖 좌표를 걸러 `BoardSnapshot`을 돌려주고, `writeSnapshot(path, capture)`가 조립 시 받은 블록 폭(`List.of(8, 1)`)으로 기존 블록 재귀 순서를 재현한다. B는 필터링·정렬을 구현하지 않는다. SNAP-03·05는 기존 테스트가 그대로 검증한다.
+2. **SNAP-09는 기존 동작을 유지하지 않는다.** 구현 전 관찰(임시 테스트로 실행, 커밋하지 않음): 기존 Load는 성공하고 `(2,2)`가 `isAlive() == false`, `isCancer() == true`가 된다(`Resident.transfer`가 `isAlive`·`isCancer`를 따로 읽음, `Resident.java:123-124`). 이 칸은 `board.snapshot()`에도 나오지 않는다(`cancerCells = []`). `BoardSnapshot`은 "암세포는 생존 세포"를 요구해(`BoardSnapshot.java` 생성자) 이 상태를 `restore()`로 만들 수 없다. C 계약(#93)대로 `IOException`으로 거부하고, B는 기존 Load 실패 경로(#82: 보드·Clock 유지, 알림 없음)로 처리한다. 앱이 저장한 파일은 암세포가 항상 생존 목록에 있어 해당하지 않는다.
+3. **#81** — 태영이 `fix/81-load-boundary`(`86733b8`)로 legacy Load 경로를 고쳤다. `CompositeBoard.restore()`는 `toggle`로 배치해 경계를 활성화하므로 이 작업 후에도 `LegacyLoadBoundaryTest`가 그대로 통과해야 한다.
+4. **생성자** — `Cell` 인자를 지운다: `(Board, Clock)`, `(Board, Clock, CancerGame)`, `(Board, Clock, CancerGame, BoardFileStore)`. 저장소를 넘기지 않으면 `new BoardFileStore(new LegacyLifeCodec(), List.of(8, 1))`(`Life`의 64×64 보드 구조). 기존 테스트에서 바뀌는 것은 생성자 호출과, 블록 폭 없이 만든 `new BoardFileStore(codec)`에 블록 폭을 넣는 준비 코드뿐이다(`writeSnapshot`은 블록 폭이 없으면 `IllegalStateException`).
