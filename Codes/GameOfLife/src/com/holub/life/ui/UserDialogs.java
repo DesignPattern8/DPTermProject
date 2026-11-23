@@ -1,7 +1,7 @@
 package com.holub.life.ui;
 
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.util.Optional;
 
 /**
  * The dialogs the UI needs: the Grid menu's file chooser and error box, and the game result
@@ -13,9 +13,9 @@ public interface UserDialogs {
    * Ask the user for a Life file.
    *
    * @param selectButtonText text of the chooser's select button ("Load" or "Write")
-   * @throws FileNotFoundException if the user didn't select a file (cancel)
+   * @return the chosen file, or empty if the user cancelled. Cancelling is not an error (#57).
    */
-  File chooseFile(String selectButtonText) throws FileNotFoundException;
+  Optional<File> chooseFile(String selectButtonText);
 
   /** Tell the user that an operation failed. */
   void showError(String message);
