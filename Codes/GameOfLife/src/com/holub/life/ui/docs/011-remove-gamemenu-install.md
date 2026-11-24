@@ -39,7 +39,7 @@
 
 | 항목 | A. 제거 | B. `@Deprecated` | C. 유지 |
 | --- | --- | --- | --- |
-| 구조 비용 | 공개 메서드 −1, `GameMenu` 165 → 157행(−8) | 애노테이션 +1행 | 0 |
+| 구조 비용 | 공개 메서드 −1, `GameMenu` 165 → 156행(−9, 실측) | 애노테이션 +1행 | 0 |
 | 간접성 | 변화 없음 (실행 경로에 없던 메서드) | 같음 | 같음 |
 | 결합도 | `GameMenu` → `Clock.addClockListener` 의존 제거. `GameMenu`가 `Clock`을 쓰는 곳은 Go 항목(`start`/`stop`/`tick`)만 남음 | 그대로 | 그대로 |
 | 런타임 비용 | 없음 | 없음 | 없음 |
@@ -73,7 +73,18 @@ new ModeSwitch(clock, ...);                                  // 시계 리스너
 
 ## 구현 결과
 
-(구현 후 채움)
+전 = `refactor/base` `66111fc`, 후 = 브랜치 `refactor/102-d-gamemenu-install`. 행 수는 `wc -l`.
+
+| 항목 | 전 | 후 |
+| --- | --- | --- |
+| `GameMenu` 공개 메서드 | 7 (`entries`, `install`, `installMenus` ×2, `presetEntries`, `setPresetsEnabled`, `setFileCommandsEnabled`) | 6 (`install` 삭제) |
+| `GameMenu.java` 행 수 | 165 | 156 (−9: Javadoc 4, 메서드 4, 빈 줄 1) |
+| `ui` Java 소스 전체 | 834 | 825 |
+| 시계에 리스너를 다는 `ui` 코드 | `GameMenu.java:60`, `ModeSwitch.java:40` | `ModeSwitch.java:40` 하나 |
+| 수정 파일 | — | `GameMenu.java` 1개. 다른 도메인 코드 0 |
+
+- 테스트: `./gradlew test` 431개 통과(기준 430 + 새 1). 기존 테스트는 수정하지 않았다. 새 UI-R30은 삭제 전 코드에서 실패(`NoSuchMethodException`이 나지 않음)하고 삭제 후 통과하는 것을 확인했다. 환경: Linux, OpenJDK 21(toolchain만 21로 바꾸는 init 스크립트).
+- `NativeUiSmoke`(EXT-N01): 수정 없이 Xvfb에서 통과, 종료 코드 0(메뉴 10개, Tick, Store/Load, 프리셋 단계 포함).
 
 ## 후속 작업
 
