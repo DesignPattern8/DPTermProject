@@ -1,0 +1,57 @@
+@startuml seq-game-over
+' 시계 tick → 한 세대 진행 → 암세포 게임 종료 → 결과 창
+' 기준: refactor/base ef8ee24.
+' application/UtilTimerTickSource.java, application/Clock.java:60-61, ui/ModeSwitch.java:102-108,
+' ui/ClassicMode.java:28, application/GameController.java:75-99, ui/GameResultAnnouncer.java, ui/SwingUserDialogs.java
+skinparam sequenceMessageAlign center
+hide footbox
+
+box "Timer 스레드" #F2F2F2
+participant "UtilTimerTickSource" as Ticks
+participant "Clock" as Clock
+participant "ModeSwitch" as Modes
+participant "ClassicMode" as Classic
+participant "GameController" as Controller
+participant "CompositeBoard\n(Board)" as Board
+participant "CancerGame" as Cancer
+participant "BoardPanel\n(GameListener)" as Panel
+participant "GameResultAnnouncer\n(GameListener)" as Announcer
+end box
+box "Swing 이벤트 스레드 (EDT)" #E8F0FF
+participant "SwingUserDialogs" as Dialogs
+participant "JOptionPane" as Pane
+end box
+
+Ticks -> Clock : tick()
+Clock -> Modes : tick()  (Clock.Listener)
+note right of Modes : 메뉴가 열려 있으면 건너뜀\n(GameMenu.menuIsActive)
+Modes -> Classic : tick()  [synchronized(tickLock)]
+Classic -> Controller : tick()
+activate Controller
+group synchronized(lock)
+  Controller -> Board : step()
+  Board --> Controller : changed
+  Controller -> Cancer : afterGeneration()
+  Cancer --> Controller : ended = true (승리 또는 패배)
+end
+opt changed
+  Controller -> Panel : boardChanged(GENERATION)
+  Panel -> Panel : refreshNow()  (invokeLater로 부분 갱신)
+end
+Controller -> Panel : boardChanged(EDITED)
+Panel -> Panel : repaint()
+Controller -> Announcer : boardChanged(EDITED)
+note right of Announcer : GAME_OVER가 아니면 무시 (UI-R18)
+Controller -> Clock : stop()
+Controller -> Panel : boardChanged(GAME_OVER)
+note right of Panel : 무시
+Controller -> Announcer : boardChanged(GAME_OVER)
+activate Announcer
+Announcer -> Controller : gameResultMessage()
+Controller --> Announcer : "…승리입니다." / "…패배입니다."
+Announcer ->> Dialogs : onUiThread.execute(...)\n(제품: SwingUtilities.invokeLater, 009)
+deactivate Announcer
+deactivate Controller
+
+Dialogs -> Pane : showMessageDialog(LifeFrame, message,\n"Game of Life", INFORMATION_MESSAGE)
+@enduml

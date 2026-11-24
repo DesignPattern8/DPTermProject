@@ -11,6 +11,7 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 - [기존 패턴 분석과 GoF 리팩토링 (채택, #43·#44)](003-pattern-analysis.md)
 - [Board 연결과 보드 호출 직렬화 (채택, #55)](004-board-connection.md)
 - [Load 성공 후 적용·실패 상태 보존 (#63)](005-safe-load.md)
+- [모드별 실행 제어 — 현행 유지와 계약 문서화 (채택, #87)](006-mode-control.md)
 - [저장·불러오기를 Board 스냅샷 경로로 연결 (채택, #88)](007-snapshot-file-connection.md)
 - [프리셋 목록·배치 API (채택, #62)](008-preset-placement.md)
 - [#63 검증 결과](verification-063.md)
