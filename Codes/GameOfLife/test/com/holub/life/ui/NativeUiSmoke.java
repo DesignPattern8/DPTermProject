@@ -55,7 +55,16 @@ public class NativeUiSmoke {
     } catch (NoSuchMethodException e) {
       Collection<?> points = (Collection<?>) state.getClass().getMethod("liveCells").invoke(state);
       Set<Point> result = new HashSet<>();
-      for (Object point : points) result.add(new Point((Point) point));
+      for (Object point : points) {
+        if (point instanceof Point legacyPoint) {
+          result.add(new Point(legacyPoint));
+        } else {
+          // Keep this probe compilable against the original project as well.
+          int row = (int) point.getClass().getMethod("row").invoke(point);
+          int column = (int) point.getClass().getMethod("column").invoke(point);
+          result.add(new Point(column, row));
+        }
+      }
       return result;
     }
     Collection<?> points =

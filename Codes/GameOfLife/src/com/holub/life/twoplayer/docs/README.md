@@ -33,7 +33,7 @@
 | `ui.TwoPlayerPanel` | package-private | 보드 + 상태 표시줄 + 확정·패스·새 게임 버튼, Enter = 확정 (#7) |
 | `ui.TwoPlayerRenderer` | package-private | 스냅숏을 그린다. A·B 색, 진영 경계선, 임시 배치 테두리. `Neighborhood` 잠금을 쓰지 않음(#74) (#7) |
 
-`com.holub.life.twoplayer`는 Swing에 의존하지 않는다(Swing 코드는 하위 패키지 `twoplayer.ui`에만 있다, #7). #5부터 `com.holub.life.model`의 `Cell`·`Neighborhood`를 쓰고(model은 고치지 않음), `Cell.transfer` 시그니처 때문에 `TwoPlayerResident`가 `java.awt.Point`를 import한다(006 감수하는 비용, #71). 게임 진행 쪽(`TwoPlayerGame`, 단계, `GameJudge`)은 여전히 보드 구현을 모른다.
+`com.holub.life.twoplayer`와 모델은 AWT·Swing에 의존하지 않는다(UI 코드는 하위 패키지 `twoplayer.ui`, #7). #5부터 `Cell`·`Neighborhood`를 사용하고, #71에서 `Cell.transfer` 좌표를 기존 `CellPosition(row, column)`으로 바꿔 `TwoPlayerResident`의 Point 의존도 제거했다. 006의 Point 비용은 당시 기록으로 보존한다. 게임 진행 쪽(`TwoPlayerGame`, 단계, `GameJudge`)은 여전히 보드 구현을 모른다. [#71 설계·검증·인계](../../../../../../../../docs/GTY.md#008-모델-좌표-계약의-point-의존-제거-71).
 
 ## 문서
 

@@ -10,7 +10,6 @@ import com.holub.life.application.TickSource;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
 import com.holub.life.persistence.PatternData;
-import java.awt.Point;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -148,12 +147,12 @@ class LegacyLoadBoundaryTest {
     Set<CellPosition> initial = line(7, 8, true, 64);
     NeighborhoodState state = new NeighborhoodState();
     for (CellPosition position : initial) {
-      state.markAsAlive(new Point(position.column(), position.row()));
+      state.markAsAlive(position);
       edited.toggle(position);
     }
 
     // When
-    assertTrue(root.transfer(state, new Point(0, 0), Cell.LOAD));
+    assertTrue(root.transfer(state, new CellPosition(0, 0), Cell.LOAD));
 
     // Then
     assertEquals(new BoardSnapshot(64, 64, initial), loaded.snapshot());
@@ -174,7 +173,7 @@ class LegacyLoadBoundaryTest {
     board.clear();
 
     // When
-    boolean changed = root.transfer(new NeighborhoodState(), new Point(0, 0), Cell.LOAD);
+    boolean changed = root.transfer(new NeighborhoodState(), new CellPosition(0, 0), Cell.LOAD);
 
     // Then
     assertFalse(changed);

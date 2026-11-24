@@ -8,6 +8,8 @@
 - 변경 이력: 2026-11-17, #63 — C 공개 API 변경 없음. B의 Load가 read(Path)를 사용하고 성공 이후에만 보드를 교체한다. [이슈 계약](https://github.com/DesignPattern8/DPTermProject/issues/63).
 - 변경 이력: 2026-11-16, #65 — 공개 시그니처 유지, Legacy 입력 허용 클래스와 자원 한도 축소, 쓰기 원소 한도 추가. [005](005-legacy-input-policy.md)와 #65 PR에서 검토하며 별도 팀원 합의 완료를 주장하지 않는다.
 
+- 변경 이력: 2026-11-17, #71 — C 제품 API·코덱·직렬화 형식은 변경하지 않는다. 모델 Memento가 CellPosition을 사용하므로 B Mapper의 좌표 변환은 컬렉션 복사로 바뀐다. #88의 snapshot 전환·필터링·출력 순서 결정과 구분한다. [A 설계·검증 기록](../../../../../../../../docs/GTY.md#008-모델-좌표-계약의-point-의존-제거-71)
+
 ## 시그니처
 
 ```java
@@ -92,13 +94,13 @@ files.writeSnapshot(path, () -> {
 });
 ```
 
-## 현재 B 연동 API (스냅샷 이전 전)
+## 현재 B 연동 API
 
 ```java
-public GameController(Board board, Cell fileCells, Clock clock,
+public GameController(Board board, Clock clock,
                       CancerGame cancerGame, BoardFileStore files);
 public static PatternData PersistenceMapper.capture(NeighborhoodState state);
 public static NeighborhoodState PersistenceMapper.restore(PatternData data);
 ```
 
-기존 Controller 3/4인자 생성자는 유지하고 기본 legacy Store에 위임한다. `fileCells`와 `board`는 같은 보드여야 한다. Memento는 타입이 올바른 모델 소유 데이터라는 전제다. Mapper는 Point를 양방향 복사하며 캡처/복원 과정에서 보드를 순회하지 않는다. Store 캡처는 기존 `createMemento()` 한 번만 호출한다. D의 load/store(File) 시그니처는 유지한다.
+`GameController.load(File)`과 `store(File)`는 C의 스냅샷 파일 API와 `Board.restore()`·`Board.snapshot()`으로 연결한다(#88). 독립 `PersistenceMapper`는 모델이 소유한 Memento와 `PatternData` 사이에서 생존·암 좌표 컬렉션을 양방향 복사한다. 좌표 값은 불변이라 공유하고 파일의 `Point` 변환은 `LegacyLifeCodec`에서 처리한다(#71).

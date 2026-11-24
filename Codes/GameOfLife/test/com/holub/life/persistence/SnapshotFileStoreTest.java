@@ -137,7 +137,10 @@ class SnapshotFileStoreTest {
     for (int row = 0; row < root.widthInCells(); row++) {
       for (int column = 0; column < root.widthInCells(); column++) root.toggle(row, column);
     }
-    var expected = new ArrayList<>(root.createMemento().liveCells());
+    var expected =
+        root.createMemento().liveCells().stream()
+            .map(cell -> new Point(cell.column(), cell.row()))
+            .toList();
     var board = new CompositeBoard(root);
     var store = new BoardFileStore(new LegacyLifeCodec(), widths);
     Path file = directory.resolve("ordered.life");
@@ -169,11 +172,7 @@ class SnapshotFileStoreTest {
 
     assertEquals(expected, restored.snapshot());
     assertEquals(expected, board.snapshot());
-    assertEquals(
-        expectedOrder,
-        store.read(file).cells().stream()
-            .map(cell -> new Point(cell.column(), cell.row()))
-            .toList());
+    assertEquals(expectedOrder, store.read(file).cells());
   }
 
   @Test

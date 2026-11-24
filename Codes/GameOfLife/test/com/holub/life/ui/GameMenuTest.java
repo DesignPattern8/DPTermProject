@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.application.*;
 import com.holub.life.model.*;
-import java.awt.Point;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -65,11 +64,11 @@ class GameMenuTest {
       GameController controller = new GameController(new CompositeBoard(board), clock);
       menus.setSelectedPath(new MenuElement[] {new JMenu("Go")});
       GameMenu.onTick(controller);
-      assertTrue(board.createMemento().isAlive(new Point(9, 10)));
+      assertTrue(board.createMemento().isAlive(new CellPosition(10, 9)));
       menus.clearSelectedPath();
       GameMenu.onTick(controller);
-      assertFalse(board.createMemento().isAlive(new Point(9, 10)));
-      assertTrue(board.createMemento().isAlive(new Point(10, 9)));
+      assertFalse(board.createMemento().isAlive(new CellPosition(10, 9)));
+      assertTrue(board.createMemento().isAlive(new CellPosition(9, 10)));
     } finally {
       menus.clearSelectedPath();
       timer.cancel();
@@ -149,7 +148,7 @@ class GameMenuTest {
     fail("Missing menu entry: " + menu + " / " + label);
   }
 
-  private Set<Point> liveCells() {
+  private Set<CellPosition> liveCells() {
     return new HashSet<>(board.createMemento().liveCells());
   }
 
@@ -188,7 +187,7 @@ class GameMenuTest {
     board.toggle(10, 9);
     board.toggle(10, 10);
     board.toggle(10, 11);
-    Set<Point> blinker = liveCells();
+    Set<CellPosition> blinker = liveCells();
     File file = directory.resolve("blinker.life").toFile();
     controller.store(file);
     board.clear();
@@ -205,7 +204,7 @@ class GameMenuTest {
     board.toggle(3, 4);
     board.toggle(30, 31);
     board.toggle(60, 2);
-    Set<Point> stored = liveCells();
+    Set<CellPosition> stored = liveCells();
     File file = directory.resolve("out.life").toFile();
     dialogs.choice = file;
     run("Grid", "Store");
@@ -219,7 +218,7 @@ class GameMenuTest {
   @Test
   void loadFailureShowsReadFailed() throws Exception {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
+    Set<CellPosition> before = liveCells();
     Path file = directory.resolve("bad.life");
     Files.write(file, new byte[] {1, 2, 3, 4});
     dialogs.choice = file.toFile();
@@ -231,7 +230,7 @@ class GameMenuTest {
   @Test
   void storeFailureShowsWriteFailed() {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
+    Set<CellPosition> before = liveCells();
     dialogs.choice = directory.toFile();
     run("Grid", "Store");
     assertEquals(List.of("Write Failed!"), dialogs.errors);
@@ -241,7 +240,7 @@ class GameMenuTest {
   @Test
   void cancelDoesNothing() {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
+    Set<CellPosition> before = liveCells();
     List<GameListener.Change> changes = new ArrayList<>();
     controller.addGameListener(changes::add);
     dialogs.cancelled = true;
@@ -255,7 +254,7 @@ class GameMenuTest {
   @Test
   void missingChosenFileStillShowsReadFailed() {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
+    Set<CellPosition> before = liveCells();
     dialogs.choice = directory.resolve("missing.life").toFile();
     run("Grid", "Load");
     assertEquals(List.of("Read Failed!"), dialogs.errors);

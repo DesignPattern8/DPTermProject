@@ -5,9 +5,9 @@ import static com.holub.life.application.CancerGameTest.cellAt;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.model.CompositeBoard;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
-import java.awt.Point;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -119,7 +119,7 @@ class GameControllerCancerTest {
     // Then
     assertFalse(changed);
     assertEquals(
-        Set.of(new Point(29, 30), new Point(30, 30), new Point(31, 30)),
+        Set.of(new CellPosition(30, 29), new CellPosition(30, 30), new CellPosition(30, 31)),
         new HashSet<>(board.createMemento().liveCells()));
     assertTrue(changes.isEmpty());
   }

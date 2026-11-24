@@ -1,6 +1,7 @@
 # 실행 계약
 
 - 제공 B / 사용 D·Life / 변경 2026-11-03, #24
+- 변경: 2026-11-24, #71 — 독립 `PersistenceMapper`는 모델과 같은 불변 `CellPosition`을 담은 컬렉션을 복사한다. `GameController`의 저장·불러오기는 #88의 `Board.snapshot()`·`Board.restore()` 경로를 사용한다.
 
 ```java
 GameController(Board board, Clock clock)                    // 파일: LegacyLifeCodec, 블록 폭 [8, 1]
