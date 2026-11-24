@@ -159,7 +159,9 @@ class SnapshotFileStoreTest {
     var root = new Neighborhood(8, new Neighborhood(8, new Resident()));
     root.toggle(1, 9);
     root.toggle(9, 1);
-    ((Neighborhood) root.childAt(0, 0)).childAt(7, 7).setCancer();
+    var block = (Neighborhood) root.childAt(0, 0);
+    var cancer = (Resident) block.childAt(7, 7);
+    cancer.setCancer();
     var expectedOrder = new ArrayList<>(root.createMemento().liveCells());
     var board = new CompositeBoard(root);
     var expected = board.snapshot();

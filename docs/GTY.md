@@ -15,6 +15,7 @@
 | legacy Load 경계 활성화 | [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) | [#89](https://github.com/DesignPattern8/DPTermProject/pull/89) | refactor/base 병합, 로컬·CI 통과 |
 | 보드별 전이 상태 분리 | [#74](https://github.com/DesignPattern8/DPTermProject/issues/74) | [#90](https://github.com/DesignPattern8/DPTermProject/pull/90) | refactor/base 병합 |
 | 모델 좌표 계약 분리 | [#71](https://github.com/DesignPattern8/DPTermProject/issues/71) | PR 준비 | 구현·검증 완료 |
+| 암세포 셀 계약 분리 | [#70](https://github.com/DesignPattern8/DPTermProject/issues/70) | 로컬 검증 | #106 반영 후 전체 테스트 441개 통과 |
 
 ## 001. 모델과 화면 메서드 분리
 
@@ -628,3 +629,48 @@ JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 365개 테스�
 `SnapshotFileStoreTest`는 직렬화된 파일을 확인할 때 `Point(column, row)` 순서를 비교하고, 코덱이 읽은 좌표는 `CellPosition` 순서로 비교한다. `NativeUiSmoke`의 관찰 경로는 기존 `Point`와 새 행·열 좌표를 모두 화면 좌표로 읽는다.
 
 JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 439개가 통과했다. 실패·오류·건너뜀은 각각 0개였다. 저장 순서·암세포 복원·불러오기 실패 후 보드 보존·프리셋 검증을 포함한다.
+
+## 009. 암세포 셀 계약 분리 (#70)
+
+- 태영 / 2026-11-23 / [#70](https://github.com/DesignPattern8/DPTermProject/issues/70)
+- `refactor/70-cancer-cell`의 기준은 `origin/refactor/base`의 `ef8ee24`다.
+
+### 문제와 설계 선택
+
+`Cell`에 암세포 조회·설정·치료가 있어 `Neighborhood`, 보드 바깥의 `Cell.DUMMY`, 2인용의 `TwoPlayerResident`까지 `false`를 반환하거나 빈 메서드를 구현했다.
+
+| 후보 | 적용 범위와 비용 | 결정 |
+| --- | --- | --- |
+| A. 현행 `Cell` 유지 | 변경 파일 0개. 모든 `Cell` 구현이 암세포 메서드 세 개를 계속 제공한다. | 기각 |
+| B. `CancerCell extends Cell` | 하위 인터페이스 1개. 암세포를 지원하는 `Resident`가 구현하고 `Cell`로 탐색하는 곳에서 지원 여부를 확인한다. | 채택 |
+| C. `Cell.state()`로 일반화 | 공통 상태 계약과 모드별 표현을 설계하고 `Cell` 구현, 이웃 조회, 렌더러, 스냅샷 호출을 함께 이전해야 한다. | 이번 분리 범위가 커져 보류 |
+
+### 코드 변경과 협업 범위
+
+- [CancerCell](../Codes/GameOfLife/src/com/holub/life/model/CancerCell.java)에 `isCancer()`, `setCancer()`, `cureCancer()`를 옮겼다. `Resident`가 구현하고 복합 셀·DUMMY·2인용 셀의 빈 구현을 삭제했다. 일반 `Cell` 변수에서는 세 메서드를 직접 호출할 수 없다.
+- `Resident`는 살아 있는 이웃 중 암세포 기능을 지원하는 셀만 암세포로 셈한다. `CompositeBoard`는 기존 순회·복원 순서를 지키고 암 상태 조회와 적용에 `CancerCell`을 사용한다. `BoardRenderer`는 기존 `Resident` 분기에서 동일한 색을 선택한다.
+- `Cell.Memento`의 암 좌표 조회·기록은 `NeighborhoodState`의 실제 데이터이며 기존 `.life` 경로가 사용한다. [#71](https://github.com/DesignPattern8/DPTermProject/issues/71) 반영 후 모델 Memento 좌표는 `CellPosition`을 사용한다. 기존 `.life` 파일의 `Point` 인코딩과 복원 계약은 유지한다.
+- [#96](https://github.com/DesignPattern8/DPTermProject/pull/96)의 `b993a2f`와 대조했다. 같은 파일에서 #96은 `Resident.toggle()`과 `Neighborhood.treatAt()`을 수정한다. #70은 `Resident`의 타입 선언·이웃 조회와 `Neighborhood`의 빈 메서드를 변경했다. 클릭 제한·치료 범위와 횟수·게임 종료는 #96의 규칙 변경 범위다.
+
+### 실제 비용
+
+- 공통 `Cell` 메서드 14→11개. 인터페이스 1개 추가, 제품 Java 7개 파일에서 23줄 추가·49줄 삭제로 순감 26줄. 외부 의존성 추가 0개.
+- 살아 있는 이웃의 암 조회 전에 타입 확인 한 번을 추가했다. 새 위임 단계와 객체 생성은 0이다. 실행 시간은 측정하지 않았다.
+- [공개 계약](../Codes/GameOfLife/src/com/holub/life/model/docs/interfaces.md#암세포-셀-계약-70)과 기존 2인용 클래스 다이어그램을 코드에 맞췄다.
+
+### 검증 결과
+
+| 검증 | 결과 |
+| --- | --- |
+| 구현 전, 새 보드 가장자리 특성 테스트 포함 | 전체 358개 통과 |
+| 구현 후, 같은 보드 가장자리 테스트와 2인용 타입 계약 포함 | 전체 359개 통과, 실패·오류·건너뜀 각 0개 |
+| 잘못된 호출 | `javac`에서 일반 `Cell` 변수의 암세포 메서드 세 호출을 모두 컴파일 오류로 확인 |
+| #96 충돌 확인 | `129f6b3f..b993a2f` 전체 패치의 `git apply --check` 통과. 두 브랜치의 통합 테스트는 별도다. |
+
+JDK 26에서 `Codes/GameOfLife`의 `./gradlew test --no-daemon --rerun-tasks`를 실행했다. 일반·암세포·2인용 세대 규칙, 암세포 스냅샷과 `.life` 복원, 암세포 화면 색을 기존 테스트로 검증했다. [모델 테스트 기준](../Codes/GameOfLife/src/com/holub/life/model/docs/test-cases.md#암세포-셀-계약-분리-70)
+
+### 2026-11-24 · #71 반영 후 통합 검증
+
+[#106](https://github.com/DesignPattern8/DPTermProject/pull/106)이 병합된 `refactor/base`의 `1b53b40`을 #70 브랜치에 합쳤다. 모델 README의 두 링크와 이 문서의 두 기록을 모두 유지했다. 기준 브랜치에서 추가된 `PresetPlacementTest`·`SnapshotFileStoreTest`의 암세포 호출을 `Resident`로 좁혔다. #71의 `MementoCoordinateTest`는 `Resident`와 `CancerCell`로 암세포 기능의 지원 여부를 구분한다.
+
+JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 441개가 통과했다. 실패·오류·건너뜀은 각각 0개였다.

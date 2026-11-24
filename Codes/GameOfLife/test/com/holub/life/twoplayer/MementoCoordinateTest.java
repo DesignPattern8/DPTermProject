@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.holub.life.application.PersistenceMapper;
 import com.holub.life.model.Board;
 import com.holub.life.model.BoardSnapshot;
+import com.holub.life.model.CancerCell;
 import com.holub.life.model.Cell;
 import com.holub.life.model.CellPosition;
 import com.holub.life.model.CompositeBoard;
@@ -185,7 +186,7 @@ class MementoCoordinateTest {
     }
     assertEquals(beforeTransfer, PersistenceMapper.capture(state));
     assertFalse(Cell.DUMMY.isAlive());
-    assertFalse(Cell.DUMMY.isCancer());
+    assertFalse(Cell.DUMMY instanceof CancerCell);
     assertEquals(Player.A, twoPlayer.owner());
     assertThrows(UnsupportedOperationException.class, () -> new Resident().createMemento());
     assertThrows(UnsupportedOperationException.class, () -> Cell.DUMMY.createMemento());
@@ -245,7 +246,7 @@ class MementoCoordinateTest {
     return (Neighborhood) cell;
   }
 
-  private static Cell cellAt(Neighborhood root, int row, int column) {
+  private static Resident cellAt(Neighborhood root, int row, int column) {
     Cell cell = root;
     while (cell instanceof Neighborhood block) {
       int childWidth = block.childAt(0, 0).widthInCells();
@@ -253,6 +254,6 @@ class MementoCoordinateTest {
       row %= childWidth;
       column %= childWidth;
     }
-    return cell;
+    return (Resident) cell;
   }
 }

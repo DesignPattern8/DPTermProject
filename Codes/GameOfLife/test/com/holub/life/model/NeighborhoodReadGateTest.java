@@ -336,16 +336,5 @@ class NeighborhoodReadGateTest {
     public NeighborhoodState createMemento() {
       throw new UnsupportedOperationException("전이 테스트 대역은 memento를 지원하지 않습니다");
     }
-
-    @Override
-    public boolean isCancer() {
-      return false;
-    }
-
-    @Override
-    public void setCancer() {}
-
-    @Override
-    public void cureCancer() {}
   }
 }

@@ -52,7 +52,15 @@ Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의
 | CAN-M11 | 예외 | 보드 밖 좌표 치료는 아무것도 바꾸지 않는다 | (0,0) 암세포, (-5,-5)와 (100,100) 치료 | 예외 없이 암세포 1개 유지 | `CancerModelTest#treatmentOutsideBoardChangesNothing` |
 | CAN-M12 | 경계 | 암세포 수는 하위 블록 경계를 넘어 모두 센다 | 하위 블록 경계 (7,7)·(7,8)·(8,7)·(8,8)과 (63,63)의 암세포 | `cancerCount()` = 5 | `CancerModelTest#cancerCountSpansSubBlocks` |
 | CAN-M13 | 정상 | Clear는 암세포 상태도 지운다 | 암세포 2칸, `clear()` | 암세포 0개, 살아 있는 칸 0개 | `CancerModelTest#clearRemovesCancer` |
-| CAN-M14 | 경계 | 복합 셀과 DUMMY는 암세포가 되지 않는다 | `Neighborhood`와 `Cell.DUMMY`에 `setCancer()` | 둘 다 `isCancer()` = false | `CancerModelTest#compositeAndDummyCellsAreNeverCancer` |
+
+## 암세포 셀 계약 분리 (#70)
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| CAN-M15 | 경계 | 보드 가장자리의 암세포 출생 유지 | `(1,5)`, `(1,6)`, `(1,7)`에 암세포를 복원하고 한 세대 진행 | 바로 위 `(0,6)`에 암세포가 태어난다. | `CancerModelTest#cancerIsBornAtBoardEdge` |
+| CAN-M14 | 예외·계약 | 암세포 미지원 타입에 암세포 연산이 노출되지 않는다 | `Neighborhood`, `Cell.DUMMY`, `TwoPlayerResident`의 타입 확인 | 셋 모두 `CancerCell` 계약을 구현하지 않는다. | `CancerModelTest#compositeAndDummyCellsDoNotSupportCancer`, `TwoPlayerRuleTest#twoPlayerCellsDoNotSupportCancer` |
+
+정상 케이스는 CAN-M01~13의 기존 계산·발생·치료를 사용한다. SNAP-C, CAN-P, CAN-A, CAN-C 및 화면의 암세포 색과 클래식·2인용 규칙도 회귀 검증한다.
 
 ## 암세포 스냅샷 (#73)
 

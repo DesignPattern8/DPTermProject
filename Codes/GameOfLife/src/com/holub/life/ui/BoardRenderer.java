@@ -36,10 +36,12 @@ public final class BoardRenderer {
       } catch (InterruptedException e) {
         // Match the original redraw: skip painting after interruption.
       }
-    } else if (cell instanceof Resident) {
+    } else if (cell instanceof Resident resident) {
       g = g.create();
       g.setColor(
-          cell.isAlive() ? (cell.isCancer() ? Color.MAGENTA : Color.RED) : Colors.LIGHT_YELLOW);
+          resident.isAlive()
+              ? (resident.isCancer() ? Color.MAGENTA : Color.RED)
+              : Colors.LIGHT_YELLOW);
       g.fillRect(here.x + 1, here.y + 1, here.width - 1, here.height - 1);
       g.setColor(Colors.DARK_YELLOW);
       g.drawLine(here.x, here.y, here.x, here.y + here.height);

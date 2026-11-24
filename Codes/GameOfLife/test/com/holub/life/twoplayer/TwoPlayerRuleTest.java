@@ -9,8 +9,10 @@ import static com.holub.life.twoplayer.RealBoardScript.place;
 import static com.holub.life.twoplayer.RealBoardScript.with;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.holub.life.model.CancerCell;
 import com.holub.life.model.CellPosition;
 import com.holub.life.model.CompositeBoard;
 import com.holub.life.model.Neighborhood;
@@ -34,6 +36,12 @@ class TwoPlayerRuleTest {
   private static final Player B = Player.B;
 
   private final NeighborhoodTwoPlayerBoard board = new NeighborhoodTwoPlayerBoard();
+
+  @Test
+  @DisplayName("CAN-M14 2인용 셀은 암세포 계약을 제공하지 않는다")
+  void twoPlayerCellsDoNotSupportCancer() {
+    assertFalse(CancerCell.class.isAssignableFrom(TwoPlayerResident.class));
+  }
 
   /** TP-R-01·07: 명세 예시 1. */
   private void placeExample1() {
