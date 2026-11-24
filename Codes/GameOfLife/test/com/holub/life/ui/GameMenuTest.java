@@ -76,6 +76,19 @@ class GameMenuTest {
     }
   }
 
+  // ---- UI-R30: the clock is wired only through ModeSwitch (decision 011, #102) ----
+
+  @Test
+  void gameMenuHasNoDirectClockWiring() {
+    // Given the menu class; When looking up the old entry point that also added a clock listener
+    // Then it is gone, so nobody can attach a second tick path next to ModeSwitch (006 M2).
+    assertThrows(
+        NoSuchMethodException.class,
+        () ->
+            GameMenu.class.getMethod(
+                "install", BoardPanel.class, GameController.class, Clock.class));
+  }
+
   // ---- UI-R01~R09: menu entry table and injected dialogs (ui/docs/test-cases.md) ----
 
   /** Records requested button texts and shown errors; returns a preset file, or nothing when cancelled. */
