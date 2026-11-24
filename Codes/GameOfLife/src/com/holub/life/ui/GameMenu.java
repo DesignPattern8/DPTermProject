@@ -52,15 +52,6 @@ public final class GameMenu {
   }
 
   /**
-   * Install the menus with the original Swing dialogs and System.exit(0), and a clock listener
-   * that advances {@code controller} on every tick (the original behaviour).
-   */
-  public static void install(BoardPanel panel, GameController controller, Clock clock) {
-    installMenus(panel, controller, clock);
-    clock.addClockListener(() -> onTick(controller));
-  }
-
-  /**
    * Install only the Grid and Go menus. The caller decides what a clock tick drives ({@link
    * ModeSwitch}, twoplayer/docs/007).
    */
