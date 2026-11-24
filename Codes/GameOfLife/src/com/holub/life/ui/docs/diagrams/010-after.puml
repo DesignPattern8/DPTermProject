@@ -1,0 +1,64 @@
+@startuml 010-after
+' D 도메인: 프리셋 선택·배치 화면 (#62, 결정 010). 전에는 프리셋 화면이 없었다.
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "ui (D)" {
+  class LifeFrame <<JFrame>>
+  class GameMenu <<final, static>> {
+    + {static} presetEntries(GameController, PresetPlacement) : List<Entry>
+    + {static} installMenus(BoardPanel, GameController, Clock, PresetPlacement)
+    + {static} setPresetsEnabled(BoardPanel, GameController, boolean)
+  }
+  class PresetPlacement {
+    - pending : String
+    + select(id : String)
+    + cancel()
+    + isWaiting() : boolean
+    + click(CellPosition, rightButton : boolean) : boolean
+    + addWaitingListener(Consumer<Boolean>)
+  }
+  class BoardPanel {
+    + BoardPanel(Cell, GameController, PresetPlacement)
+  }
+  interface UserDialogs <<Strategy>> {
+    + showError(message : String)
+  }
+  class ModeSwitch
+}
+
+package "application (B)" {
+  class GameController {
+    + presets() : List<PresetChoice>
+    + applyPreset(id : String, origin : CellPosition) : PresetResult
+    + toggle(row, column)
+    + treat(row, column)
+  }
+  class PresetChoice <<record>> {
+    + id : String
+    + displayName : String
+  }
+  enum PresetResult {
+    APPLIED
+    OUT_OF_BOUNDS
+    UNKNOWN_ID
+  }
+}
+
+LifeFrame --> PresetPlacement : 생성
+LifeFrame ..> GameMenu : installMenus(…, presets)
+LifeFrame ..> ModeSwitch : 모드 전환 콜백에서\ncancel + setPresetsEnabled
+GameMenu ..> PresetPlacement : Preset 항목 → select(id)\nGrid·Go 항목 → cancel()
+GameMenu ..> PresetChoice
+BoardPanel --> PresetPlacement : 대기 중이면 click 먼저
+BoardPanel ..> GameController : 아니면 toggle / treat
+PresetPlacement --> GameController : applyPreset(id, cell)
+PresetPlacement --> UserDialogs : 실패 시 showError
+PresetPlacement ..> PresetResult
+GameController ..> PresetChoice
+
+note right of PresetPlacement
+  클릭 1번이면 결과와 관계없이 대기 종료 (010-4 A).
+  오른쪽 클릭은 취소만, 치료하지 않음.
+end note
+@enduml
