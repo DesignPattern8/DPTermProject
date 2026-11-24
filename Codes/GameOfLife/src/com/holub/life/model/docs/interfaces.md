@@ -38,7 +38,7 @@ void NeighborhoodState.replaceCells(Collection<CellPosition> cells, Set<CellPosi
 
 `NeighborhoodState`의 생존 컬렉션은 삽입 순서·중복을 유지하고 암 좌표 기록은 생존 목록에도 추가한다. getter와 replaceCells는 같은 가변 컬렉션 참조를 주고받는다. 한 인자 replaceCells는 암 집합을 새 빈 집합으로 만든다. 좌표 값은 불변이라 공유하며 markAsAlive/markAsCancer의 null은 기존처럼 NPE이고 기록하지 않는다. 원시 컬렉션의 잘못된 원소·null을 외부 입력처럼 검증하는 새 정책은 추가하지 않는다. 진단용 toString은 좌표를 CellPosition의 row/column 표기로 표시한다.
 
-파일 형식은 바꾸지 않는다. C의 LegacyLifeCodec만 파일의 `Point(x=column, y=row)`와 모델 좌표를 변환하며 기존 암세포 직렬화 envelope·UID·입력 필터를 유지한다. B의 현재 GameController/PersistenceMapper는 새 좌표의 기계적 호환만 적용하며, snapshot/restore 구조 전환은 [#88](https://github.com/DesignPattern8/DPTermProject/issues/88)의 별도 범위다.
+파일 형식은 바꾸지 않는다. C의 LegacyLifeCodec만 파일의 `Point(x=column, y=row)`와 모델 좌표를 변환하며 기존 암세포 직렬화 envelope·UID·입력 필터를 유지한다. B의 `GameController`는 [#88](https://github.com/DesignPattern8/DPTermProject/issues/88)의 `Board.snapshot()`·`Board.restore()`로 저장·복원한다. 독립 `PersistenceMapper`는 Memento를 직접 다루는 호출부에서 새 좌표를 사용한다.
 
 beginRedraw는 기존 마지막 갱신 플래그를 소비하고 해당 보드의 ConditionVariable 읽기 조건을 확인한다. `beginRedraw()` 이후 전체 그리기 구간을 잠그지는 않는다. 같은 보드의 계산·수정·캡처는 호출자가 기존처럼 직렬화한다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
 
@@ -51,7 +51,7 @@ beginRedraw는 기존 마지막 갱신 플래그를 소비하고 해당 보드�
 
 | 사용처 | 현재 호출과 연결 기준 |
 | --- | --- |
-| B [GameController](../../application/GameController.java) | `Board.toggle`·`clear`·`step()`을 잠금 안에서 호출한다. 캡처·복원도 같은 잠금 안에서 직렬화해야 한다. |
+| B [GameController](../../application/GameController.java) | `Board.toggle`·`clear`·`step()`·`snapshot()`·`restore()`를 잠금 안에서 호출한다. |
 | C [LegacyLifeCodec](../../persistence/LegacyLifeCodec.java) | 불변 `PatternData(CellPosition)`와 기존 `.life` 파일을 주고받는다. 가변 `NeighborhoodState` 연결은 B의 PersistenceMapper가 컬렉션을 복사한다. Point 변환은 코덱의 파일 경계에 둔다. |
 | D [GridCoordinateMapper](../../ui/GridCoordinateMapper.java)·[BoardRenderer](../../ui/BoardRenderer.java) | 클릭 좌표를 모델에 넘기고 `Neighborhood`로부터 셀과 활성 블록 상태를 읽는다. `liveCells()`는 생존, `cancerCells()`는 암 여부 조회에 사용할 수 있다. |
 

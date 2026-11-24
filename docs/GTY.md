@@ -620,3 +620,11 @@ PR base는 refactor/base, 연결은 Refs #71. B #88의 구조 전환 완료와 �
 `refactor/base`의 `ef8ee24`를 #71 작업 브랜치에 병합했다. 두 브랜치가 함께 수정한 `GameMenuTest`에서 보드 비교에는 #71의 `CellPosition`을 쓰고, 파일 선택 결과에는 #94의 취소 처리를 적용했다. 파일 선택을 취소하면 보드가 유지되고 변경 알림과 오류 메시지가 발생하지 않는다. 존재하지 않는 파일을 선택하면 읽기 실패 메시지가 표시된다.
 
 JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 365개 테스트가 통과했다. 실패·오류·건너뜀은 각각 0개였다.
+
+### 2026-11-24 · #88 저장·불러오기 통합
+
+`refactor/base`의 `6b20c07`을 병합할 때 #71의 기존 Memento 호출과 #88의 스냅샷 경로가 `GameController`에서 충돌했다. 최신 `GameController`의 `Board.restore()`·`Board.snapshot()`과 프리셋 연결을 유지했다. #71의 `Cell.transfer()`·`Cell.Memento`·`NeighborhoodState`는 `CellPosition`을 쓰며 독립 `PersistenceMapper`도 같은 좌표를 복사한다.
+
+`SnapshotFileStoreTest`는 직렬화된 파일을 확인할 때 `Point(column, row)` 순서를 비교하고, 코덱이 읽은 좌표는 `CellPosition` 순서로 비교한다. `NativeUiSmoke`의 관찰 경로는 기존 `Point`와 새 행·열 좌표를 모두 화면 좌표로 읽는다.
+
+JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 439개가 통과했다. 실패·오류·건너뜀은 각각 0개였다. 저장 순서·암세포 복원·불러오기 실패 후 보드 보존·프리셋 검증을 포함한다.

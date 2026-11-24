@@ -1,0 +1,31 @@
+@startuml 008-after
+title Preset placement after #62 (candidate A)
+participant "D / caller" as D
+participant GameController as G
+participant "PresetCatalog (C)" as P
+participant "Board (A)" as B
+participant GameListener as L
+
+D -> G : presets()
+G -> P : list()
+G --> D : List<PresetChoice>(id, displayName)
+
+D -> G : applyPreset(id, origin)
+G -> P : find(id)
+alt no preset
+  G --> D : UNKNOWN_ID (no board call, no event)
+end
+group controller lock
+  G -> B : rows(), columns()
+  alt any cell outside board
+    G --> D : OUT_OF_BOUNDS (no change, no event)
+  end
+  G -> B : snapshot()
+  loop each preset cell not in liveCells
+    G -> B : toggle(origin + cell)
+  end
+end
+G -> L : EDITED once, outside lock
+G --> D : APPLIED
+note over G : Clock is not stopped.\nLive and cancer cells under the preset are not toggled.
+@enduml

@@ -22,8 +22,7 @@ class GameControllerTest {
     Neighborhood root = new Neighborhood(8, new Neighborhood(8, new Resident()));
     board = root;
     controller =
-        new GameController(
-            new CompositeBoard(root), root, new Clock(new UtilTimerTickSource(timer)));
+        new GameController(new CompositeBoard(root), new Clock(new UtilTimerTickSource(timer)));
   }
 
   @AfterEach

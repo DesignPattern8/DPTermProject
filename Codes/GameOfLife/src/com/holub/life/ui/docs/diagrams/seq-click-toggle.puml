@@ -1,0 +1,46 @@
+@startuml seq-click-toggle
+' 클릭 한 번 → 셀 토글(또는 치료) → 화면 다시 그리기
+' 기준: refactor/base ef8ee24. 모두 Swing 이벤트 스레드(EDT)에서 실행된다.
+' ui/BoardPanel.java:48-63, ui/GridCoordinateMapper.java, application/GameController.java:56-60,107-113
+skinparam sequenceMessageAlign center
+hide footbox
+
+actor "사용자" as User
+participant "BoardPanel\n(MouseAdapter)" as Mouse
+participant "GridCoordinateMapper" as Mapper
+participant "GameController" as Controller
+participant "CompositeBoard\n(Board)" as Board
+participant "CancerGame" as Cancer
+participant "BoardPanel\n(GameListener)" as Listener
+participant "BoardRenderer" as Renderer
+
+User -> Mouse : mousePressed(x, y)
+activate Mouse
+Mouse -> Mapper : cellAt(outermostCell, point, bounds)
+Mapper --> Mouse : CellPosition(row, column)
+note right of Mapper : 008: 행·열을 뒤집지 않고\nCellPosition으로 받는다
+
+alt 왼쪽 클릭
+  Mouse -> Controller : toggle(row, column)
+  activate Controller
+  Controller -> Board : toggle(CellPosition)  [synchronized(lock)]
+  Controller -> Listener : boardChanged(EDITED)
+  deactivate Controller
+else 오른쪽 클릭 (#60 암세포 치료)
+  Mouse -> Controller : treat(row, column)
+  activate Controller
+  Controller -> Cancer : treat(row, column)  [synchronized(lock)]
+  Cancer --> Controller : 치료 횟수가 남아 있으면 true
+  opt 치료함
+    Controller -> Listener : boardChanged(EDITED)
+  end
+  deactivate Controller
+end
+deactivate Mouse
+
+Listener -> Listener : repaint()
+note right of Listener : EDITED → 전체 다시 그리기 요청\n(GENERATION이면 refreshNow 부분 갱신)
+
+... Swing이 다시 그릴 때 ...
+Listener -> Renderer : redraw(outermostCell, g, bounds, drawAll = true)
+@enduml

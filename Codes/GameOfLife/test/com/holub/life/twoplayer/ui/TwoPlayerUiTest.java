@@ -102,7 +102,7 @@ class TwoPlayerUiTest {
   private final Neighborhood classicBoard =
       new Neighborhood(8, new Neighborhood(8, new Resident()));
   private final GameController controller =
-      new GameController(new CompositeBoard(classicBoard), classicBoard, clock);
+      new GameController(new CompositeBoard(classicBoard), clock);
   private final List<Boolean> fileCommands = new ArrayList<>();
 
   TwoPlayerUiTest() {

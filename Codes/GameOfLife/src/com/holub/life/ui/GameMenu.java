@@ -2,6 +2,7 @@ package com.holub.life.ui;
 
 import com.holub.life.application.Clock;
 import com.holub.life.application.GameController;
+import com.holub.life.application.PresetChoice;
 import com.holub.life.application.Speed;
 import com.holub.ui.MenuSite;
 import java.awt.event.ActionListener;
@@ -16,6 +17,7 @@ import javax.swing.*;
 public final class GameMenu {
   static final String GRID = "Grid";
   static final String GO = "Go";
+  static final String PRESET = "Preset";
 
   private GameMenu() {}
 
@@ -50,15 +52,6 @@ public final class GameMenu {
   }
 
   /**
-   * Install the menus with the original Swing dialogs and System.exit(0), and a clock listener
-   * that advances {@code controller} on every tick (the original behaviour).
-   */
-  public static void install(BoardPanel panel, GameController controller, Clock clock) {
-    installMenus(panel, controller, clock);
-    clock.addClockListener(() -> onTick(controller));
-  }
-
-  /**
    * Install only the Grid and Go menus. The caller decides what a clock tick drives ({@link
    * ModeSwitch}, twoplayer/docs/007).
    */
@@ -67,6 +60,47 @@ public final class GameMenu {
       // Same requesters as the original: the panel owns Grid, the clock owns Go.
       Object requester = entry.menu().equals(GRID) ? panel : clock;
       MenuSite.addLine(requester, entry.menu(), entry.label(), entry.action());
+    }
+  }
+
+  /**
+   * The Preset menu items, one per {@link GameController#presets()} in catalog order (decision
+   * 010). Each starts waiting for a board click. Kept apart from {@link #entries} so the original
+   * Grid and Go menus stay as they were.
+   */
+  public static List<Entry> presetEntries(GameController controller, PresetPlacement placement) {
+    List<Entry> result = new ArrayList<>();
+    for (PresetChoice choice : controller.presets())
+      result.add(new Entry(PRESET, choice.displayName(), e -> placement.select(choice.id())));
+    return List.copyOf(result);
+  }
+
+  /**
+   * Install Grid, Go and Preset. Choosing any Grid or Go item first cancels a preset that is
+   * waiting for a click (decision 010, #62 Q4).
+   */
+  public static void installMenus(
+      BoardPanel panel, GameController controller, Clock clock, PresetPlacement placement) {
+    for (Entry entry : entries(controller, clock, new SwingUserDialogs(), () -> System.exit(0))) {
+      Object requester = entry.menu().equals(GRID) ? panel : clock;
+      MenuSite.addLine(
+          requester,
+          entry.menu(),
+          entry.label(),
+          e -> {
+            placement.cancel();
+            entry.action().actionPerformed(e);
+          });
+    }
+    for (Entry entry : presetEntries(controller, placement))
+      MenuSite.addLine(panel, entry.menu(), entry.label(), entry.action());
+  }
+
+  /** Enable or disable the Preset menu items (disabled in two-player mode, decision 010). */
+  public static void setPresetsEnabled(BoardPanel panel, GameController controller, boolean enabled) {
+    for (PresetChoice choice : controller.presets()) {
+      JMenuItem item = MenuSite.getMyMenuItem(panel, PRESET, choice.displayName());
+      if (item != null) item.setEnabled(enabled);
     }
   }
 

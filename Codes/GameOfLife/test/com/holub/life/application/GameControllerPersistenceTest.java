@@ -27,7 +27,7 @@ class GameControllerPersistenceTest {
 
   private final ManualTicks ticks = new ManualTicks();
   private final GameController controller =
-      new GameController(new CompositeBoard(root), root, new Clock(ticks));
+      new GameController(new CompositeBoard(root), new Clock(ticks));
 
   @Test
   void preservesTraversalAndCancer() throws Exception {
@@ -74,7 +74,10 @@ class GameControllerPersistenceTest {
         };
     var controller =
         new GameController(
-            new CompositeBoard(root), root, new Clock(ticks), null, new BoardFileStore(codec));
+            new CompositeBoard(root),
+            new Clock(ticks),
+            null,
+            new BoardFileStore(codec, List.of(8, 1)));
     var changes = new ArrayList<GameListener.Change>();
     controller.addGameListener(changes::add);
 
