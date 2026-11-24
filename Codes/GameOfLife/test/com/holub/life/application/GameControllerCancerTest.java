@@ -1,7 +1,9 @@
 package com.holub.life.application;
 
 import static com.holub.life.application.CancerGameTest.NO_NEW_CANCER;
+import static com.holub.life.application.CancerGameTest.cancerBlock;
 import static com.holub.life.application.CancerGameTest.cellAt;
+import static com.holub.life.application.CancerGameTest.distantCancerBlock;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.model.CompositeBoard;
@@ -69,32 +71,35 @@ class GameControllerCancerTest {
   @Test
   @DisplayName("CAN-C02 치료하면 전체 다시 그리기를 알리고, 횟수가 없으면 알리지 않는다")
   void treatmentNotifiesOnlyWhenUsed() {
+    // Given: one lone cancer cell per treatment, plus a distant block so the game never ends
+    distantCancerBlock(board);
+    int attempts = CancerGame.INITIAL_TREATMENT_CHARGES + 1;
+    for (int i = 0; i < attempts; i++) cellAt(board, 8 * i, 8 * i).setCancer();
     GameController controller = cancerController();
 
-    for (int i = 0; i < 4; i++) controller.treat(10 * i, 10 * i);
+    // When
+    for (int i = 0; i < attempts; i++) controller.treat(8 * i, 8 * i);
 
-    assertEquals(Collections.nCopies(3, GameListener.Change.EDITED), changes);
+    // Then
+    assertEquals(
+        Collections.nCopies(CancerGame.INITIAL_TREATMENT_CHARGES, GameListener.Change.EDITED),
+        changes);
   }
 
   @Test
-  @DisplayName("CAN-C03 승리하는 tick은 시계를 멈추고 GAME_OVER를 알린다")
-  void winningTickStopsClockAndReportsGameOver() {
-    // Given: two touching cancer cells keep each other alive
-    cellAt(board, 10, 10).setCancer();
-    cellAt(board, 10, 11).setCancer();
+  @DisplayName("CAN-C03 마지막 암세포를 없애는 치료는 시계를 멈추고 GAME_OVER를 알린다")
+  void winningTreatmentStopsClockAndReportsGameOver() {
+    // Given
+    cancerBlock(board, 10, 10);
     GameController controller = cancerController();
     clock.startTicking(100);
-    controller.tick();
-    assertEquals(2, board.cancerCount());
-    controller.treat(10, 10);
-    changes.clear();
 
     // When
-    controller.tick();
+    controller.treat(10, 10);
 
     // Then
     assertFalse(ticks.running);
-    assertEquals(GameListener.Change.GAME_OVER, changes.get(changes.size() - 1));
+    assertEquals(List.of(GameListener.Change.EDITED, GameListener.Change.GAME_OVER), changes);
     assertTrue(controller.gameResultMessage().contains("승리"));
   }
 
@@ -102,11 +107,9 @@ class GameControllerCancerTest {
   @DisplayName("CAN-C04 끝난 뒤의 tick은 보드를 진행하지 않고 알리지 않는다")
   void tickAfterGameOverDoesNothing() {
     // Given: a finished game
-    cellAt(board, 10, 10).setCancer();
+    cancerBlock(board, 10, 10);
     GameController controller = cancerController();
-    controller.tick();
     controller.treat(10, 10);
-    controller.tick();
     assertNotNull(controller.gameResultMessage());
     controller.toggle(30, 29);
     controller.toggle(30, 30);
@@ -122,5 +125,23 @@ class GameControllerCancerTest {
         Set.of(new CellPosition(30, 29), new CellPosition(30, 30), new CellPosition(30, 31)),
         new HashSet<>(board.createMemento().liveCells()));
     assertTrue(changes.isEmpty());
+  }
+
+  @Test
+  @DisplayName("CAN-C05 치료가 거부되면 시계를 멈추지 않고 알리지 않는다")
+  void refusedTreatmentLeavesClockRunningAndNotifiesNothing() {
+    // Given: only one cancer cell, below the treatment minimum
+    cellAt(board, 10, 10).setCancer();
+    GameController controller = cancerController();
+    clock.startTicking(100);
+
+    // When
+    boolean treated = controller.treat(10, 10);
+
+    // Then
+    assertFalse(treated);
+    assertTrue(ticks.running);
+    assertTrue(changes.isEmpty());
+    assertNull(controller.gameResultMessage());
   }
 }

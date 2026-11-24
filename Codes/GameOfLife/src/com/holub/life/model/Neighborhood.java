@@ -458,22 +458,28 @@ public final class Neighborhood implements Cell {
     return count;
   }
 
-  public void treatAt(int row, int column) {
+  public boolean treatAt(int row, int column) {
     Resident[][] board = residentBoard();
     int size = board.length;
+    boolean treated = false;
 
-    // 클릭한 칸과 주변 한 칸(대각선 포함)을 치료
-    for (int dr = -1; dr <= 1; dr++) {
-      for (int dc = -1; dc <= 1; dc++) {
+    // 클릭한 칸을 중심으로 5x5 범위 치료
+    for (int dr = -2; dr <= 2; dr++) {
+      for (int dc = -2; dc <= 2; dc++) {
         int r = row + dr;
         int c = column + dc;
 
         if (r >= 0 && r < size && c >= 0 && c < size) {
           Resident cell = board[r][c];
-          if (cell != null) cell.cureCancer();
+          if (cell != null && cell.isAlive() && cell.isCancer()) {
+            cell.cureCancer();
+            treated = true;
+          }
         }
       }
     }
+
+    return treated;
   }
 
   /** 살아 있는 일반 세포 하나를 무작위로 골라, 대각선을 포함해 연결된 살아 있는 일반 세포만 암세포로 바꾼다. */

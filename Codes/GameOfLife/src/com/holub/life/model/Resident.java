@@ -90,6 +90,10 @@ public final class Resident implements CancerCell {
   }
 
   public void toggle(int row, int column) {
+    if (isCancer) {
+      return;
+    }
+
     amAlive = !amAlive;
   }
 

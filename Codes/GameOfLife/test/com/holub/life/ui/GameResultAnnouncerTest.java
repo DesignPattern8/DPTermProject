@@ -58,13 +58,13 @@ class GameResultAnnouncerTest {
           new CancerGame(board, new NoNewCancer()));
   private final RecordingDialogs dialogs = new RecordingDialogs();
 
-  /** Same steps as #60's CAN-C03: two cancer cells, treat both, the next tick wins. */
+  /**
+   * Same steps as #60's CAN-C03: a 3×4 cancer block (12 cells, above the treatment minimum) inside
+   * one 5×5 treatment area; treating it removes the last cancer and wins.
+   */
   private void winTheGame() {
-    cellAt(board, 10, 10).setCancer();
-    cellAt(board, 10, 11).setCancer();
-    controller.tick();
+    for (int r = 9; r <= 11; r++) for (int c = 9; c <= 12; c++) cellAt(board, r, c).setCancer();
     controller.treat(10, 10);
-    controller.tick();
     assertNotNull(controller.gameResultMessage());
   }
 
