@@ -63,7 +63,9 @@ public final class CompositeBoard implements Board {
       neighborhood.toggle(position.row(), position.column());
     }
     for (CellPosition position : snapshot.cancerCells()) {
-      cellAt(position.row(), position.column()).setCancer();
+      if (cellAt(position.row(), position.column()) instanceof CancerCell cancerCell) {
+        cancerCell.setCancer();
+      }
     }
   }
 
@@ -99,7 +101,7 @@ public final class CompositeBoard implements Board {
     } else if (cell.isAlive()) {
       CellPosition position = new CellPosition(row, column);
       liveCells.add(position);
-      if (cell.isCancer()) cancerCells.add(position);
+      if (cell instanceof CancerCell cancerCell && cancerCell.isCancer()) cancerCells.add(position);
     }
   }
 }

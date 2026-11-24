@@ -3,6 +3,7 @@ package com.holub.life.ui;
 import java.awt.Component;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Optional;
 import javax.swing.JOptionPane;
 
 /**
@@ -23,8 +24,13 @@ public final class SwingUserDialogs implements UserDialogs {
   }
 
   @Override
-  public File chooseFile(String selectButtonText) throws FileNotFoundException {
-    return FileDialogs.userSelected(".", ".life", "Life File", selectButtonText);
+  public Optional<File> chooseFile(String selectButtonText) {
+    try {
+      return Optional.of(FileDialogs.userSelected(".", ".life", "Life File", selectButtonText));
+    } catch (FileNotFoundException cancelled) {
+      // FileDialogs reports "no file selected" this way; it is a cancel, not a read failure (#57).
+      return Optional.empty();
+    }
   }
 
   @Override

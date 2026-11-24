@@ -20,7 +20,7 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R04 | 정상 | Store 항목이 고른 파일에 저장하는지 확인 (왕복) | 셀 3개, 대역이 새 파일을 고름 | 버튼 문구 `"Write"`로 요청, 파일을 다시 불러오면 같은 3칸, 오류 표시 없음 | `GameMenuTest#storeEntryWritesChosenFile` |
 | UI-R05 | 예외 | 잘못된 파일은 오류 표시와 기존 보드 보존 (#63) | 살아 있는 보드에서 바이트 `{1,2,3,4}` 파일을 고름 | 오류 표시 `["Read Failed!"]` (1회), 기존 배치 유지 | `GameMenuTest#loadFailureShowsReadFailed` |
 | UI-R06 | 예외 | 저장할 수 없는 경로면 원본 문구로 실패를 알리는지 확인 | 디렉터리를 고름 | 오류 표시 `["Write Failed!"]` (1회), 보드 그대로 | `GameMenuTest#storeFailureShowsWriteFailed` |
-| UI-R07 | 예외(특성) | 파일 선택을 취소했을 때 원본처럼 동작하는지 확인 | 대역이 `FileNotFoundException`을 던짐(원본 `FileDialogs`의 취소), Load 후 Store | 보드 그대로, 오류 표시 `["Read Failed!", "Write Failed!"]` (원본 동작. 버그 후보, 006 참고) | `GameMenuTest#cancelKeepsOriginalFailureMessage` |
+| UI-R07 | 예외 | 파일 선택을 취소하면 아무 일도 일어나지 않는지 확인 (#57에서 기대값 변경) | 대역이 "선택 없음"(빈 `Optional`)을 돌려줌, Load 후 Store | 보드 그대로, 게임 알림 0회, 오류 표시 없음 (`[]`). 이전 기대값은 원본 동작 `["Read Failed!", "Write Failed!"]`였음 | `GameMenuTest#cancelDoesNothing` |
 | UI-R08 | 정상 | Exit 항목이 종료 동작을 부르는지 확인 (실제 종료 대신 주입) | Exit 실행 | 주입한 `exit` 1회 호출 | `GameMenuTest#exitEntryRunsExitAction` |
 | UI-R09 | 경계 | Go 항목 각각이 맞는 `Clock` 요청을 하고, 표에 없는 이름은 원본처럼 정지하는지 확인 | 기록용 `TickSource` 대역, Go 항목 6개 실행 후 `go(clock, "Unknown")` | Agonizing/Slow/Medium/Fast → `start(500/150/70/30)`, Halt → `stop`, Tick → 리스너 1회, `"Unknown"` → `stop` | `GameMenuTest#goEntriesMapToClockRequests` |
 
@@ -48,3 +48,42 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R17 | 정상 | 게임 종료 알림에 결과 메시지를 한 번 띄우는지 확인 | 이긴 상태의 컨트롤러(CAN-C03과 같은 절차: 3×4 암세포 묶음을 한 번에 치료), 기록용 대화상자, 즉시 실행기 | `showMessage` 1회, 내용 = `controller.gameResultMessage()` ("승리" 포함) | `GameResultAnnouncerTest#gameOverShowsResultOnce` |
 | UI-R18 | 예외 | 게임 종료가 아닌 알림에는 메시지를 띄우지 않는지 확인 | 같은 구독자에 `EDITED`, `GENERATION` 전달 | `showMessage` 0회, 실행기에도 작업 0개 | `GameResultAnnouncerTest#otherChangesShowNothing` |
 | UI-R19 | 경계 | 대화상자는 실행기(제품에서는 이벤트 스레드)에서 띄우는지 확인 | `GAME_OVER` 전달, 작업을 모아 두기만 하는 실행기 | 전달 직후 `showMessage` 0회, 모아 둔 작업 실행 후 1회 | `GameResultAnnouncerTest#messageWaitsForExecutor` |
+
+## 파일 선택 취소 (#57, BUG)
+
+구현 전에 정의한다. 원본은 파일 선택 창의 취소를 `FileNotFoundException`으로 알렸고, 메뉴가 다른 읽기·쓰기 실패와 똑같이 잡아 `"Read Failed!"`/`"Write Failed!"`를 띄웠다. #57 정책: **취소는 D의 대화상자 단계에서 판단하고, B를 호출하지 않으며, 오류창을 띄우지 않는다.** 실제 읽기·쓰기 실패는 지금처럼 표시한다. 동작이 바뀌는 수정이므로 UI-R07 기대값을 바꾸고(위 표), 취소와 진짜 실패를 구분하는 케이스를 더한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R20 | 예외 | 고른 파일이 없으면(취소가 아니라 B의 `FileNotFoundException`) 지금처럼 실패를 알리는지 확인 | 살아 있는 셀 1개, 대역이 존재하지 않는 경로를 고름 | 오류 표시 `["Read Failed!"]` 1회, 보드 그대로 | `GameMenuTest#missingChosenFileStillShowsReadFailed` |
+| EXT-N01 (취소 단계) | 예외 | 실제 `JFileChooser`에서 취소하면 오류창이 뜨지 않는지 확인 | `NativeUiSmoke`의 Load 취소 단계 | 오류창(`JOptionPane`) 없음, 보드 셀 3개 그대로 | `NativeUiSmoke#main` |
+
+## 프리셋 선택·배치 화면 (#62, 결정 [010](010-preset-placement-ui.md))
+
+구현 전에 정의한다. B의 실제 `GameController`(PR #99의 `presets()`·`applyPreset()`)와 실제 64×64 보드를 쓰고, 대화상자는 기록용 대역, 창은 띄우지 않는다. 좌표는 (행, 열). glider 상대 좌표는 C 카탈로그의 `(0,1) (1,2) (2,0) (2,1) (2,2)`.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R21 | 정상 | `Preset` 메뉴 항목이 B의 프리셋 목록 순서·이름과 같은지 확인 | `GameMenu.presetEntries(controller, placement)` | 메뉴 `Preset`, 라벨 `Block`, `Blinker`, `Glider` (순서 포함) | `PresetPlacementTest#presetMenuFollowsCatalogOrder` |
+| UI-R22 | 정상 | 프리셋을 고른 뒤 왼쪽 클릭한 칸을 좌상단으로 배치하는지 확인 | 빈 보드, `Glider` 항목 실행 → (10,10) 왼쪽 클릭 | 클릭을 소비(`true`), 살아 있는 칸 = {(10,11), (11,12), (12,10), (12,11), (12,12)}, 오류 없음, 대기 끝 | `PresetPlacementTest#leftClickPlacesSelectedPreset` |
+| UI-R23 | 정상 | 대기 중이 아니면 클릭을 가로채지 않는지 확인 (평소 토글·치료 유지) | 아무것도 고르지 않음, 왼쪽·오른쪽 클릭 | 둘 다 `false`, 보드 그대로 | `PresetPlacementTest#clicksPassThroughWhenNotWaiting` |
+| UI-R24 | 경계 | 대기 중 오른쪽 클릭은 취소만 하고 치료하지 않는지 확인 | 암 규칙 컨트롤러, (25,12) 암세포, `Glider` 선택 → (25,12) 오른쪽 클릭 | 클릭을 소비(`true`), 대기 끝, (25,12)는 여전히 암세포, 치료 횟수 그대로 | `PresetPlacementTest#rightClickCancelsWithoutTreating` |
+| UI-R25 | 경계 | 다른 메뉴 선택·모드 전환(= `cancel()`) 뒤에는 클릭이 평소대로 가는지 확인 | `Glider` 선택 → `cancel()` → (10,10) 왼쪽 클릭 | 클릭이 `false`(배치하지 않음), 보드 그대로 | `PresetPlacementTest#cancelReturnsToNormalClicks` |
+| UI-R26 | 예외 | 보드 밖으로 나가면 배치하지 않고 알리는지, 대기는 끝나는지 확인 (결정 4 A) | `Glider` 선택 → (63,63) 왼쪽 클릭 | 오류 `["Preset does not fit here."]` 1회, 보드 그대로, 대기 끝 | `PresetPlacementTest#outOfBoundsShowsErrorAndEndsWaiting` |
+| UI-R27 | 예외 | 없는 프리셋 id면 배치하지 않고 알리는지 확인 | `select("nope")` → (10,10) 왼쪽 클릭 | 오류 `["Unknown preset."]` 1회, 보드 그대로, 대기 끝 | `PresetPlacementTest#unknownIdShowsError` |
+| UI-R28 | 정상 | 대기 시작·끝을 알려 커서를 바꿀 수 있는지 확인 | 대기 변화 기록, `Glider` 선택 → 클릭 → 다시 선택 → `cancel()` | 기록 `[true, false, true, false]` | `PresetPlacementTest#waitingChangesAreReported` |
+| UI-R29 | 정상 | 실제 패널 클릭이 배치로 이어지고 커서가 돌아오는지 확인 | 512×512 `BoardPanel`(프리셋 포함), `Glider` 선택 → 픽셀 (x=84, y=84) 왼쪽 `MOUSE_PRESSED` | 선택 직후 커서 십자, 클릭 후 기본 커서, (10,10) 기준 glider 5칸이 살아 있음 | `BoardPanelTest#panelClickPlacesPresetAndRestoresCursor` |
+| EXT-N01 (프리셋 단계) | 정상 | 실제 메뉴에서 `Preset` → `Glider` → 클릭이 동작하는지 확인 | `NativeUiSmoke`에서 Clear 후 메뉴 클릭, 보드 클릭 | 살아 있는 칸 5개 | `NativeUiSmoke#main` |
+
+- UI-R01(기존 메뉴 10개)은 그대로 둔다. 프리셋 항목은 `entries()`가 아니라 `presetEntries()`에 있다(결정 2).
+- 2인용 모드에서 `Preset` 메뉴가 꺼지는 것은 `MenuSite`(창 필요)를 거치므로 headless JUnit으로 보지 않는다. 대기 취소는 UI-R25와 같은 `cancel()` 경로다.
+
+## 호출처 없는 `GameMenu.install` 정리 (#102, 결정 [011](011-remove-gamemenu-install.md))
+
+구현 전에 정의한다. 동작 변경이 없는 삭제라 기존 테스트가 그대로 통과하는 것이 기준이다. 새 케이스는 잘못된 진입점이 다시 생기지 않게 막는 구조 검사 1개다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R30 | 경계 | 시계 tick 연결 경로가 `ModeSwitch` 하나뿐인지 확인 (`GameMenu`에 시계 리스너를 직접 다는 공개 진입점이 없음, 006 M2) | `GameMenu` 클래스의 공개 메서드 목록 | `install(BoardPanel, GameController, Clock)`이 없다(`NoSuchMethodException`) | `GameMenuTest#gameMenuHasNoDirectClockWiring` |
+
+- 그대로 통과해야 하는 기존 테스트: UI-R01(메뉴 10개), UI-R09(Go 항목), `GameMenuTest#openMenuSuppressesTick`(메뉴 열림 시 tick 무시, `onTick`), 2인용 TP-U-11(2인용 모드에서 클래식 보드 정지)·TP-U-16(메뉴 열림 시 2인용 tick 무시), `NativeUiSmoke`(EXT-N01).

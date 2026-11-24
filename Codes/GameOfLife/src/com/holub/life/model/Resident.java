@@ -1,7 +1,5 @@
 package com.holub.life.model;
 
-import java.awt.Point;
-
 /*** ****************************************************************
  * The Resident class implements a single cell---a "resident" of a
  * block.
@@ -9,7 +7,7 @@ import java.awt.Point;
  * @include /etc/license.txt
  */
 
-public final class Resident implements Cell {
+public final class Resident implements CancerCell {
   private boolean amAlive = false;
   private boolean willBeAlive = false;
   private boolean isCancer = false;
@@ -49,7 +47,7 @@ public final class Resident implements Cell {
     for (Cell cell : adjacent) {
       if (cell.isAlive()) {
         neighbors++;
-        if (cell.isCancer()) cancerNeighbors++;
+        if (cell instanceof CancerCell cancerCell && cancerCell.isCancer()) cancerNeighbors++;
       }
     }
 
@@ -120,7 +118,7 @@ public final class Resident implements Cell {
     return isStable() ? Direction.NONE : Direction.ALL;
   }
 
-  public boolean transfer(Memento memento, Point upperLeft, boolean doLoad) {
+  public boolean transfer(Memento memento, CellPosition upperLeft, boolean doLoad) {
     if (doLoad) {
       boolean wasAlive = amAlive;
       boolean wasCancer = isCancer;

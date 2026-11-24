@@ -24,12 +24,20 @@ public final class LifeFrame extends JFrame {
     MenuSite.establish(this);
     setDefaultCloseOperation(EXIT_ON_CLOSE);
     getContentPane().setLayout(new BorderLayout());
-    BoardPanel panel = new BoardPanel(board, controller);
-    GameMenu.installMenus(panel, controller, clock);
+    PresetPlacement presets = new PresetPlacement(controller, new SwingUserDialogs());
+    BoardPanel panel = new BoardPanel(board, controller, presets);
+    GameMenu.installMenus(panel, controller, clock, presets);
     ClassicMode classic = new ClassicMode(panel, controller);
     ModeSwitch modes =
         new ModeSwitch(
-            clock, classic, enabled -> GameMenu.setFileCommandsEnabled(panel, enabled));
+            clock,
+            classic,
+            enabled -> {
+              // A mode switch cancels a waiting preset; presets are Classic-only (decision 010).
+              presets.cancel();
+              GameMenu.setFileCommandsEnabled(panel, enabled);
+              GameMenu.setPresetsEnabled(panel, controller, enabled);
+            });
     if (!otherModes.isEmpty()) {
       MenuSite.addLine(modes, "Mode", classic.menuName(), e -> modes.select(classic));
       for (GameMode mode : otherModes) {

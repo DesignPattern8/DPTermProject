@@ -198,7 +198,7 @@ package com.holub.life.twoplayer {
     + edge(row : int, column : int) : Cell
     + widthInCells() : int
     + clear()
-    .. 저장·암 메서드(transfer, createMemento, isCancer 등): 아무것도 안 함 / 미지원 ..
+    .. 저장 메서드(transfer, createMemento): 아무것도 안 함 / 미지원 ..
   }
 
   class Coordinate <<record>> {
@@ -230,7 +230,6 @@ package com.holub.life.model {
     + isAlive() : boolean
     + create() : Cell
     ..
-    + isCancer() / setCancer() / cureCancer()
     + transfer(...) / createMemento()
   }
   class Neighborhood {

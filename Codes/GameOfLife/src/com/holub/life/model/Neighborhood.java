@@ -1,7 +1,6 @@
 package com.holub.life.model;
 
 import com.holub.asynch.ConditionVariable;
-import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -24,12 +23,13 @@ import java.util.Random;
  */
 
 public final class Neighborhood implements Cell {
-  /**
-   * Block if reading is not permitted because the grid is transitioning to the next state. Only one
-   * lock is used (for the outermost neighborhood) since all updates must be requested through the
-   * outermost neighborhood.
-   */
-  private static final ConditionVariable readingPermitted = new ConditionVariable(true);
+  /** Shared by every nested block of one board, but never by independent boards. */
+  private static final class TransitionState {
+    private final ConditionVariable readingPermitted = new ConditionVariable(true);
+    private int nestingLevel = -1;
+  }
+
+  private final TransitionState transitionState;
 
   /**
    * Returns true only if none of the cells in the Neighborhood changed state during the last
@@ -48,11 +48,22 @@ public final class Neighborhood implements Cell {
    * is deliberately not put into the grid, so you can reuse it if you like.
    */
   public Neighborhood(int gridSize, Cell prototype) {
+    this(gridSize, prototype, new TransitionState());
+  }
+
+  private Neighborhood(int gridSize, Cell prototype, TransitionState transitionState) {
     this.gridSize = gridSize;
     this.grid = new Cell[gridSize][gridSize];
+    this.transitionState = transitionState;
 
-    for (int row = 0; row < gridSize; ++row)
-      for (int column = 0; column < gridSize; ++column) grid[row][column] = prototype.create();
+    for (int row = 0; row < gridSize; ++row) {
+      for (int column = 0; column < gridSize; ++column) {
+        grid[row][column] =
+            prototype instanceof Neighborhood block
+                ? new Neighborhood(block.gridSize, block.grid[0][0], transitionState)
+                : prototype.create();
+      }
+    }
   }
 
   /**
@@ -218,44 +229,25 @@ public final class Neighborhood implements Cell {
    * @see #figureNextState
    */
   public boolean transition() {
-    // The condition variable is set and reset only by the
-    // outermost neighborhood. It's actually incorrect
-    // for an inner block to touch it because the whole
-    // board has to be locked for edge cells in a subblock
-    // to compute their next state correctly. There's no
-    // race condition since the only place that transition()
-    // is called is from the clock tick, and recursively
-    // from here. As long as the recompute time is less
-    // than the tick interval, everything's copacetic.
+    if (++transitionState.nestingLevel == 0) transitionState.readingPermitted.set(false);
 
-    boolean someSubcellChangedState = false;
-
-    if (++nestingLevel == 0) readingPermitted.set(false);
-
-    activeEdges.clear(); /*(1)*/
-
-    for (int row = 0; row < gridSize; ++row) // {=transition.start}
-    for (int column = 0; column < gridSize; ++column) {
-        if (grid[row][column].transition()) {
-          rememberThatCellAtEdgeChangedState(row, column);
-          someSubcellChangedState = true;
-        } // {=transition.end}
+    try {
+      boolean someSubcellChangedState = false;
+      activeEdges.clear(); /*(1)*/
+      for (int row = 0; row < gridSize; ++row) {
+        for (int column = 0; column < gridSize; ++column) {
+          if (grid[row][column].transition()) {
+            rememberThatCellAtEdgeChangedState(row, column);
+            someSubcellChangedState = true;
+          }
+        }
       }
-
-    if (nestingLevel-- == 0) readingPermitted.set(true);
-
-    return someSubcellChangedState;
+      return someSubcellChangedState;
+    } finally {
+      // Every recursive exit, including a failed leaf transition, must restore this board's gate.
+      if (transitionState.nestingLevel-- == 0) transitionState.readingPermitted.set(true);
+    }
   }
-
-  // The following variable is used only by the transition()
-  // method. Since Java doesn't support static local variables,
-  // I am forced to declare it in class scope, but I deliberately
-  // don't put it up at the top of the class defintion because
-  // it's not really an attribute of the class---it's just
-  // an implemenation detail of the immediately preceding
-  // method.
-  //
-  private static int nestingLevel = -1;
 
   /**
    * Modifies activeEdges to indicate whether the addition of the cell at (row,column) makes an edge
@@ -297,8 +289,8 @@ public final class Neighborhood implements Cell {
   public boolean beginRedraw(boolean drawAll) throws InterruptedException {
     if (!amActive && !oneLastRefreshRequired && !drawAll) return false;
     oneLastRefreshRequired = false;
-    if (!readingPermitted.isTrue()) return false;
-    readingPermitted.waitForTrue();
+    if (!transitionState.readingPermitted.isTrue()) return false;
+    transitionState.readingPermitted.waitForTrue();
     return true;
   }
 
@@ -337,42 +329,32 @@ public final class Neighborhood implements Cell {
   }
 
   /** Cause subcells to add an annotation to the indicated memento if they happen to be alive. */
-  public boolean transfer(Memento memento, Point corner, boolean load) {
+  public boolean transfer(Memento memento, CellPosition corner, boolean load) {
     int subcellWidth = grid[0][0].widthInCells();
-    int myWidth = widthInCells();
-    Point upperLeft = new Point(corner);
 
     for (int row = 0; row < gridSize; ++row) {
       for (int column = 0; column < gridSize; ++column) {
-        if (grid[row][column].transfer(memento, upperLeft, load)) amActive = true;
+        CellPosition upperLeft =
+            new CellPosition(
+                corner.row() + row * subcellWidth, corner.column() + column * subcellWidth);
+        if (grid[row][column].transfer(memento, upperLeft, load)) {
+          amActive = true;
+          // LOAD makes leaves stable, so wake neighbors from the changed child's position.
+          if (load) rememberThatCellAtEdgeChangedState(row, column);
+        }
 
         Direction d = grid[row][column].isDisruptiveTo();
 
         if (!d.equals(Direction.NONE)) activeEdges.add(d);
-
-        upperLeft.translate(subcellWidth, 0);
       }
-      upperLeft.translate(-myWidth, subcellWidth);
     }
     return amActive;
   }
 
   public NeighborhoodState createMemento() {
     NeighborhoodState m = new NeighborhoodState();
-    transfer(m, new Point(0, 0), Cell.STORE);
+    transfer(m, new CellPosition(0, 0), Cell.STORE);
     return m;
-  }
-
-  public boolean isCancer() {
-    return false; // Neighborhood 자체는 개별 세포가 아니므로 암세포가 아님
-  }
-
-  public void setCancer() {
-    // 암세포 전환은 개별 Resident에만 적용
-  }
-
-  public void cureCancer() {
-    // 복합 셀 자체는 치료 대상이 아님
   }
 
   /** 중첩된 Neighborhood를 실제 보드 좌표에 맞춰 펼친다. */

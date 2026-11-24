@@ -21,7 +21,7 @@ class GameControllerLoadTest {
   private final GameController controller = controller(new LegacyLifeCodec());
 
   private GameController controller(PatternCodec codec) {
-    var result = new GameController(board, root, clock, null, new BoardFileStore(codec));
+    var result = new GameController(board, clock, null, new BoardFileStore(codec));
     result.addGameListener(changes::add);
     return result;
   }
@@ -263,8 +263,9 @@ class GameControllerLoadTest {
     return Set.of(new CellPosition(6, 8), new CellPosition(7, 8), new CellPosition(8, 8));
   }
 
-  private Cell cell(int row, int column) {
-    return ((Neighborhood) root.childAt(row / 8, column / 8)).childAt(row % 8, column % 8);
+  private Resident cell(int row, int column) {
+    Neighborhood block = (Neighborhood) root.childAt(row / 8, column / 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   private Path patternFile(PatternData data) throws IOException {

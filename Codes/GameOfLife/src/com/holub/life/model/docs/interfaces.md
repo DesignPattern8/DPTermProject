@@ -6,16 +6,58 @@
 ```java
 void Cell.toggle(int row, int column)
 NeighborhoodState Cell.createMemento()
-boolean Cell.transfer(Cell.Memento state, Point upperLeftCorner, boolean load)
+boolean Cell.transfer(Cell.Memento state, CellPosition upperLeftCorner, boolean load)
 int Neighborhood.gridSize()
 Cell Neighborhood.childAt(int row, int column)
 boolean Neighborhood.isActive()
 boolean Neighborhood.beginRedraw(boolean drawAll) throws InterruptedException
 ```
 
-좌표 순서는 행·열이다. toggle은 기존 클릭처럼 amAlive와 상위 블록 활성 상태를 바꾼다. 경계 밖 좌표를 보정하지 않는다. Point는 x=열/y=행을 유지한다. Memento는 기존 가변 컬렉션이며 중복·순서를 보존한다. createMemento는 내부에서 transfer(STORE)를 호출한다. transfer의 활성 정보 부수효과도 유지한다. Resident와 DUMMY의 createMemento는 UnsupportedOperationException이다.
+좌표 순서는 행·열이다. toggle은 기존 클릭처럼 amAlive와 상위 블록 활성 상태를 바꾼다. 경계 밖 좌표를 보정하지 않는다. Memento 좌표는 불변 `CellPosition(row, column)`이다. Memento 컬렉션은 기존처럼 가변이며 중복·순서를 보존한다. createMemento는 내부에서 transfer(STORE)를 호출한다. transfer의 활성 정보 부수효과도 유지한다. Resident와 DUMMY의 createMemento는 UnsupportedOperationException이다.
 
-beginRedraw는 기존 마지막 갱신 플래그를 소비하고 ConditionVariable 읽기 조건을 확인한다. 읽기 접근은 기존 동시성 계약을 유지하며 새 스레드 안전성을 보장하지 않는다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
+- 변경: 2026-11-17, [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) — `transfer(LOAD)`는 활성화된 자식의 격자 위치를 기준으로 각 중첩 블록의 경계를 표시한다. 복원 직후 첫 세대에도 인접 블록의 탄생을 계산한다. 이미 활성인 자식도 보수적으로 포함할 수 있다. 공개 시그니처·좌표·파일 형식과 기존 반환 정책은 유지하며, STORE의 기존 활성 정보 부수효과도 유지한다. [설계·검증 기록](../../../../../../../../docs/GTY.md#006-legacy-load-경계-활성화-81)
+
+- 변경: 2026-11-17, [#74](https://github.com/DesignPattern8/DPTermProject/issues/74) — 공개 생성자와 `create()`로 만든 루트는 독립된 전이 상태를 가지며, 같은 루트 아래 모든 중첩 블록은 읽기 허가·재귀 깊이를 공유한다. 같은 프로토타입으로 만든 보드끼리도 상태를 공유하지 않는다. `transition()` 중 전체 트리의 `beginRedraw(true)`는 false이며, 정상 종료·예외·Error로 빠져나오면 가장 바깥 호출이 읽기를 다시 허용한다. 예외는 그대로 전파하고 셀 상태 rollback은 제공하지 않는다. [설계·검증 기록](../../../../../../../../docs/GTY.md#007-보드별-전이-읽기-허가-분리-74)
+
+- 변경: 2026-11-17, [#71](https://github.com/DesignPattern8/DPTermProject/issues/71) — `Cell.transfer`·`Cell.Memento`와 `NeighborhoodState`의 좌표를 `Point`에서 기존 `CellPosition`으로 바꿨다. 기존 Point 호출자는 `Point(x, y)`를 `CellPosition(y, x)`로 옮겨야 한다. 모델과 UI 제외 2인용에는 AWT 의존을 남기지 않는다. [설계·검증·협업 경계](../../../../../../../../docs/GTY.md#008-모델-좌표-계약의-point-의존-제거-71)
+
+```java
+interface Cell.Memento {
+  void markAsAlive(CellPosition location);
+  boolean isAlive(CellPosition location);
+  void markAsCancer(CellPosition location);
+  boolean isCancer(CellPosition location);
+}
+Collection<CellPosition> NeighborhoodState.liveCells()
+Set<CellPosition> NeighborhoodState.cancerCells()
+void NeighborhoodState.replaceCells(Collection<CellPosition> cells)
+void NeighborhoodState.replaceCells(Collection<CellPosition> cells, Set<CellPosition> cancer)
+```
+
+`transfer`의 원점은 해당 블록이 시작하는 모델 행·열이며, 중첩 자식은 자기 위치를 원점에 더해 전달한다. 음수·범위 밖 좌표를 값 생성 시 거부하거나 보정하지 않는다. LOAD는 대상 트리의 좌표만 조회하므로 영역 밖 파일 좌표는 적용하지 않는다. STORE는 기존 재귀 블록 순회 순서이며 전체 행 정렬로 바꾸지 않는다.
+
+`NeighborhoodState`의 생존 컬렉션은 삽입 순서·중복을 유지하고 암 좌표 기록은 생존 목록에도 추가한다. getter와 replaceCells는 같은 가변 컬렉션 참조를 주고받는다. 한 인자 replaceCells는 암 집합을 새 빈 집합으로 만든다. 좌표 값은 불변이라 공유하며 markAsAlive/markAsCancer의 null은 기존처럼 NPE이고 기록하지 않는다. 원시 컬렉션의 잘못된 원소·null을 외부 입력처럼 검증하는 새 정책은 추가하지 않는다. 진단용 toString은 좌표를 CellPosition의 row/column 표기로 표시한다.
+
+파일 형식은 바꾸지 않는다. C의 LegacyLifeCodec만 파일의 `Point(x=column, y=row)`와 모델 좌표를 변환하며 기존 암세포 직렬화 envelope·UID·입력 필터를 유지한다. B의 `GameController`는 [#88](https://github.com/DesignPattern8/DPTermProject/issues/88)의 `Board.snapshot()`·`Board.restore()`로 저장·복원한다. 독립 `PersistenceMapper`는 Memento를 직접 다루는 호출부에서 새 좌표를 사용한다.
+
+beginRedraw는 기존 마지막 갱신 플래그를 소비하고 해당 보드의 ConditionVariable 읽기 조건을 확인한다. `beginRedraw()` 이후 전체 그리기 구간을 잠그지는 않는다. 같은 보드의 계산·수정·캡처는 호출자가 기존처럼 직렬화한다. UI는 childAt으로 받은 셀을 읽기·좌표 변환에만 사용한다.
+
+## 암세포 셀 계약 (#70)
+
+- 제공 A 모델 / 사용 스냅샷 복원·수집, 암세포 모드의 `Resident`, D 화면.
+- 2026-11-23, [#70](https://github.com/DesignPattern8/DPTermProject/issues/70) · [설계·검증 기록](../../../../../../../../docs/GTY.md#009-암세포-셀-계약-분리-70).
+
+```java
+public interface CancerCell extends Cell {
+  boolean isCancer();
+  void setCancer();
+  void cureCancer();
+}
+```
+
+`Resident`가 구현한다. `isCancer()`는 암 표시를 조회하므로 살아 있는 암세포만 세는 호출부는 `isAlive()`도 확인한다. `setCancer()`는 살아 있는 암세포로 바꾸고 `cureCancer()`는 암세포를 죽인다. 셀 변경은 기존 보드 동기화와 활성 블록 규칙을 따른다.
+
+`Cell`로 조회한 값은 `instanceof CancerCell`로 지원 여부를 확인한 뒤 호출한다. `Neighborhood`, `Cell.DUMMY`, `TwoPlayerResident`는 이 계약을 구현하지 않는다. `Cell.Memento`의 좌표 기반 암 기록·조회는 파일 복원 경로에서 사용한다.
 
 ## 클래식 보드 계약
 
@@ -26,8 +68,8 @@ beginRedraw는 기존 마지막 갱신 플래그를 소비하고 ConditionVariab
 
 | 사용처 | 현재 호출과 연결 기준 |
 | --- | --- |
-| B [GameController](../../application/GameController.java) | `Board.toggle`·`clear`·`step()`을 잠금 안에서 호출한다. 캡처·복원도 같은 잠금 안에서 직렬화해야 한다. |
-| C [LegacyLifeCodec](../../persistence/LegacyLifeCodec.java) | 가변 `NeighborhoodState`와 기존 `.life` 파일을 주고받는다. 스냅샷 연결 시 파일 경계에서 좌표를 변환한다. |
+| B [GameController](../../application/GameController.java) | `Board.toggle`·`clear`·`step()`·`snapshot()`·`restore()`를 잠금 안에서 호출한다. |
+| C [LegacyLifeCodec](../../persistence/LegacyLifeCodec.java) | 불변 `PatternData(CellPosition)`와 기존 `.life` 파일을 주고받는다. 가변 `NeighborhoodState` 연결은 B의 PersistenceMapper가 컬렉션을 복사한다. Point 변환은 코덱의 파일 경계에 둔다. |
 | D [GridCoordinateMapper](../../ui/GridCoordinateMapper.java)·[BoardRenderer](../../ui/BoardRenderer.java) | 클릭 좌표를 모델에 넘기고 `Neighborhood`로부터 셀과 활성 블록 상태를 읽는다. `liveCells()`는 생존, `cancerCells()`는 암 여부 조회에 사용할 수 있다. |
 
 ### 시그니처

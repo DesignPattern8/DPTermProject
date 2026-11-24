@@ -1,0 +1,37 @@
+@startuml 007-before
+title Load / Store before #88 (file-only Cell memento path)
+participant "D / caller" as D
+participant GameController as G
+participant BoardFileStore as F
+participant PersistenceMapper as M
+participant Clock as T
+participant "Cell fileCells" as C
+participant GameListener as L
+
+== Load ==
+D -> G : load(file)
+group controller lock
+  G -> F : read(path)
+  F --> G : PatternData or IOException
+  G -> M : restore(data)
+  M --> G : NeighborhoodState (java.awt.Point)
+  G -> T : stop()
+  G -> C : clear()
+  G -> C : transfer(loaded, new Point(0, 0), LOAD)
+end
+G -> L : EDITED once, outside lock
+
+== Store ==
+D -> G : store(file)
+G -> F : write(path, capture)
+F -> F : check target, open staging file
+F -> G : capture.get()
+G -> T : stop()
+group controller lock
+  G -> C : createMemento()
+  G -> M : capture(memento)
+end
+G --> F : PatternData (traversal order)
+F -> F : encode, atomic replace
+note over G : constructor GameController(Board, Cell fileCells, Clock, ...)\nboard and fileCells must be the same board (comment only)
+@enduml

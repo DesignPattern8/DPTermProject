@@ -1,6 +1,5 @@
 package com.holub.life.twoplayer.ui;
 
-import com.holub.asynch.ConditionVariable;
 import com.holub.life.application.Clock;
 import com.holub.life.application.Speed;
 import com.holub.life.application.UtilTimerTickSource;
@@ -9,13 +8,16 @@ import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
 import com.holub.life.twoplayer.NeighborhoodTwoPlayerBoard;
 import com.holub.life.twoplayer.Player;
-import java.lang.reflect.Field;
 import java.util.Random;
 import java.util.Timer;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
- * #74 확인 (docs/007-two-player-ui.md "#74 확인"). 클래식 보드와 2인용 보드가 한 프로세스에 있을 때 {@code Neighborhood}의
- * {@code static} 잠금이 어떻게 되는지 잰다. {@code @Test}가 없어 {@code ./gradlew test}에서는 돌지 않는다.
+ * #74 보조 스트레스 확인 (docs/007-two-player-ui.md "#74 확인"). 클래식 보드와 2인용 보드를 한 프로세스에서
+ * 진행한 뒤 공개 {@code beginRedraw(true)}의 건너뜀 횟수를 잰다. 결정적인 본 검증은 {@code
+ * NeighborhoodReadGateTest}이며, 이 main의 결과만으로 동시성 안전성을 증명하지 않는다. {@code @Test}가 없어
+ * {@code ./gradlew test}에서는 돌지 않는다.
  *
  * <pre>
  * ./gradlew testClasses
@@ -23,16 +25,11 @@ import java.util.Timer;
  * </pre>
  */
 public final class StaticLockCheck {
-  private static Field nesting;
-  private static Field permitted;
+  private static final int CLOCK_TICKS = 100;
 
   private StaticLockCheck() {}
 
   public static void main(String[] arguments) throws Exception {
-    nesting = Neighborhood.class.getDeclaredField("nestingLevel");
-    nesting.setAccessible(true);
-    permitted = Neighborhood.class.getDeclaredField("readingPermitted");
-    permitted.setAccessible(true);
     System.out.println(
         "java "
             + System.getProperty("java.version")
@@ -51,38 +48,60 @@ public final class StaticLockCheck {
       Neighborhood c = classic();
       NeighborhoodTwoPlayerBoard t = twoPlayer();
       long end = System.nanoTime() + 1_000_000_000L;
-      Thread a = new Thread(() -> {
-        while (System.nanoTime() < end) step(c);
-      });
-      Thread b = new Thread(() -> {
-        while (System.nanoTime() < end) t.advanceGeneration();
-      });
+      Thread a =
+          new Thread(
+              () -> {
+                while (System.nanoTime() < end) step(c);
+              });
+      Thread b =
+          new Thread(
+              () -> {
+                while (System.nanoTime() < end) t.advanceGeneration();
+              });
       a.start();
       b.start();
       a.join();
       b.join();
       report("S2 concurrent trial " + trial, c, 10_000);
-      reset();
     }
 
-    // S3: 모드마다 시계 하나씩, 둘 다 Fast(30 ms)
+    // S3: 모드마다 Fast(30 ms) 시계 하나씩. 경과 시간 대신 각 100tick 완료를 종료 기준으로 삼는다.
     Neighborhood c = classic();
     NeighborhoodTwoPlayerBoard t = twoPlayer();
-    Clock classicClock = new Clock(new UtilTimerTickSource(new Timer(true)));
-    Clock twoPlayerClock = new Clock(new UtilTimerTickSource(new Timer(true)));
-    classicClock.addClockListener(() -> step(c));
-    twoPlayerClock.addClockListener(t::advanceGeneration);
-    classicClock.start(Speed.FAST);
-    twoPlayerClock.start(Speed.FAST);
-    int seconds = 0;
-    while (seconds < 30 && nesting.getInt(null) == -1) {
-      Thread.sleep(1000);
-      seconds++;
+    Timer classicTimer = new Timer(true);
+    Timer twoPlayerTimer = new Timer(true);
+    Clock classicClock = new Clock(new UtilTimerTickSource(classicTimer));
+    Clock twoPlayerClock = new Clock(new UtilTimerTickSource(twoPlayerTimer));
+    CountDownLatch finished = new CountDownLatch(2);
+    int[] completedTicks = new int[2];
+    // 각 Timer는 자기 슬롯만 변경한다. 마지막 전이가 끝나면 후속 콜백은 모델을 건드리지 않는다.
+    classicClock.addClockListener(
+        () -> {
+          if (completedTicks[0] >= CLOCK_TICKS) return;
+          step(c);
+          if (++completedTicks[0] == CLOCK_TICKS) finished.countDown();
+        });
+    twoPlayerClock.addClockListener(
+        () -> {
+          if (completedTicks[1] >= CLOCK_TICKS) return;
+          t.advanceGeneration();
+          if (++completedTicks[1] == CLOCK_TICKS) finished.countDown();
+        });
+    boolean completed;
+    try {
+      classicClock.start(Speed.FAST);
+      twoPlayerClock.start(Speed.FAST);
+      completed = finished.await(5, TimeUnit.SECONDS);
+    } finally {
+      classicClock.stop();
+      twoPlayerClock.stop();
+      classicTimer.cancel();
+      twoPlayerTimer.cancel();
     }
-    classicClock.stop();
-    twoPlayerClock.stop();
-    Thread.sleep(200);
-    report("S3 two clocks at Fast, stopped after " + seconds + " s", c, 10_000);
+    if (!completed) {
+      throw new IllegalStateException("두 시계가 5초 안에 각각 " + CLOCK_TICKS + "tick을 마치지 못했습니다");
+    }
+    report("S3 two clocks at Fast, completed " + CLOCK_TICKS + " ticks each", c, 10_000);
   }
 
   private static Neighborhood classic() {
@@ -111,20 +130,6 @@ public final class StaticLockCheck {
   private static void report(String label, Neighborhood classic, int redraws) throws Exception {
     int skipped = 0;
     for (int i = 0; i < redraws; i++) if (!classic.beginRedraw(true)) skipped++;
-    System.out.println(
-        label
-            + ": nestingLevel="
-            + nesting.getInt(null)
-            + " readingPermitted="
-            + ((ConditionVariable) permitted.get(null)).isTrue()
-            + " classic beginRedraw(true) false="
-            + skipped
-            + "/"
-            + redraws);
-  }
-
-  private static void reset() throws Exception {
-    nesting.setInt(null, -1);
-    ((ConditionVariable) permitted.get(null)).set(true);
+    System.out.println(label + ": classic beginRedraw(true) false=" + skipped + "/" + redraws);
   }
 }
