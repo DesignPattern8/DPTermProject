@@ -5,9 +5,9 @@ import static com.holub.life.application.CancerGameTest.cellAt;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.model.CompositeBoard;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
-import java.awt.Point;
 import java.util.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -43,8 +43,7 @@ class GameControllerCancerTest {
 
   private GameController cancerController() {
     GameController controller =
-        new GameController(
-            new CompositeBoard(board), board, clock, new CancerGame(board, NO_NEW_CANCER));
+        new GameController(new CompositeBoard(board), clock, new CancerGame(board, NO_NEW_CANCER));
     controller.addGameListener(changes::add);
     return controller;
   }
@@ -54,7 +53,7 @@ class GameControllerCancerTest {
   void classicControllerIgnoresTreatment() {
     // Given
     cellAt(board, 3, 3).setCancer();
-    GameController controller = new GameController(new CompositeBoard(board), board, clock);
+    GameController controller = new GameController(new CompositeBoard(board), clock);
     controller.addGameListener(changes::add);
 
     // When
@@ -120,7 +119,7 @@ class GameControllerCancerTest {
     // Then
     assertFalse(changed);
     assertEquals(
-        Set.of(new Point(29, 30), new Point(30, 30), new Point(31, 30)),
+        Set.of(new CellPosition(30, 29), new CellPosition(30, 30), new CellPosition(30, 31)),
         new HashSet<>(board.createMemento().liveCells()));
     assertTrue(changes.isEmpty());
   }

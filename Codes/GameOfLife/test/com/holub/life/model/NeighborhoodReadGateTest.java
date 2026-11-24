@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -329,7 +328,7 @@ class NeighborhoodReadGateTest {
     public void clear() {}
 
     @Override
-    public boolean transfer(Memento memento, Point upperLeftCorner, boolean doLoad) {
+    public boolean transfer(Memento memento, CellPosition upperLeftCorner, boolean doLoad) {
       return false;
     }
 

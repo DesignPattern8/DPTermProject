@@ -21,7 +21,7 @@ class GameControllerLoadTest {
   private final GameController controller = controller(new LegacyLifeCodec());
 
   private GameController controller(PatternCodec codec) {
-    var result = new GameController(board, root, clock, null, new BoardFileStore(codec));
+    var result = new GameController(board, clock, null, new BoardFileStore(codec));
     result.addGameListener(changes::add);
     return result;
   }

@@ -1,50 +1,61 @@
 package com.holub.life.application;
 
 import com.holub.life.model.Board;
-import com.holub.life.model.Cell;
+import com.holub.life.model.BoardSnapshot;
 import com.holub.life.model.CellPosition;
-import com.holub.life.model.NeighborhoodState;
 import com.holub.life.persistence.BoardFileStore;
 import com.holub.life.persistence.LegacyLifeCodec;
-import java.awt.Point;
+import com.holub.life.persistence.PatternPreset;
+import com.holub.life.persistence.PresetCatalog;
 import java.io.*;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Entry point for the UI's board requests (Facade). Runs the existing Universe model operations,
  * one at a time, and tells {@link GameListener}s when the board changed.
  *
- * <p>Editing and generations go through {@link Board}. Load and Store still use the legacy {@link
- * Cell} memento path through immutable file data; {@code fileCells} must be the same board that
- * {@code board} wraps.
+ * <p>Editing, generations, Load and Store all go through {@link Board}. Files are read and written
+ * as {@link BoardSnapshot}s by {@link BoardFileStore}, which owns coordinate filtering and file
+ * order.
  */
 public final class GameController {
+  /** Child-block widths of the default {@code Neighborhood(8, Neighborhood(8, Resident))} board. */
+  private static final List<Integer> DEFAULT_BLOCK_WIDTHS = List.of(8, 1);
+
   private final Board board;
-  private final Cell fileCells;
   private final Clock clock;
   private final BoardFileStore files;
+  private final PresetCatalog presets;
   private final CancerGame cancerGame; // null: classic Life without cancer rules
   private final Object lock = new Object(); // Board calls must not overlap (model contract)
   private final List<GameListener> listeners = new CopyOnWriteArrayList<>();
 
-  public GameController(Board board, Cell fileCells, Clock clock) {
-    this(board, fileCells, clock, null);
+  public GameController(Board board, Clock clock) {
+    this(board, clock, null);
   }
 
   /**
    * Runs {@code cancerGame} after every generation. It must act on the board that {@code board}
-   * wraps.
+   * wraps. Files use the default 64x64 board's block layout.
    */
-  public GameController(Board board, Cell fileCells, Clock clock, CancerGame cancerGame) {
-    this(board, fileCells, clock, cancerGame, new BoardFileStore(new LegacyLifeCodec()));
+  public GameController(Board board, Clock clock, CancerGame cancerGame) {
+    this(board, clock, cancerGame, new BoardFileStore(new LegacyLifeCodec(), DEFAULT_BLOCK_WIDTHS));
+  }
+
+  /** {@code files} must be configured with the block layout of {@code board} for Store. */
+  public GameController(Board board, Clock clock, CancerGame cancerGame, BoardFileStore files) {
+    this(board, clock, cancerGame, files, new PresetCatalog());
   }
 
   public GameController(
-      Board board, Cell fileCells, Clock clock, CancerGame cancerGame, BoardFileStore files) {
-    this.files = java.util.Objects.requireNonNull(files, "files");
+      Board board, Clock clock, CancerGame cancerGame, BoardFileStore files, PresetCatalog presets) {
+    this.files = Objects.requireNonNull(files, "files");
+    this.presets = Objects.requireNonNull(presets, "presets");
     this.board = board;
-    this.fileCells = fileCells;
     this.clock = clock;
     this.cancerGame = cancerGame;
   }
@@ -114,6 +125,48 @@ public final class GameController {
     return treated;
   }
 
+  /** Presets the UI can offer, in catalog order. */
+  public List<PresetChoice> presets() {
+    return presets.list().stream()
+        .map(preset -> new PresetChoice(preset.id(), preset.displayName()))
+        .toList();
+  }
+
+  /**
+   * Place preset {@code id} with its top-left cell at {@code origin}, all at once between
+   * generations. Live cells (cancer included) under the preset are left as they are. The clock
+   * keeps running.
+   *
+   * @return {@link PresetResult#APPLIED} if placed; otherwise nothing changed and no listener is
+   *     told.
+   */
+  public PresetResult applyPreset(String id, CellPosition origin) {
+    Objects.requireNonNull(origin, "origin");
+    Optional<PatternPreset> preset = presets.find(id);
+    if (preset.isEmpty()) return PresetResult.UNKNOWN_ID;
+    List<CellPosition> pattern = preset.get().data().cells();
+
+    synchronized (lock) {
+      int rows = board.rows();
+      int columns = board.columns();
+      for (CellPosition cell : pattern) {
+        int row = origin.row() + cell.row();
+        int column = origin.column() + cell.column();
+        if (row < 0 || row >= rows || column < 0 || column >= columns) {
+          return PresetResult.OUT_OF_BOUNDS;
+        }
+      }
+      Set<CellPosition> live = board.snapshot().liveCells();
+      for (CellPosition cell : pattern) {
+        CellPosition target =
+            new CellPosition(origin.row() + cell.row(), origin.column() + cell.column());
+        if (!live.contains(target)) board.toggle(target);
+      }
+    }
+    notifyListeners(GameListener.Change.EDITED);
+    return PresetResult.APPLIED;
+  }
+
   /** The cancer game's win/lose message, or null if the game is running or has no cancer rules. */
   public String gameResultMessage() {
     return cancerGame == null ? null : cancerGame.resultMessage();
@@ -122,21 +175,20 @@ public final class GameController {
   /** Decode and close the input before changing the board or clock; only success emits EDITED. */
   public void load(File file) throws IOException {
     synchronized (lock) {
-      NeighborhoodState loaded = PersistenceMapper.restore(files.read(file.toPath()));
+      BoardSnapshot loaded = files.read(file.toPath(), board.rows(), board.columns());
       clock.stop();
-      fileCells.clear();
-      fileCells.transfer(loaded, new Point(0, 0), Cell.LOAD);
+      board.restore(loaded);
     }
     notifyListeners(GameListener.Change.EDITED);
   }
 
   public void store(File file) throws IOException {
-    files.write(
+    files.writeSnapshot(
         file.toPath(),
         () -> {
           clock.stop();
           synchronized (lock) {
-            return PersistenceMapper.capture(fileCells.createMemento());
+            return board.snapshot();
           }
         });
   }

@@ -22,8 +22,7 @@ class GameControllerTest {
     Neighborhood root = new Neighborhood(8, new Neighborhood(8, new Resident()));
     board = root;
     controller =
-        new GameController(
-            new CompositeBoard(root), root, new Clock(new UtilTimerTickSource(timer)));
+        new GameController(new CompositeBoard(root), new Clock(new UtilTimerTickSource(timer)));
   }
 
   @AfterEach
@@ -38,7 +37,7 @@ class GameControllerTest {
     board.toggle(10, 11);
     controller.tick();
     assertEquals(
-        Set.of(new Point(10, 9), new Point(10, 10), new Point(10, 11)),
+        Set.of(new CellPosition(9, 10), new CellPosition(10, 10), new CellPosition(11, 10)),
         new HashSet<>(board.createMemento().liveCells()));
   }
 
@@ -48,7 +47,7 @@ class GameControllerTest {
     assertThrows(
         FileNotFoundException.class,
         () -> controller.load(directory.resolve("missing.life").toFile()));
-    assertTrue(board.createMemento().isAlive(new Point(5, 5)));
+    assertTrue(board.createMemento().isAlive(new CellPosition(5, 5)));
   }
 
   @Test
@@ -57,7 +56,7 @@ class GameControllerTest {
     Path file = directory.resolve("bad.life");
     Files.write(file, new byte[] {1, 2, 3, 4});
     assertThrows(IOException.class, () -> controller.load(file.toFile()));
-    assertEquals(List.of(new Point(5, 5)), board.createMemento().liveCells());
+    assertEquals(List.of(new CellPosition(5, 5)), board.createMemento().liveCells());
   }
 
   @Test
@@ -70,14 +69,14 @@ class GameControllerTest {
     }
     controller.clear();
     controller.load(file.toFile());
-    assertEquals(List.of(new Point(6, 5)), board.createMemento().liveCells());
+    assertEquals(List.of(new CellPosition(5, 6)), board.createMemento().liveCells());
   }
 
   @Test
   void invalidOutputDoesNotClearBoard() {
     board.toggle(5, 5);
     assertThrows(IOException.class, () -> controller.store(directory.toFile()));
-    assertTrue(board.createMemento().isAlive(new Point(5, 5)));
+    assertTrue(board.createMemento().isAlive(new CellPosition(5, 5)));
   }
 
   @Test
@@ -91,7 +90,7 @@ class GameControllerTest {
 
     controller.load(file.toFile());
 
-    assertEquals(List.of(new Point(6, 5)), board.createMemento().liveCells());
+    assertEquals(List.of(new CellPosition(5, 6)), board.createMemento().liveCells());
     assertFileReleased(file, before);
   }
 

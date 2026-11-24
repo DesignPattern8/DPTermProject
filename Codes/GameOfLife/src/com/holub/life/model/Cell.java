@@ -1,7 +1,5 @@
 package com.holub.life.model;
 
-import java.awt.Point;
-
 /***
  * This interface is the basic unit that comprises a life board.
  * It's implemented both by {@link Resident} (which represents
@@ -73,24 +71,25 @@ public interface Cell {
    */
   interface Memento {
     /** On creation of the memento, indicate that a cell is alive. */
-    void markAsAlive(Point location);
+    void markAsAlive(CellPosition location);
 
     /** On restoration of a cell from a memento, indicate that a cell is alive. */
-    boolean isAlive(Point location);
+    boolean isAlive(CellPosition location);
 
     /** On creation of the memento, indicate that a cell is a live cancer cell. */
-    void markAsCancer(Point location);
+    void markAsCancer(CellPosition location);
 
     /** On restoration of a cell from a memento, indicate that a cell is a cancer cell. */
-    boolean isCancer(Point location);
+    boolean isCancer(CellPosition location);
   }
 
   /**
    * This method is used internally to save or restore the state of a cell from a memento.
+   * Coordinates use immutable (row, column) values, including the containing block's offset.
    *
    * @return true if this cell was modified by the transfer.
    */
-  boolean transfer(Memento memento, Point upperLeftCorner, boolean doLoad);
+  boolean transfer(Memento memento, CellPosition upperLeftCorner, boolean doLoad);
 
   /** Possible value for the "load" argument to transfer() */
   public static boolean STORE = false;
@@ -146,7 +145,7 @@ public interface Cell {
 
         public void toggle(int row, int column) {}
 
-        public boolean transfer(Memento m, Point ul, boolean load) {
+        public boolean transfer(Memento m, CellPosition ul, boolean load) {
           return false;
         }
 

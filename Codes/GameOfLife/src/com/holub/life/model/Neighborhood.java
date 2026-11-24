@@ -1,7 +1,6 @@
 package com.holub.life.model;
 
 import com.holub.asynch.ConditionVariable;
-import java.awt.Point;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -330,13 +329,14 @@ public final class Neighborhood implements Cell {
   }
 
   /** Cause subcells to add an annotation to the indicated memento if they happen to be alive. */
-  public boolean transfer(Memento memento, Point corner, boolean load) {
+  public boolean transfer(Memento memento, CellPosition corner, boolean load) {
     int subcellWidth = grid[0][0].widthInCells();
-    int myWidth = widthInCells();
-    Point upperLeft = new Point(corner);
 
     for (int row = 0; row < gridSize; ++row) {
       for (int column = 0; column < gridSize; ++column) {
+        CellPosition upperLeft =
+            new CellPosition(
+                corner.row() + row * subcellWidth, corner.column() + column * subcellWidth);
         if (grid[row][column].transfer(memento, upperLeft, load)) {
           amActive = true;
           // LOAD makes leaves stable, so wake neighbors from the changed child's position.
@@ -346,17 +346,14 @@ public final class Neighborhood implements Cell {
         Direction d = grid[row][column].isDisruptiveTo();
 
         if (!d.equals(Direction.NONE)) activeEdges.add(d);
-
-        upperLeft.translate(subcellWidth, 0);
       }
-      upperLeft.translate(-myWidth, subcellWidth);
     }
     return amActive;
   }
 
   public NeighborhoodState createMemento() {
     NeighborhoodState m = new NeighborhoodState();
-    transfer(m, new Point(0, 0), Cell.STORE);
+    transfer(m, new CellPosition(0, 0), Cell.STORE);
     return m;
   }
 

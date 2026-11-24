@@ -106,3 +106,19 @@ Block·Blinker·Glider, 보드 모서리·하위 블록 경계, 고정 시드의
 | GATE-06 | 예외 | 예외·Error 후 허가와 깊이 복구 | 중첩 leaf의 전이에서 RuntimeException 또는 Error를 한 번 발생 | 원래 오류 전파, 전체 트리 허가 복구, 다음 전이도 정상적으로 닫히고 열림 | `NeighborhoodReadGateTest#transitionFailureReleasesWholeBoard` |
 | GATE-07 | 정상·경계 | 기존 게임·렌더링·복원 동작 유지 | 기존 클래식·암세포·2인용·안정 블록 마지막 그리기·legacy Load 경계 테스트 | 기존 반환값·규칙·부분 그리기·복원 결과 유지 | 기존 `RenderingExtractionTest`, `ClassicGenerationTest`, `CancerModelTest`, `TwoPlayerRuleTest`, `LegacyLoadBoundaryTest` |
 | GATE-08 | 경계 | 기존 수동 재현 도구의 현재 구현 호환 | `StaticLockCheck`의 순차·두 보드·두 Clock 실행 후 public beginRedraw(true) 관찰 | 종료 후 건너뜀 0, private static 필드 반사 없이 실행 | `com.holub.life.twoplayer.ui.StaticLockCheck#main` (JUnit 외 수동 확인) |
+
+## 모델 Memento 좌표 분리 (#71)
+
+구현 전에 현재 `Point(x=열, y=행)` API로 특성을 고정한다. 출력은 기존 `PersistenceMapper.capture()`가 반환하는 `CellPosition(row, column)` 값으로 비교한다. 구현 후에는 입력 좌표 생성 도우미와 입력 컬렉션 타입만 `CellPosition`으로 바꾸고, 입력 좌표 값·순서·기대값·예외·상태 검증은 유지한다. `TwoPlayerResident`의 지원하지 않는 연산도 직접 검증하도록 테스트 패키지는 `com.holub.life.twoplayer`로 둔다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| COORD-01 | 정상·경계 | 재귀 블록 순서와 비영원점 행·열 보존 | 2×2 하위 격자의 2중·3중 보드, 비대칭 일반·암 배치, 원점 `(11, 23)` | 전체 행 정렬이 아닌 기존 재귀 블록 순서, 원점과 셀 오프셋을 더한 행·열, 암 부분집합을 보존하고 전달한 원점을 바꾸지 않는다. | `MementoCoordinateTest#storeKeepsNestedBlockOrderAndOffset` |
+| COORD-02 | 정상·경계 | 비영원점 LOAD의 교체·종류 변경·범위 해석 | 3중 보드의 기존 일반·암 배치, 원점 `(11, 23)` 기준 새 일반·암 위치와 영역 밖 네 방향 좌표 | 원점 안 새 배치로 교체하고 일반↔암 변경·이전 셀 제거를 반영한다. 영역 밖 좌표는 무시하며 다음 상태도 현재 상태와 같고 Memento는 바뀌지 않는다. | `MementoCoordinateTest#loadUsesOffsetAndReplacesLiveAndCancerState` |
+| COORD-03 | 정상·경계 | State의 순서·중복과 암 표시 계약 | 일반·암 좌표를 같은 순서로 각각 두 번 기록 | 생존 목록은 입력 순서와 중복을 유지하고 암 집합은 중복 없이 생존 목록에 포함된다. 조회는 각 좌표의 종류에 맞는다. | `MementoCoordinateTest#stateKeepsInsertionOrderDuplicatesAndCancerSubset` |
+| COORD-04 | 정상·경계 | 가변 컬렉션 별칭과 단일 overload의 암 초기화 | 양쪽 컬렉션으로 `replaceCells` 후 양방향 변경, 이후 생존 컬렉션만 교체 | getter는 전달한 컬렉션과 같은 참조다. 양쪽 변경이 서로 보이며 단일 overload는 생존 순서·중복을 보존하고 이전 암 집합을 새 빈 집합으로 교체한다. | `MementoCoordinateTest#replacementKeepsMutableAliasesAndResetsCancer` |
+| COORD-05 | 정상·예외 | 지원하지 않는 저장 연산의 기존 처리 | DUMMY와 2인용 셀에 STORE·LOAD, 단위 셀에 `createMemento()` | transfer는 false이고 셀·Memento를 바꾸지 않는다. Resident·DUMMY·2인용 단위 셀의 Memento 생성은 `UnsupportedOperationException`이다. | `MementoCoordinateTest#unsupportedCellsKeepTransferNoOpAndMementoFailure` |
+| COORD-06 | 예외 | null 기록의 기존 실패 보존 | 새 State에 `markAsAlive(null)`·`markAsCancer(null)` | 두 호출 모두 `NullPointerException`이고 생존·암 컬렉션은 비어 있다. | `MementoCoordinateTest#nullMarksFailWithoutAddingCells` |
+| COORD-07 | 정상·경계 | 모델과 파일 왕복의 음수·중복·암 좌표 보존 | 음수 행의 일반 좌표·음수 열의 암 좌표를 중복 기록하고 Mapper→Codec→Mapper 왕복 | 행·열, 생존 입력 순서와 중복, 암 좌표가 그대로다. 모델 컬렉션과 파일 타입 변환이 음수 좌표를 보정하거나 제거하지 않는다. | `MementoCoordinateTest#modelFileRoundTripKeepsNegativeDuplicateAndCancerCoordinates` |
+
+기존 `LegacyLoadBoundaryTest`의 경계 출생·빈 LOAD 비활성 케이스, `CancerSnapshotTest`, `ClassicMementoTest`, `CancerCodecTest`와 `LegacyLifeCodecTest`는 기존 입력과 기대 동작을 유지한다. 신규 테스트는 읽은 코드의 현재 특성만 검증하며, #71이 끝난 뒤 테스트 수나 검증 성공 여부는 실제 실행 결과로 기록한다.

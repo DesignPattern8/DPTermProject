@@ -26,10 +26,9 @@ public final class Life {
     GameController controller =
         new GameController(
             new CompositeBoard(board),
-            board,
             clock,
             cancerGame,
-            new BoardFileStore(new LegacyLifeCodec()));
+            new BoardFileStore(new LegacyLifeCodec(), List.of(8, 1)));
     new LifeFrame(board, controller, clock, List.of(new TwoPlayerMode()));
   }
 }
