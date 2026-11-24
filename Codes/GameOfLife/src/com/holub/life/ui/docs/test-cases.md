@@ -77,3 +77,13 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 
 - UI-R01(기존 메뉴 10개)은 그대로 둔다. 프리셋 항목은 `entries()`가 아니라 `presetEntries()`에 있다(결정 2).
 - 2인용 모드에서 `Preset` 메뉴가 꺼지는 것은 `MenuSite`(창 필요)를 거치므로 headless JUnit으로 보지 않는다. 대기 취소는 UI-R25와 같은 `cancel()` 경로다.
+
+## 호출처 없는 `GameMenu.install` 정리 (#102, 결정 [011](011-remove-gamemenu-install.md))
+
+구현 전에 정의한다. 동작 변경이 없는 삭제라 기존 테스트가 그대로 통과하는 것이 기준이다. 새 케이스는 잘못된 진입점이 다시 생기지 않게 막는 구조 검사 1개다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R30 | 경계 | 시계 tick 연결 경로가 `ModeSwitch` 하나뿐인지 확인 (`GameMenu`에 시계 리스너를 직접 다는 공개 진입점이 없음, 006 M2) | `GameMenu` 클래스의 공개 메서드 목록 | `install(BoardPanel, GameController, Clock)`이 없다(`NoSuchMethodException`) | `GameMenuTest#gameMenuHasNoDirectClockWiring` |
+
+- 그대로 통과해야 하는 기존 테스트: UI-R01(메뉴 10개), UI-R09(Go 항목), `GameMenuTest#openMenuSuppressesTick`(메뉴 열림 시 tick 무시, `onTick`), 2인용 TP-U-11(2인용 모드에서 클래식 보드 정지)·TP-U-16(메뉴 열림 시 2인용 tick 무시), `NativeUiSmoke`(EXT-N01).
