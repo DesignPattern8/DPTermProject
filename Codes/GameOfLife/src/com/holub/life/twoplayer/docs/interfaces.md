@@ -47,7 +47,10 @@ public interface TwoPlayerBoard {
 # NeighborhoodTwoPlayerBoard
 
 - 제공 도메인: 2인용 모드 / 사용 도메인: 2인용 게임 진행(`TwoPlayerGame`에 넣음), 2인용 UI(#7, 조회) / 담당자: Son2kwon
-- 변경 이력: 2026-11-15, 최초 작성 (#5, [006](006-two-player-cell.md) 후보 F)
+- 변경 이력:
+  - 2026-11-15, 최초 작성 (#5, [006](006-two-player-cell.md) 후보 F)
+  - 2026-11-23, 스레드 계약: `Neighborhood`의 읽기 허가·전이 깊이가 보드별로 바뀜 (#74, A 모델). 공개 시그니처 변경 없음
+  - 2026-11-24, `TwoPlayerResident`가 `Cell`의 암 메서드 3개를 더는 구현하지 않음 (#70), `transfer` 좌표가 `CellPosition` (#71). 공개 시그니처 변경 없음
 
 ## 시그니처
 
@@ -76,14 +79,15 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 final class TwoPlayerResident implements Cell {
   Player owner();                   // 지금 소유자. DEAD면 null
   void prepareOwner(Player owner);  // 다음 toggle이 DEAD 칸을 살릴 때 쓸 소유자
-  // Cell 메서드 14개
+  // Cell 메서드 11개 (#70 이후. 암 메서드는 CancerCell로 분리되어 구현하지 않는다)
 }
 ```
 
-- **"소유자 지정 → toggle" 규칙**: 칸을 살릴 때는 `prepareOwner(owner)`를 부른 뒤 반드시 루트 `Neighborhood.toggle(row, column)`으로 살린다. 셀의 상태만 바꾸면 그 블록이 활성으로 표시되지 않아 다음 세대에 계산되지 않는다(`model/Neighborhood.java:120-128`, `313-320`). `NeighborhoodTwoPlayerBoard.place`가 이 순서를 지킨다.
+- **"소유자 지정 → toggle" 규칙**: 칸을 살릴 때는 `prepareOwner(owner)`를 부른 뒤 반드시 루트 `Neighborhood.toggle(row, column)`으로 살린다. 셀의 상태만 바꾸면 그 블록이 활성으로 표시되지 않아 다음 세대에 계산되지 않는다(`model/Neighborhood.java:131-139` 활성 검사, `305-312` `toggle`이 `amActive`와 가장자리 표시를 켬). `NeighborhoodTwoPlayerBoard.place`가 이 순서를 지킨다.
 - `toggle`: 살아 있으면 `DEAD`로, `DEAD`면 정해 둔 소유자의 산 셀로 바꾸고, 정해 둔 소유자는 지운다. 정해 둔 소유자 없이 `DEAD` 칸을 toggle하면 `DEAD` 그대로다. 살아 있는 칸을 toggle하면 죽이므로, `place`는 살아 있는 칸을 먼저 거부한다.
 - 전이: rules.md 3장. 이웃은 같은 보드의 `TwoPlayerResident` 또는 `Cell.DUMMY`(`DEAD`)다.
-- 저장·암 메서드: #71에 따라 `transfer(Memento, CellPosition, boolean)`을 구현하며 AWT 좌표에 의존하지 않는다. `transfer`는 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`, `isCancer`는 false, `setCancer`·`cureCancer`는 아무것도 안 함(2인용 저장 미지원, rules.md 8장).
+- 저장 메서드: `transfer(Memento, CellPosition, boolean)`은 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`(2인용 저장 미지원, rules.md 8장). #71 이후 좌표가 `CellPosition`이라 `java.awt`에 의존하지 않는다. 테스트: `MementoCoordinateTest` COORD-05(A 모델 정의).
+- 암 메서드: 구현하지 않는다. #70에서 `isCancer`·`setCancer`·`cureCancer`가 `Cell`에서 `CancerCell`로 분리되었고 `TwoPlayerResident`는 `CancerCell`이 아니다. 테스트: `TwoPlayerRuleTest` CAN-M14(A 모델 정의).
 
 ---
 
@@ -189,7 +193,9 @@ public final class TwoPlayerSession {
 # TwoPlayerMode
 
 - 제공 도메인: 2인용 모드(`twoplayer.ui`) / 사용 도메인: 조립(`Life`), ui(`LifeFrame`·`ModeSwitch`, `GameMode`로만) / 담당자: Son2kwon
-- 변경 이력: 2026-11-16, 최초 작성 (#7)
+- 변경 이력:
+  - 2026-11-16, 최초 작성 (#7)
+  - 2026-11-25, Mode 메뉴가 Classic / Single Player / 2 Players로 바뀜 (#109, [ui 012](../../ui/docs/012-classic-mode-restore.md)). `TwoPlayerMode` 시그니처 변경 없음
 
 ## 시그니처
 
@@ -210,4 +216,5 @@ public final class TwoPlayerMode implements com.holub.life.ui.GameMode {
 
 - `GameMode` 계약을 따른다([ui interfaces.md](../../ui/docs/interfaces.md)). `tick()`은 시뮬레이션 단계에서만 1세대 진행하고(K에 들어감), 다른 단계에서는 아무것도 하지 않는다.
 - 모드를 바꿔도 게임 상태는 유지된다. 처음부터 하려면 화면의 "New Game" 버튼.
+- `supportsFileCommands()` = false이므로 2인용에서는 Grid의 Clear·Load·Store가 꺼진다. Preset 메뉴는 Single Player에서만 켜지므로 2인용에서도 꺼져 있다([ui 012](../../ui/docs/012-classic-mode-restore.md)). `GameMode`에 메서드를 더하지 않았다.
 - 화면: 클릭 = 현재 플레이어 임시 배치·이동, Enter 또는 "Confirm" = 확정, "Pass" = 패스(개입 단계만), "New Game". 격자 밖 클릭은 `OUT_OF_BOARD`로 거부되어 이유가 표시된다.

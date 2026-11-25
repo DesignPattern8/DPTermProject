@@ -2,7 +2,7 @@
 
 두 플레이어가 한 화면에서 번갈아 셀을 두고, 클래식 B3/S23 규칙으로 영역을 다투는 승패 모드다. 규칙은 [rules.md](rules.md).
 
-## 현재 상태 (2026-11-16)
+## 현재 상태 (2026-11-25, 최종)
 
 | 부분 | 이슈 | 상태 |
 | --- | --- | --- |
@@ -10,8 +10,22 @@
 | 셀 상태(DEAD/A/B)와 세대 전이 규칙, `TwoPlayerBoard` 실제 구현 | #5 | 구현 완료([006](006-two-player-cell.md) 후보 F, model·ui·application 무수정). `NeighborhoodTwoPlayerBoard`로 TP-R·TP-B·TP-I 37개 통과 |
 | UI 통합 (모드 선택·입력·상태 표시줄) | #7 | 구현 완료([007](007-two-player-ui.md) D: `GameMode` + `ModeSwitch`, model·application 무수정). TP-U 17개 통과 |
 | 문서·다이어그램 정리 | #8 | 완료. 유스케이스 다이어그램 추가, 클래스·시퀀스·상태 다이어그램을 현재 코드로 갱신, rules.md 9장(구현과 다른 부분) |
+| 다른 도메인 변경 반영 | #69~#74, #102, #109 | 완료. 006·007 끝에 "이후 변경" 절, 계약(interfaces.md)·테스트 문서·UI 다이어그램을 `origin/main` `2c22cab` 기준으로 갱신. 2인용 코드의 공개 시그니처 변경 없음 |
 
-브랜치: 이슈마다 `feature/base`에서 브랜치를 따서(`feature/5-two-player-cell`, `feature/7-two-player-ui`) `feature/base`로 PR을 보낸다. 예전 통합 브랜치 `feature/two-player-mode`는 2026-11-15에 지웠다.
+**다른 도메인 작업이 2인용에 준 영향** (#5에서 올린 이슈 (a)~(f)와 그 뒤 변경, 자세한 내용은 [006 "이후 변경"](006-two-player-cell.md#이후-변경-2026-11-25-확인)·[007 "이후 변경"](007-two-player-ui.md#이후-변경-2026-11-25-확인))
+
+| 이슈 | 결과 | 2인용 쪽 |
+| --- | --- | --- |
+| #69 렌더러가 `Resident`만 그림 | 닫힘, `BoardRenderer` 현행 유지 | `TwoPlayerRenderer` 그대로 |
+| #70 `Cell`의 암 메서드 | 코드 반영(PR #107), `CancerCell` 분리 | `TwoPlayerResident`에서 암 메서드 3개 삭제 |
+| #71 `java.awt.Point` 노출 | 닫힘(PR #106), `CellPosition` | `twoplayer`의 `java.awt` import 0 |
+| #72 2인용 진입점 | 닫힘(#7) | `TwoPlayerSession`·`TwoPlayerMode` |
+| #73 스냅숏이 생사만 저장 | 닫힘(PR #83) | 영향 없음(2인용은 `Board`를 쓰지 않음) |
+| #74 `static` 잠금 공유 | 닫힘(PR #90), 보드별 상태 | 클래식과 잠금을 공유하지 않음. `ModeSwitch` 직렬화는 앱 정책으로 유지 |
+| #102 `GameMenu.install` 삭제 | 머지(PR #103) | 시계 리스너는 `ModeSwitch` 하나 |
+| #109 Classic / Single Player / 2 Players | 머지(PR #110, [ui 012](../../ui/docs/012-classic-mode-restore.md)) | `TwoPlayerMode` 변경 없음. 2인용에서 Grid의 Clear·Load·Store와 Preset 메뉴는 꺼짐 |
+
+브랜치: 이슈마다 `feature/base`에서 브랜치를 따서(`feature/5-two-player-cell`, `feature/7-two-player-ui`) `feature/base`로 PR을 보냈고, `main`에는 PR #85(`feature/base` → `main`)로 들어갔다. 예전 통합 브랜치 `feature/two-player-mode`는 2026-11-15에 지웠다.
 
 ## 클래스
 
@@ -27,11 +41,11 @@
 | `SimulationPhase`, `GameOverPhase` | package-private | 세대 진행·판정, 종료 |
 | `GameJudge` | package-private | 판정 규칙 (셀 수 → 결과) |
 | `NeighborhoodTwoPlayerBoard` | public | `TwoPlayerBoard` 실제 구현. 64×64 `Neighborhood(8, Neighborhood(8, TwoPlayerResident))`. 칸 소유자 조회 `owner(row, column)` (#5, 006) |
-| `TwoPlayerResident` | package-private | 2인용 셀(`Cell` 구현). 상태는 소유자 `Player`(null = DEAD), rules.md 3장 전이 규칙 |
+| `TwoPlayerResident` | package-private | 2인용 셀(`Cell` 구현, `CancerCell`은 아님). 상태는 소유자 `Player`(null = DEAD), rules.md 3장 전이 규칙 |
 | `TwoPlayerSession` | public | UI 진입점의 모델 쪽(Facade). 보드·게임을 만들고 클릭을 현재 플레이어 입력으로 바꾼다. 상태 표시줄 문구, 그리기용 스냅숏, 리스너(Observer). `synchronized` (#7, 007) |
-| `ui.TwoPlayerMode` | public | 2인용 진입점. ui의 `GameMode` 구현으로 Mode 메뉴에 붙는다 (#7) |
+| `ui.TwoPlayerMode` | public | 2인용 진입점. ui의 `GameMode` 구현으로 Mode 메뉴(Classic / Single Player / 2 Players)에 붙는다 (#7) |
 | `ui.TwoPlayerPanel` | package-private | 보드 + 상태 표시줄 + 확정·패스·새 게임 버튼, Enter = 확정 (#7) |
-| `ui.TwoPlayerRenderer` | package-private | 스냅숏을 그린다. A·B 색, 진영 경계선, 임시 배치 테두리. `Neighborhood` 잠금을 쓰지 않음(#74) (#7) |
+| `ui.TwoPlayerRenderer` | package-private | 스냅숏을 그린다. A·B 색, 진영 경계선, 임시 배치 테두리. `Neighborhood`의 읽기 허가를 쓰지 않음 (#7) |
 
 `com.holub.life.twoplayer`와 모델은 AWT·Swing에 의존하지 않는다(UI 코드는 하위 패키지 `twoplayer.ui`, #7). #5부터 `Cell`·`Neighborhood`를 사용하고, #71에서 `Cell.transfer` 좌표를 기존 `CellPosition(row, column)`으로 바꿔 `TwoPlayerResident`의 Point 의존도 제거했다. 006의 Point 비용은 당시 기록으로 보존한다. 게임 진행 쪽(`TwoPlayerGame`, 단계, `GameJudge`)은 여전히 보드 구현을 모른다. [#71 설계·검증·인계](../../../../../../../../docs/GTY.md#008-모델-좌표-계약의-point-의존-제거-71).
 
@@ -45,9 +59,9 @@
 | [003-game-phase.md](003-game-phase.md) | #6 | 게임 단계 표현 → State |
 | [004-player-input.md](004-player-input.md) | #6 | 플레이어 입력 전달 → 직접 호출 + `Response` (Command 기각) |
 | [005-cell-count-and-judge.md](005-cell-count-and-judge.md) | #6 | 셀 수 집계와 승패 판정 → 별도 판정 클래스 `GameJudge` |
-| [006-two-player-cell.md](006-two-player-cell.md) | #5 | 2인용 셀 상태와 `TwoPlayerBoard` 구현 → twoplayer 안의 셀 + `Neighborhood` 재사용(model 무수정, 후보 F). `CompositeBoard`·`Board`는 쓰지 않음. 001 대체 |
-| [007-two-player-ui.md](007-two-player-ui.md) | #7 | UI 통합 → `GameMode` + 시계 하나를 잠금 하나로 나누는 `ModeSwitch`(Strategy), 진입점 `TwoPlayerSession`(Facade), 상태 표시줄 Observer, 렌더러는 `twoplayer.ui` 안. #74 모드 전환 재현 |
-| [interfaces.md](interfaces.md) | #5·#7 | `TwoPlayerBoard`, `NeighborhoodTwoPlayerBoard`, `TwoPlayerGame`, `TwoPlayerSession`, `TwoPlayerMode` 시그니처와 계약 |
+| [006-two-player-cell.md](006-two-player-cell.md) | #5 | 2인용 셀 상태와 `TwoPlayerBoard` 구현 → twoplayer 안의 셀 + `Neighborhood` 재사용(model 무수정, 후보 F). `CompositeBoard`·`Board`는 쓰지 않음. 001 대체. 끝에 이슈 (a)~(f) 처리 결과("이후 변경") |
+| [007-two-player-ui.md](007-two-player-ui.md) | #7 | UI 통합 → `GameMode` + 시계 하나를 잠금 하나로 나누는 `ModeSwitch`(Strategy), 진입점 `TwoPlayerSession`(Facade), 상태 표시줄 Observer, 렌더러는 `twoplayer.ui` 안. #74 모드 전환 재현. 끝에 #74 수정 뒤 재측정·#102·#109 영향("이후 변경") |
+| [interfaces.md](interfaces.md) | #5·#7 (#70·#71·#74·#109 반영) | `TwoPlayerBoard`, `NeighborhoodTwoPlayerBoard`, `TwoPlayerGame`, `TwoPlayerSession`, `TwoPlayerMode` 시그니처와 계약 |
 | [test-cases.md](test-cases.md) | #5·#6·#7 | 테스트 케이스 정의 (TP-R·TP-B·TP-I·TP-F·TP-P·TP-E·TP-U), 아래 "테스트" 요약 |
 
 **다이어그램** (`diagrams/`, `.puml` 원본 + png·svg)
@@ -66,7 +80,7 @@
 
 `Codes/GameOfLife/test/com/holub/life/twoplayer/`. 정의는 [test-cases.md](test-cases.md).
 
-**접두어별 요약** (2026-11-16, `./gradlew test --rerun-tasks` 결과: 2인용 테스트 96개 통과, 실패·건너뜀 0. 저장소 전체 240개 통과)
+**접두어별 요약** (2026-11-25, `origin/main` `2c22cab`에서 `./gradlew test --rerun-tasks`: TP 테스트 96개 통과, 실패·건너뜀 0. 이 패키지 전체 105개, 저장소 전체 454개 통과. 2026-11-16 #8 때는 TP 96개·전체 240개)
 
 | 접두어 | 내용 | 명세 | 이슈 | 테스트 클래스 | 정의 | JUnit |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -80,13 +94,14 @@
 | **합계** | | | | | **97** | **96** |
 
 - TP-R-18(클래식 모드가 그대로 동작)은 따로 메서드를 두지 않고 기존 클래식·core 테스트 클래스로 확인한다. 그래서 정의가 JUnit보다 1개 많다.
+- 이 패키지에는 A 모델이 정의한 테스트 9개도 있다: `TwoPlayerRuleTest`의 CAN-M14(#70) 1개, `MementoCoordinateTest`의 COORD-01~07(#71) 8개. package-private `TwoPlayerResident`를 확인하려고 이 패키지에 두었다([test-cases.md](test-cases.md) 6장). 그래서 `TwoPlayerRuleTest`의 JUnit 수는 18개다.
 
 **테스트 도우미·측정 클래스** (`@Test` 없음)
 
 | 클래스 | 역할 |
 | --- | --- |
 | `StubBoard`, `GameScript`, `RealBoardScript` | 대역 보드, 게임 진행 도우미, 실제 보드 도우미 |
-| `ui.StaticLockCheck` | 007 "#74 확인" 측정 (`main`으로 실행) |
+| `ui.StaticLockCheck` | 007 "#74 확인" 측정 (`main`으로 실행). #74 수정 때 A 담당이 보드별 상태에 맞게 고쳤고, 수정 뒤 재측정 결과는 007 "이후 변경" |
 | `CellCandidateBenchmark` | 006의 측정·동등성 확인. F는 실제 `NeighborhoodTwoPlayerBoard` (`main`으로 실행, 방법은 006 "측정 방법") |
 
 실행: `cd Codes/GameOfLife && ./gradlew test` (JDK 26)

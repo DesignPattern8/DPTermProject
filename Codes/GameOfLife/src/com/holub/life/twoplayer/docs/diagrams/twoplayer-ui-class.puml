@@ -1,6 +1,8 @@
 @startuml twoplayer-ui-class
 ' #7 후: Mode 메뉴와 2인용 진입점 (007-two-player-ui.md). 근거: ui/ModeSwitch.java, ui/GameMode.java, ui/ClassicMode.java,
-' ui/LifeFrame.java, twoplayer/TwoPlayerSession.java, twoplayer/ui/*.java
+' ui/SinglePlayerMode.java, ui/LifeFrame.java, ui/GameMenu.java, twoplayer/TwoPlayerSession.java, twoplayer/ui/*.java
+' 2026-11-25 갱신 (origin/main 2c22cab): GameMenu.install 삭제(#102, ui/docs/011),
+' Classic / Single Player 분리(#109, ui/docs/012), Neighborhood 전이 상태 보드별(#74). 007 "이후 변경".
 ' 공개(public) 타입은 흰색, package-private 타입은 회색.
 skinparam defaultFontName "Noto Sans CJK KR"
 skinparam classAttributeIconSize 0
@@ -19,15 +21,15 @@ skinparam note {
   BorderColor #C9B458
 }
 
-title 2인용 UI 통합 후 (이슈 7): Mode 메뉴(Classic / 2 Players)와 2인용 진입점
+title 2인용 UI 통합 후 (이슈 7, 11/25 기준): Mode 메뉴(Classic / Single Player / 2 Players)와 2인용 진입점
 
 package com.holub.life.ui {
   class LifeFrame
   class BoardPanel
   class GameMenu {
-    + {static} install(panel, controller, clock)
-    + {static} installMenus(panel, controller, clock)
+    + {static} installMenus(panel, active, clock, presetController, placement)
     + {static} setFileCommandsEnabled(panel, enabled)
+    + {static} setPresetsEnabled(panel, controller, enabled)
   }
   interface GameMode {
     + menuName() : String
@@ -44,6 +46,7 @@ package com.holub.life.ui {
     - tick()
   }
   class ClassicMode
+  class SinglePlayerMode
 }
 
 package com.holub.life.application {
@@ -73,15 +76,18 @@ package com.holub.life.twoplayer.ui {
   }
 }
 
-LifeFrame ..> GameMenu : installMenus
+LifeFrame ..> GameMenu : installMenus\n(Grid는 지금 모드의 컨트롤러로)
 LifeFrame *-- ModeSwitch
 LifeFrame ..> TwoPlayerMode : Mode 메뉴 (Life가 넘김)
 ModeSwitch o-- "1..*" GameMode
 ModeSwitch --> Clock : 리스너 1개, stop()
 GameMode <|.. ClassicMode
+GameMode <|.. SinglePlayerMode
 GameMode <|.. TwoPlayerMode
 ClassicMode --> BoardPanel : view
-ClassicMode --> GameController : tick
+ClassicMode --> GameController : tick (원본 B3/S23)
+SinglePlayerMode --> BoardPanel : view
+SinglePlayerMode --> GameController : tick (암세포 게임)
 TwoPlayerMode *-- TwoPlayerSession
 TwoPlayerMode *-- TwoPlayerPanel
 TwoPlayerPanel --> TwoPlayerSession : 클릭·확정·패스·새 게임, 리스너
@@ -89,13 +95,19 @@ TwoPlayerPanel ..> TwoPlayerRenderer
 TwoPlayerSession *-- TwoPlayerGame
 TwoPlayerSession *-- NeighborhoodTwoPlayerBoard
 
-note right of ModeSwitch
+note top of ModeSwitch
   모든 모드의 tick과 select()가
   tickLock 하나 안에서 돈다.
-  두 보드가 동시에 세대를 진행하지 않는다(#74).
+  한 번에 한 모드의 보드만 진행한다
+  (앱 실행 정책. #74 수정 뒤 모델 잠금은 보드별).
 end note
 note bottom of TwoPlayerRenderer
   세션 스냅숏(소유자 64×64)만 그린다.
-  Neighborhood의 static 잠금을 읽지 않는다.
+  Neighborhood의 읽기 허가를 쓰지 않는다.
+end note
+note bottom of TwoPlayerMode
+  supportsFileCommands() = false:
+  2인용에서 Clear·Load·Store 꺼짐.
+  Preset은 Single Player에서만 켜짐.
 end note
 @enduml
