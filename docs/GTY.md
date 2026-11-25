@@ -11,7 +11,11 @@
 | 공통 보드 계약 정의 | [#47](https://github.com/DesignPattern8/DPTermProject/issues/47) | [#48](https://github.com/DesignPattern8/DPTermProject/pull/48) | main 병합, 좌표·스냅샷·도메인별 인계 기준 작성 |
 | 클래식 보드 Facade | [#49](https://github.com/DesignPattern8/DPTermProject/issues/49) | [#50](https://github.com/DesignPattern8/DPTermProject/pull/50) | main 병합, 당시 전체 68개 테스트 통과 |
 | 클래식 생사 판정 함수 추출 | [#52](https://github.com/DesignPattern8/DPTermProject/issues/52) | [#54](https://github.com/DesignPattern8/DPTermProject/pull/54) | main 병합, 당시 전체 87개 테스트 통과 |
-| 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | [#83](https://github.com/DesignPattern8/DPTermProject/pull/83) | PR 작성, 최신 base 충돌 해소·통합 검증은 005 참고 |
+| 암세포 스냅샷 보존·설계 기록 통합 | [#73](https://github.com/DesignPattern8/DPTermProject/issues/73) | [#83](https://github.com/DesignPattern8/DPTermProject/pull/83) | refactor/base 병합·이슈 종료, JDK 26 CI 통과 |
+| legacy Load 경계 활성화 | [#81](https://github.com/DesignPattern8/DPTermProject/issues/81) | [#89](https://github.com/DesignPattern8/DPTermProject/pull/89) | refactor/base 병합, 로컬·CI 통과 |
+| 보드별 전이 상태 분리 | [#74](https://github.com/DesignPattern8/DPTermProject/issues/74) | [#90](https://github.com/DesignPattern8/DPTermProject/pull/90) | refactor/base 병합 |
+| 모델 좌표 계약 분리 | [#71](https://github.com/DesignPattern8/DPTermProject/issues/71) | PR 준비 | 구현·검증 완료 |
+| 암세포 셀 계약 분리 | [#70](https://github.com/DesignPattern8/DPTermProject/issues/70) | 로컬 검증 | #106 반영 후 전체 테스트 441개 통과 |
 
 ## 001. 모델과 화면 메서드 분리
 
@@ -274,4 +278,399 @@ A의 GTY 누적 기록 안내와 C의 신규 파일 API 연동 문서 링크를 
 
 - `Codes/GameOfLife`에서 기존과 같은 JDK 25.0.3 및 임시 초기화 파일로 `./gradlew test --no-daemon --init-script /private/tmp/dp73-jdk25.init.gradle` 실행: 전체 189개 통과, 실패·오류·건너뜀 0. 최초 #73 검증 169개에 C가 추가한 20개가 함께 실행됐다. JDK 26에서는 미검증이다.
 - README·GTY의 로컬 파일 링크 26개, 변경 Java·Markdown의 충돌 표시 제거, `git diff --check`와 `git diff --cached --check`를 확인했다.
-- 미해결 충돌 파일은 0개이며 Git은 병합 커밋을 기다리는 상태다. README 해결 결과와 GTY 기록을 스테이징한다. 커밋·푸시 후 기존 PR #83에 반영된다.
+- 당시 미해결 충돌 파일 0개로 스테이징했다. 이후 사용자가 병합 커밋 `608e6f0`을 푸시하고 PR #83을 `refactor/base`에 병합했다(`84d23db`). #73 종료와 PR의 JDK 26 CI 통과도 확인했다. 위 JDK 25 수치는 충돌 해결 당시의 로컬 결과다.
+
+## 006. legacy Load 경계 활성화 (#81)
+
+- 상태: 채택 · A 모델 수정 완료, [PR #89](https://github.com/DesignPattern8/DPTermProject/pull/89) 병합
+- 담당 A 모델 · 태영 · 2026-11-17
+- 착수 기준 `refactor/base` `422833e`, 작업 브랜치 `fix/81-load-boundary`. 작업 중 최신 `refactor/base` `03fe4ed`를 반영했다.
+- 사용자 최종 요청에 따라 A의 모델 수정 범위를 먼저 진행한다. B와 #81 공동 담당이며, 최신 기준선에는 #63의 안전한 Load 실패 처리(PR #82)가 반영돼 있다.
+
+### 문제와 원인
+
+정상 파일의 `(7,7), (7,8), (7,9)`를 Load하면 셀 배치는 맞지만 첫 세대의 `(8,8)` 출생이 빠진다. `Resident.transfer(LOAD)`는 현재·다음 생사를 동시에 맞추므로 직후 `isDisruptiveTo()`가 `NONE`이다. 기존 `Neighborhood.transfer()`는 활성 여부를 켜도 변경된 자식이 놓인 경계를 표시하지 않아, 비어 있는 인접 블록이 계산에 참여하지 못한다.
+
+#73의 `Board.restore()`는 `toggle()`로 블록·경계를 활성화한다. 실제 파일 Load는 `Neighborhood.transfer(LOAD)`를 사용하므로 이 경로의 활성화를 보완해야 한다. 기존 테스트의 Load 후 블링커는 블록 내부 좌표여서 해당 결함을 검출하지 못했다.
+
+### 후보와 결정
+
+| 후보 | 변경 범위·비용 | 판단 |
+| --- | --- | --- |
+| A. 기존 Composite/Memento 경계 처리 보완 | `Neighborhood.transfer()`에서 LOAD가 활성화한 자식의 격자 위치로 기존 경계 표시 함수를 호출. 공개 타입·파일 형식·호출부 변경 없음. | 채택 |
+| B. Board Facade 복원으로 파일 경로 이전 | B의 `GameController`와 C 값 변환을 `BoardSnapshot`에 연결해 `Board.restore()`를 사용. #71 후속 방향과 맞지만 파일 순서·좌표·암세포 변환, 저장 호출부와 계약을 함께 검토해야 함. | 별도 연동 작업에서 검토 |
+
+이번에는 모델 내부에서 같은 결함을 사용하는 모든 legacy 호출 경로를 고친다. STORE의 기존 활성 정보 부수효과와 `Neighborhood.transfer()`의 반환 정책은 유지한다. B의 실패 시 상태 보존·Clock·알림 정책, C 저장 형식, 규칙·동시성 설계는 이번 수정 범위에 추가하지 않는다.
+
+### 테스트 순서
+
+[테스트 기준 LDB-01~07](../Codes/GameOfLife/src/com/holub/life/model/docs/test-cases.md#legacy-load-경계-활성화-81)을 먼저 정의했다. 프로젝트 지정 JDK 26.0.2.1에서 기존 전체 233개가 통과하는 기준선을 확인했다. 새 회귀 테스트 17개 중 10개 실패로 문제를 재현한 뒤 구현을 적용했다.
+
+### 전/후 비교
+
+[Neighborhood.transfer()](../Codes/GameOfLife/src/com/holub/life/model/Neighborhood.java)에서 활성 자식의 위치를 경계에 표시한다. 각 부모가 자기 격자 내 좌표로 같은 작업을 수행하므로 중첩 깊이가 달라도 다음 블록으로 전파된다.
+
+```java
+// 전
+if (grid[row][column].transfer(memento, upperLeft, load)) amActive = true;
+
+// 후
+if (grid[row][column].transfer(memento, upperLeft, load)) {
+  amActive = true;
+  // LOAD makes leaves stable, so wake neighbors from the changed child's position.
+  if (load) rememberThatCellAtEdgeChangedState(row, column);
+}
+```
+
+`활성 여부만 설정 → 자기 격자 기준 경계도 표시 → 다음 세대에 인접 블록 계산`으로 보완했다. `(7,7), (7,8), (7,9)`를 불러온 첫 세대는 이전의 `{(6,8), (7,8)}`에서 `{(6,8), (7,8), (8,8)}`로 바로잡힌다. 새 GoF 패턴을 추가하는 작업은 아니며 기존 Composite/Memento 경로의 버그 수정이다.
+
+### 실제 비용과 계약
+
+| 항목 | 결과 |
+| --- | --- |
+| 구조 비용 | 제품 소스 `Neighborhood.java` 1개, 555→559줄(5줄 추가·1줄 삭제), 제품 타입 증감 0. 테스트 클래스 1개·227줄, 5개 메서드·17개 실행 추가. |
+| 간접성 | LOAD에서 자식이 활성으로 보고될 때 기존 비공개 경계 표시 함수 호출 1회 추가. 세대 계산 경로는 유지. |
+| 결합도 | 공개 시그니처·외부 라이브러리·패키지 의존 증감 0. B·C 제품 코드 수정 없음. |
+| 런타임 비용 | 기존 재귀 순회에 상수 시간 경계 표시를 추가해 전체 `O(N)` 순회 유지. 새 필드·컬렉션 없음. 실제 시간·힙 사용량은 측정하지 않음. |
+| 검증·확장 | Swing 창 없이 실제 파일 읽기→Controller→모델 경로 검증. 3중 구조도 같은 위치 기반 경계 표시 사용. |
+
+STORE의 기존 방향 합치기·활성 정보 부수효과와 `return amActive`를 유지한다. LOAD에서 자식의 반환값이 실제 변경뿐 아니라 이전 활성 상태를 포함할 수 있어 보수적으로 더 계산할 수 있다. 이 반환 정책의 재정의와 STORE 부수효과 제거는 이번 범위에 넣지 않는다. [모델 계약](../Codes/GameOfLife/src/com/holub/life/model/docs/interfaces.md)에 LOAD 경계 보존 동작을 추가했다.
+
+### 육하원칙
+
+| 항목 | 기록 |
+| --- | --- |
+| 누가 | 태영의 A 모델 작업, #81 공동 담당 중 모델 수정 범위 |
+| 언제 | 2026-11-17, 최신 refactor/base 기준, 커밋 전 |
+| 어디서 | 원래 IntelliJ 프로젝트의 `fix/81-load-boundary`, 모델·테스트·계약 문서 |
+| 무엇을 | legacy LOAD가 활성화한 자식의 위치를 경계에 표시하고, 파일 Load·직접 Memento 복원의 회귀 테스트를 추가했다. |
+| 왜 | 복원 직후 안정 상태가 된 셀의 방향 정보만 읽으면 이웃 블록의 계산을 깨우지 못해 첫 세대 출생이 누락되기 때문이다. |
+| 어떻게 | 테스트 기준 정의 → 기존 233개 통과 → 새 17개 중 10개 실패 재현 → 경계 표시 함수 재사용 → 관련 43개·전체 250개 통과 → 최신 base 통합 후 전체 346개 통과 → 문서·링크 점검 순서로 진행했다. |
+
+### 검증
+
+- 환경: macOS arm64, Eclipse Temurin JDK `26.0.2.1+1`, 저장소의 JDK 26 도구 체인. 공식 배포본을 저장소 밖 임시 폴더에 준비하고 SHA-256을 확인했다. 저장소 빌드 설정은 변경하지 않았다.
+- 기준선: 기존 전체 233개 통과.
+- 수정 전: 신규 17개 중 10개 실패, 오류·건너뜀 0. 클래식 경계 6개, 암세포 경계 3개, 직접 Memento 복원 1개에서 누락을 확인했다.
+- 수정 후: 관련 43개 통과. 신규 17개와 #63의 Load 실패 보존, 기존 클래식·암세포 파일 테스트를 확인했다.
+- 최초 수정 후 전체: 기존 233 + 신규 17 = **250개 통과**, 실패·오류·건너뜀 0.
+- 최신 base 반영 후 최종 전체: **346개 통과**, 실패·오류·건너뜀 0. 신규 경계 회귀 17개도 모두 통과했다. 2인용·모드 전환 등 통합된 테스트를 함께 실행했다.
+- 블록 내부·하단·우측·모서리·보드 가장자리·3중 구조에서 첫 세대와 4세대 진행을 검사했다. 암세포 종류 보존·경계 탄생, 빈 복원, Controller 밖 직접 LOAD도 확인했다.
+- 관련 로컬 파일·제목 링크 43개와 `git diff --check`를 확인했다. 개인 Notion 개발 기록의 09번에도 원인·수정·대안·육하원칙·최신 base 반영과 검증 결과를 남겼다.
+- UI 수동 실행과 성능 측정은 하지 않았다.
+
+실제 Gradle 실행 명령(`Codes/GameOfLife`에서 JDK 26의 JAVA_HOME을 지정):
+
+```sh
+# 기준선
+./gradlew test --no-daemon --rerun-tasks
+# 수정 전 회귀 테스트
+./gradlew test --tests com.holub.life.model.LegacyLoadBoundaryTest --no-daemon
+# 수정 후 관련 테스트
+./gradlew test --no-daemon \
+  --tests com.holub.life.model.LegacyLoadBoundaryTest \
+  --tests com.holub.life.application.GameControllerLoadTest \
+  --tests com.holub.life.ClassicMementoTest \
+  --tests com.holub.life.persistence.CancerCodecTest
+# 최종 전체
+./gradlew test --no-daemon
+```
+
+### 작업 중 기준 브랜치 갱신
+
+사용자 요청으로 main·feature 통합이 반영된 최신 `origin/refactor/base` `03fe4ed`를 가져왔다. 커밋 전 #81 파일 6개를 저장소 밖에 백업하고, `git merge --ff-only origin/refactor/base`로 반영했다. 기존 HEAD가 새 base의 조상이어서 새 병합 커밋 없이 fast-forward됐고 충돌은 없었다. 반영 전후 파일별 SHA-256이 같아 진행 중인 코드·문서·새 테스트가 그대로 보존됐음을 확인했다.
+
+추가된 2인용 경로는 `toggle`·세대 계산을 사용하고 UI 파일 명령을 지원하지 않는다. `TwoPlayerResident.transfer()`도 false의 no-op이므로 이번 LOAD 한정 분기는 정상 2인용 실행에 추가 영향을 주지 않는다. 실제 2인용·모드 전환 회귀는 최종 전체 테스트에 포함했다.
+
+### 후속 작업
+
+- PR base는 `refactor/base`, 연결은 `Refs #81`이다. 공동 이슈이므로 A 범위 PR 병합만으로 닫지 않고 B의 작업 범위 완료도 확인한다.
+- #70·#71·#74는 별도 후속 작업이다. 규칙 Strategy 도입도 이번 버그 수정과 분리한다.
+
+## 007. 보드별 전이 읽기 허가 분리 (#74)
+
+- 상태: 채택 · 구현·검증 완료
+- 담당 A 모델 · 태영 · 2026-11-17
+- 기준 `refactor/base` `333057b`(PR #89 병합), 브랜치 `fix/74-board-transition`
+- A는 `Neighborhood` 내부의 공유 상태를 담당한다. B는 [이슈 댓글](https://github.com/DesignPattern8/DPTermProject/issues/74#issuecomment-6944284960)에 따라 한 번에 한 모드만 tick하는 실행 정책을 별도로 담당한다.
+
+### 문제
+
+모든 `Neighborhood`가 static 읽기 허가와 중첩 깊이를 공유해 한 보드의 전이가 다른 보드의 그리기를 막는다. 두 보드가 서로 다른 스레드에서 진행하면 깊이 증가·감소가 섞여 상태가 깨질 수 있다. 중첩 셀에서 예외가 나면 기존 `transition()`은 해제 코드까지 도달하지 않아 읽기가 계속 금지된다.
+
+### 대안과 결정
+
+| 후보 | 이 코드에서의 결과 | 판단 |
+| --- | --- | --- |
+| A. 블록마다 인스턴스 필드 | 간단하지만 같은 루트의 먼저 끝난 자식과 아직 시작하지 않은 형제 블록이 읽기를 허용한다. 기존 전체 보드 단위 허가를 보존하지 못함. | 기각 |
+| B. 트리별 비공개 공유 상태 | 루트가 읽기 허가·중첩 깊이를 만들고 중첩 블록 생성에 같은 객체를 전달. 공개 생성자·create()는 독립 상태를 만든다. | 채택 |
+| C. Facade에서 상태 주입 | CompositeBoard뿐 아니라 legacy 직접 생성·2인용 생성과 조립 경로까지 바꿔야 한다. | 이번 범위에서 기각 |
+| D. 기존 공유 상태 + 실행 직렬화만 문서화 | 앱의 현재 ModeSwitch에는 맞지만 모델의 보드 간 간섭과 예외 시 영구 잠김이 남는다. | B의 실행 정책과 별개로 모델 개선 필요 |
+
+비공개 상태 객체를 트리마다 공유하고 `try/finally`로 중첩 깊이·읽기 허가를 복구한다. 같은 프로토타입으로 여러 보드를 만들어도 상태를 공유하지 않으며, 공개 `create()`도 새 루트 상태를 만든다. 새 GoF 패턴을 추가하는 작업은 아니다.
+
+### 검증 계획
+
+[모델 테스트 기준 GATE-01~08](../Codes/GameOfLife/src/com/holub/life/model/docs/test-cases.md#보드별-전이-읽기-허가-74)을 먼저 정의했다. JDK 26.0.2.1+1에서 기존 전체 346개가 통과했다. 전이 중 관찰·두 스레드의 정확한 실행 순서를 콜백·래치로 고정해 실패를 재현하고 수정 후 전체 회귀를 확인한다.
+
+### 전후 코드와 수정 이유
+
+```java
+// 전: 서로 다른 보드까지 하나의 상태를 사용하고 예외가 나면 복구하지 못함
+private static final ConditionVariable readingPermitted = new ConditionVariable(true);
+private static int nestingLevel = -1;
+// ... transition(): 깊이 증가 → 순회 → 깊이 감소·허가 복구
+
+// 후: 한 트리에만 공유되는 비공개 상태
+private static final class TransitionState {
+  private final ConditionVariable readingPermitted = new ConditionVariable(true);
+  private int nestingLevel = -1;
+}
+private final TransitionState transitionState;
+
+// transition(): 전이 시작 시 해당 보드만 닫고 모든 종료 경로에서 복구
+if (++transitionState.nestingLevel == 0) transitionState.readingPermitted.set(false);
+try {
+  // 기존 셀 전이와 활성 경계 수집
+} finally {
+  if (transitionState.nestingLevel-- == 0) transitionState.readingPermitted.set(true);
+}
+```
+
+`TransitionState`의 **타입 선언만 static**이며, 그 안의 허가·깊이는 인스턴스 필드다. 공개 생성자는 새 상태를 만들고, 비공개 생성자는 같은 루트의 중첩 블록에 그 상태를 전달한다. `Neighborhood` 프로토타입을 복제할 때도 새 트리의 상태를 사용한다. 공개 `create()`는 새 루트의 공개 생성자로 위임하므로 원본과 공유하지 않는다. `beginRedraw()`는 소속 보드의 허가를 읽는다.
+
+`StaticLockCheck`는 삭제된 private static 필드의 반사 조회·강제 초기화를 제거하고, 공개 `beginRedraw(true)`로 검사한다. 두 Clock 진단은 각 보드 100 tick이 끝났다는 래치를 기다린 뒤 관찰하고 finally에서 Clock·Timer를 종료한다. 기존 `ModeSwitch`의 한 모드 실행 정책은 바꾸지 않고, static 상태를 현재 원인으로 설명하던 주석만 맞췄다.
+
+### 실제 비용
+
+| 항목 | 결과 |
+| --- | --- |
+| 구조 비용 | 제품 동작 변경은 `Neighborhood.java` 1개, 559→552줄(39줄 추가·46줄 삭제). `ModeSwitch.java`는 주석 1줄 교체, 109줄 유지. 비공개 중첩 타입 1개 추가, 공개 타입·API·외부 의존성 증감 0. |
+| 테스트 비용 | `NeighborhoodReadGateTest` 1개·352줄, 6개 메서드·10개 실행 추가. 기존 수동 `StaticLockCheck` 130→135줄(52줄 추가·47줄 삭제). |
+| 간접성·결합도 | 전이·그리기에서 상태 필드 접근 1단계 추가, 새 메서드 호출 계층 없음. 기존 ConditionVariable 의존 유지, AWT·Swing 의존 추가 없음. B·C의 공개 호출부 변경 없음. |
+| 런타임 비용 | 루트 생성마다 상태 객체·ConditionVariable 각 1개, 각 Neighborhood마다 상태 참조 1개. 기존에는 전체에 ConditionVariable 1개였다. 기존 재귀 순회와 O(N) 계산량 유지, tick마다 객체 할당 추가 없음. 실제 시간·힙 크기는 측정하지 않음. |
+| 검증·확장 | Swing 창 없이 실제 Composite 트리와 public API로 확인한다. 중첩 깊이가 늘어도 같은 루트 상태를 전달하며, 공개 생성·create() 경로의 추가 수정이 필요 없다. |
+
+### 육하원칙
+
+| 항목 | 기록 |
+| --- | --- |
+| 누가 | 태영의 A 모델 작업. #74 공동 담당 중 모델 상태 격리와 실패 복구 범위. |
+| 언제 | 2026-11-17, PR #89 병합 후 최신 refactor/base에서 착수. |
+| 어디서 | 원래 IntelliJ 프로젝트의 `fix/74-board-transition`, 모델·회귀 테스트·공개 계약·GTY. |
+| 무엇을 | 전이 읽기 허가·깊이를 보드 트리별로 분리하고 finally로 복구했다. 독립 보드·복제·예외 회귀와 수동 진단을 보완했다. |
+| 왜 | 전역 상태 때문에 다른 보드까지 읽기를 막고 동시 전이가 서로 간섭하며, 예외 발생 시 읽기 금지가 남기 때문이다. 단순히 블록별 필드로 바꾸면 같은 보드의 조기 그리기를 허용해 잘못된다. |
+| 어떻게 | 테스트 기준 정의 → 기존 전체 346개 통과 → 새 10개 중 7개 실패 재현 → 트리별 상태 전달·finally 적용 → 관련 49개·전체 356개 통과 → 수동 두 Clock 진단·문서·검토 순서로 진행했다. |
+
+### 검증 결과
+
+- 환경: macOS arm64, Eclipse Temurin JDK `26.0.2.1+1`, 저장소의 Java 26 도구 체인. 저장소 빌드 설정·의존성 변경 없음.
+- 기준선 전체 **346개 통과**. 새 테스트는 구현 전에 추가해 정상·경계 8개 중 5개, 실패 복구 2개 중 2개의 실패를 확인했다. 기존 static 상태가 실패 테스트 사이에 남지 않도록 실패 복구 그룹은 별도 Gradle 실행으로 재현했다.
+- 수정 후 관련 **49개 통과**: 신규 읽기 허가 10개, 기존 렌더링 5개, Load 경계 17개, 2인용 규칙 17개.
+- 최종 전체 **356개 통과**, 실패·오류·건너뜀 0. 클래식·암세포·2인용·모드 전환·파일 호환 테스트를 포함한다.
+- 새 테스트는 2중·3중 트리 전체의 허가, 별도 루트·공유 프로토타입·공개 create() 격리, 다른 보드/같은 트리 중첩 호출, 래치로 순서를 고정한 두 스레드, RuntimeException·AssertionError 후 원래 오류 전파·다음 전이 복구를 검사한다. sleep이나 확률적 타이밍에 기대지 않는다.
+- 수동 `StaticLockCheck`: 순차 실행 뒤 false **0/200000**, 두 스레드 5회 모두 **0/10000**, Fast 속도의 실제 두 Clock이 각 100 tick을 완료한 뒤 **0/10000**. 무작위 스케줄의 보조 진단이며 결정적 JUnit 검증을 대신하지 않는다.
+- 공개 계약과 현재 2인용·UI 문서의 static 공유 설명을 갱신했다. 코드·호출부·정리 경로를 별도로 읽어 검토했다.
+- 네이티브 UI 수동 조작과 성능·힙 벤치마크는 하지 않았다. 전후 클래스 그림과 같은 개발 기록은 개인 Notion의 10번에 남긴다.
+
+실제 실행 명령(`Codes/GameOfLife`에서 JDK 26의 JAVA_HOME 지정):
+
+```sh
+# 기준선
+./gradlew test --no-daemon --rerun-tasks
+# 수정 후 관련 테스트
+./gradlew test --no-daemon \
+  --tests com.holub.life.model.NeighborhoodReadGateTest \
+  --tests com.holub.life.RenderingExtractionTest \
+  --tests com.holub.life.model.LegacyLoadBoundaryTest \
+  --tests com.holub.life.twoplayer.TwoPlayerRuleTest
+# 최종 전체
+./gradlew test --no-daemon
+# 기존 수동 진단 (test로 컴파일한 뒤)
+java -ea -Djava.awt.headless=true \
+  -cp build/classes/java/main:build/classes/java/test \
+  com.holub.life.twoplayer.ui.StaticLockCheck
+```
+
+#74는 REFACTOR 제목의 이슈지만 보드 간 간섭과 실패 후 상태를 바로잡아 동작이 달라진다. 따라서 이번 브랜치·PR은 `fix`와 BUG 유형으로 분류하고, 기존 한 보드의 정상 동작은 회귀 테스트로 유지한다. 커밋은 테스트·버그 수정·문서/주석으로 구분하고 `refactor/base` 대상으로 일반 PR을 작성한다.
+
+### 계약과 후속 작업
+
+- 같은 보드의 수정은 호출자가 기존처럼 직렬화한다. 이 상태는 전이 중 그리기의 진입 허가이며, `beginRedraw()` 이후 전체 프레임을 잠그는 read lock을 새로 제공하지 않는다.
+- 예외는 그대로 전파한다. finally는 조정 상태를 복구하며 이미 반영된 셀을 rollback하지 않는다.
+- 기존 private static 필드를 반사로 읽던 수동 `StaticLockCheck`는 public 동작 관찰로 갱신했다. 과거 재현 결과는 기존 문서·커밋 이력에 보존한다.
+- `Refs #74`, PR base는 `refactor/base`. 공동 이슈이므로 A의 모델 처리와 B의 실행 정책 완료 범위를 구분한다.
+
+
+## 008. 모델 좌표 계약의 Point 의존 제거 (#71)
+
+- 상태: 채택 · 구현·검증 완료
+- 담당 A 모델 · 태영 · 2026-11-17
+- 기준 `refactor/base` `c2d09a9`(PR #90 병합), 브랜치 `refactor/71-model-coordinates`
+
+### 문제와 성공 기준
+
+`Cell.transfer`·`Cell.Memento`·`NeighborhoodState`가 AWT의 가변 Point를 노출해 모델 구현과 저장 미지원 2인용 셀까지 java.desktop에 의존한다. 기존 `CellPosition(row, column)`으로 통일하고, 같은 배치·암 상태·블록 순회 순서·중복·범위 밖 좌표 해석·파일 실패 처리를 보존한다. 파일에서만 Point의 `x=column`, `y=row`를 사용한다.
+
+성공 기준은 모델과 UI 제외 2인용의 Point/AWT import 0, 기존 파일과 신규 파일 상호 호환, 같은 특성 테스트의 전후 통과, 기존 전체 회귀 통과다. 추가로 해당 제품 소스 30개(ConditionVariable 포함)를 java.base만 보이는 상태에서 컴파일해 java.desktop 결합 제거를 확인한다. 수정 전에는 Point import로 컴파일이 실패했다.
+
+### 시형 작업과의 경계
+
+- [#71의 B 댓글](https://github.com/DesignPattern8/DPTermProject/issues/71#issuecomment-6944309778)은 Cell·Memento의 시그니처 판단을 A·C에 맡기고, B 저장·불러오기 전환을 별도 책임으로 구분했다.
+- 시형의 [#88](https://github.com/DesignPattern8/DPTermProject/issues/88)은 Board.snapshot()/restore() 전환 작업이다. [최신 댓글](https://github.com/DesignPattern8/DPTermProject/issues/88#issuecomment-6945278696)에서 SNAP-01~08을 정의하고 C의 필터링·저장 순서 결정을 기다리는 상태였다. 조사 시점에 열린 PR과 #88 공개 원격 작업 브랜치는 없었다. 미공개 로컬 작업은 확인할 수 없다.
+- 이번 A 범위는 모델 계약·구현과 필수 소비자의 좌표 타입 호환이다. `GameController`의 원점 인자와 `PersistenceMapper`의 컬렉션 복사만 맞추며, 생성자/fileCells 제거·snapshot/restore 전환·필터링·저장 순서 변경은 #88로 남긴다.
+- C의 `LegacyLifeCodec`은 이미 CellPosition과 Point를 변환하므로 제품 코드 수정이 필요 없다. 직렬화 클래스·UID·필드 타입·입력 필터·원자 저장은 유지한다. 이 판단을 실제 파일 호환 테스트로 검증하며 새로운 팀원 합의가 있었다고 주장하지 않는다.
+
+### 대안과 결정
+
+| 후보 | 적용과 비용 | 판단 |
+| --- | --- | --- |
+| A. 기존 CellPosition 재사용 | Cell/Memento의 좌표와 가변 State의 원소 타입을 바꾸고 소비자 타입만 맞춘다. 신규 제품 타입·외부 의존성 없음. | 채택 |
+| B. Point 유지 | headless 테스트는 가능하고 수정 비용은 없지만 모델·2인용의 java.desktop 결합과 가변 좌표 복사가 남는다. | 기각 |
+| C. Memento 역할 분리 | 저장을 지원하는 Cell만 별도 계약을 구현하게 한다. 모델·순회·파일 소비자의 책임 재설계가 필요하다. | #70 등 별도 역할 정리에서 검토 |
+| D. Board Facade 경로로 이전 | B의 snapshot/restore 전환으로 앱의 legacy 호출은 줄지만 Cell 내부 좌표 문제는 남는다. | #88의 B 작업으로 분리 |
+
+기존 Composite/Memento·Board Facade 구조를 유지한다. 이번에는 새 GoF 패턴을 추가하지 않는다. 순서는 테스트 기준 정의 → 기존 API의 특성 테스트 → 좌표 타입 전환 → 관련/전체 테스트 → 모듈 의존·문서 검증이다.
+
+### 전후 코드와 수정 이유
+
+```java
+// 전: Point는 x=열, y=행이며 블록 안에서 translate로 계속 변경
+boolean transfer(Memento memento, Point corner, boolean load);
+Point upperLeft = new Point(corner);
+// 자식 호출 후 upperLeft.translate(...)
+
+// 후: 기존 불변 모델 좌표에 자식의 오프셋을 더해 전달
+boolean transfer(Memento memento, CellPosition corner, boolean load);
+CellPosition upperLeft =
+    new CellPosition(
+        corner.row() + row * subcellWidth, corner.column() + column * subcellWidth);
+// 같은 재귀 블록 순서와 기존 LOAD/STORE 상태 처리를 유지
+```
+
+`Cell`·중첩 `Memento`와 구현체 `Resident`·`Neighborhood`·`TwoPlayerResident`의 좌표 인자를 바꿨다. `NeighborhoodState`의 raw Collection과 Set<Point>는 Collection<CellPosition>·Set<CellPosition>이 된다. 컬렉션은 같은 참조를 주고받는 기존 가변 계약을 유지하지만 원소가 불변이므로 좌표를 다시 복사하지 않는다. mark 메서드는 기존 Point 복사 생성자의 null 거부를 Objects.requireNonNull로 보존한다. 진단용 toString은 CellPosition의 row/column 표기가 되며, 컬렉션에 직접 null을 넣고 toString을 호출한 경우의 기존 NPE도 유지한다.
+
+현재 B의 `GameController`는 원점 인자만 바꾸고 잠금·Clock·실패 순서·알림·fileCells 필드를 유지한다. `PersistenceMapper`는 이미 같은 좌표 값을 사용하므로 캡처 시 불변 PatternData로 컬렉션을 복사하고 복원 시 별도의 LinkedList/HashSet을 만든다. 보드 순회·정렬·필터링·snapshot/restore 연결은 추가하지 않는다.
+
+모델 원소 타입이 달라진 기존 테스트 10개 파일의 입력·대역·기대 타입도 맞췄다. 파일 자체를 검사하는 테스트의 Point 기대값과 예전 암세포 바이너리 fixture는 유지했다. 신규 특성 테스트는 구현 전에 Point API로 실행하고, 구현 후에는 position() 도우미의 반환 타입·생성식과 import만 바꿨다. 원점·배치·순서·예외의 모든 기대값은 같다.
+
+### 실제 비용과 호환성
+
+| 항목 | 결과 |
+| --- | --- |
+| 구조 비용 | 제품 소스 7개, 총 1285→1261줄. 35줄 추가·59줄 삭제(순감 24줄). 새 클래스/인터페이스·외부 의존성 증감 0. |
+| 제품별 LOC | Cell 174→173, Resident 162→160, Neighborhood 552→549, NeighborhoodState 58→56, TwoPlayerResident 155→155, GameController 147→146, PersistenceMapper 37→22. |
+| 테스트·문서 비용 | 신규 MementoCoordinateTest 258줄, 7개 메서드·8개 실행. 기존 테스트/도우미 10개 파일의 타입 호환 수정. 테스트 정의·현재 계약·GTY 등 문서 8개. 전체 변경 파일 26개. |
+| 간접성·결합도 | 새 호출 계층 0. 모델·UI 제외 2인용의 AWT/Swing import 0. 기존 ConditionVariable와 Java 표준 컬렉션 사용. C·D 제품 코드 변경 없음. |
+| 런타임 비용 | 기존 블록 순회·LOAD contains 조회 복잡도는 유지한다. Point의 블록별 재사용 대신 자식 호출마다 불변 CellPosition을 만든다. 64×64의 8×8 2중 트리는 한 transfer당 자식 좌표 4160개이며, 이전 블록별 Point 복사 65개와 다르다(두 수 모두 호출자의 원점 제외). 이전 STORE는 생존·암 표시의 추가 Point 복사도 있었지만 이제 원소 참조를 공유하며, Mapper의 원소별 좌표 변환도 없어진다. 코드 기준 생성 횟수 계산이며 실제 시간·힙 크기·JIT 최적화는 측정하지 않음. |
+| 외부 호환 | Point 인자의 Cell/Memento 호출·구현은 소스와 바이너리 호환이 바뀌어 CellPosition으로 수정 후 재컴파일해야 한다. 공개 Board/BoardSnapshot·B Controller·C Codec API는 유지한다. .life 직렬화 형식과 C 입력 제한·원자 저장 구현도 그대로다. |
+
+이번 작업은 기존 게임 동작과 파일 형식을 유지하는 좌표 계약 리팩토링이다. 불변 좌표가 늘어나는 비용을 숨기지 않으며, 성능 최적화나 Memento 역할 분리는 실제 필요를 확인한 별도 작업으로 둔다.
+
+### 육하원칙
+
+| 항목 | 기록 |
+| --- | --- |
+| 누가 | 태영의 A 모델 작업. 시형의 B #88 구조 전환과 C의 파일 경계를 확인했다. |
+| 언제 | 2026-11-17, PR #90 병합 후 최신 refactor/base에서 착수. |
+| 어디서 | 원래 IntelliJ 프로젝트의 refactor/71-model-coordinates. 모델과 필수 소비자·테스트·현재 계약 문서. |
+| 무엇을 | Cell/Memento/State의 Point를 기존 CellPosition으로 통일하고 2인용의 AWT 의존과 Mapper의 좌표 변환을 제거했다. |
+| 왜 | 화면 좌표 타입이 공통 모델 계약에 들어가 저장 미지원 셀까지 java.desktop에 결합하기 때문이다. 이미 있는 행·열 값 타입으로 책임 경계를 맞춘다. |
+| 어떻게 | #71/#88·공개 브랜치/PR 확인 → 테스트 기준 정의 → 기존 356개·신규 특성 8개 통과 → 타입/필수 호출부 변경 → 관련 35개·전체 364개 통과 → java.base 단독 컴파일·최종 diff/문서 검토. |
+
+### 검증 결과
+
+- 환경: macOS arm64, Eclipse Temurin 26.0.2.1+1, 저장소 Java 26 도구 체인. 빌드 설정·의존성 변경 없음.
+- 기준선: 기존 전체 **356개 통과**. 구현 전 새 특성 **8개도 통과**. 이번 작업은 실패 재현 후 수정하는 BUG가 아니라 같은 관찰을 유지하는 REFACTOR다.
+- 수정 후 관련 **35개 통과**: MementoCoordinateTest 8, ClassicMementoTest, CancerCodecTest, LegacyLifeCodecTest, PersistenceMapperTest, GameControllerPersistenceTest.
+- 최종 전체 **364개 통과**, 실패·오류·건너뜀 0. 기존 일반·암·2인용·Load 경계·전이 허가·잘못된 입력/필터 제한·안전 저장·UI headless 검증을 포함한다.
+- 구조 검증: model·UI 제외 twoplayer·ConditionVariable 제품 소스 **30개**를 `javac --limit-modules java.base`로 컴파일했다. 수정 전에는 Point가 java.desktop에 있어 실패했고 수정 후 성공했다. 해당 범위의 AWT/Swing import도 0이다.
+- 기존 파일의 Point(x=열,y=행), 중복·순서·음수 좌표, 이전 암세포 fixture와 잘못된 파일의 IOException 계약을 유지했다. C 제품 소스 diff는 0이다.
+- 코드/호출부·기존 null 실패·B #88 경계·현재 계약을 별도로 읽어 검토했다. 변경 Markdown의 로컬 파일·제목 링크 104개, 추가 특성의 전후 입력·assertion 보존과 git diff --check를 확인했다.
+- 네이티브 UI 수동 조작과 실제 시간·힙 벤치마크는 하지 않았다. 전후 클래스 그림과 같은 개발 기록은 개인 Notion의 11번에 남긴다.
+
+실제 Gradle 명령(Codes/GameOfLife에서 JDK 26의 JAVA_HOME 지정):
+
+```sh
+# 기준선
+./gradlew test --no-daemon --rerun-tasks
+# 구현 전 같은 특성 확인
+./gradlew test --tests com.holub.life.twoplayer.MementoCoordinateTest --no-daemon
+# 수정 후 관련 검증
+./gradlew test --no-daemon \
+  --tests com.holub.life.twoplayer.MementoCoordinateTest \
+  --tests com.holub.life.ClassicMementoTest \
+  --tests com.holub.life.persistence.CancerCodecTest \
+  --tests com.holub.life.persistence.LegacyLifeCodecTest \
+  --tests com.holub.life.application.PersistenceMapperTest \
+  --tests com.holub.life.application.GameControllerPersistenceTest
+# 최종 전체
+./gradlew test --no-daemon
+```
+
+java.base 검증은 위 30개 소스의 실제 경로를 모아 저장소 밖 임시 출력 디렉터리에 `javac --limit-modules java.base -d <임시 경로> <소스 경로들>`로 실행했다. 저장소에 별도 빌드 작업·검증 프레임워크는 추가하지 않았다.
+
+### 계약과 후속 작업
+
+Cell/Memento의 Point 호출은 CellPosition(row, column)으로 이전해야 하므로 소스 호환성이 바뀐다. .life 파일 형식은 바꾸지 않는다. 가변 Memento의 컬렉션·순서·중복 계약과 STORE 활성 정보 부수효과, #81 LOAD 경계 활성화, #74 보드별 전이 상태는 유지한다.
+
+PR base는 refactor/base, 연결은 Refs #71. B #88의 구조 전환 완료와 공동 이슈 종료는 별도로 판단한다.
+
+### 2026-11-23 · #94 병합 후 #71 검증
+
+`refactor/base`의 `ef8ee24`를 #71 작업 브랜치에 병합했다. 두 브랜치가 함께 수정한 `GameMenuTest`에서 보드 비교에는 #71의 `CellPosition`을 쓰고, 파일 선택 결과에는 #94의 취소 처리를 적용했다. 파일 선택을 취소하면 보드가 유지되고 변경 알림과 오류 메시지가 발생하지 않는다. 존재하지 않는 파일을 선택하면 읽기 실패 메시지가 표시된다.
+
+JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 365개 테스트가 통과했다. 실패·오류·건너뜀은 각각 0개였다.
+
+### 2026-11-24 · #88 저장·불러오기 통합
+
+`refactor/base`의 `6b20c07`을 병합할 때 #71의 기존 Memento 호출과 #88의 스냅샷 경로가 `GameController`에서 충돌했다. 최신 `GameController`의 `Board.restore()`·`Board.snapshot()`과 프리셋 연결을 유지했다. #71의 `Cell.transfer()`·`Cell.Memento`·`NeighborhoodState`는 `CellPosition`을 쓰며 독립 `PersistenceMapper`도 같은 좌표를 복사한다.
+
+`SnapshotFileStoreTest`는 직렬화된 파일을 확인할 때 `Point(column, row)` 순서를 비교하고, 코덱이 읽은 좌표는 `CellPosition` 순서로 비교한다. `NativeUiSmoke`의 관찰 경로는 기존 `Point`와 새 행·열 좌표를 모두 화면 좌표로 읽는다.
+
+JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 439개가 통과했다. 실패·오류·건너뜀은 각각 0개였다. 저장 순서·암세포 복원·불러오기 실패 후 보드 보존·프리셋 검증을 포함한다.
+
+## 009. 암세포 셀 계약 분리 (#70)
+
+- 태영 / 2026-11-23 / [#70](https://github.com/DesignPattern8/DPTermProject/issues/70)
+- `refactor/70-cancer-cell`의 기준은 `origin/refactor/base`의 `ef8ee24`다.
+
+### 문제와 설계 선택
+
+`Cell`에 암세포 조회·설정·치료가 있어 `Neighborhood`, 보드 바깥의 `Cell.DUMMY`, 2인용의 `TwoPlayerResident`까지 `false`를 반환하거나 빈 메서드를 구현했다.
+
+| 후보 | 적용 범위와 비용 | 결정 |
+| --- | --- | --- |
+| A. 현행 `Cell` 유지 | 변경 파일 0개. 모든 `Cell` 구현이 암세포 메서드 세 개를 계속 제공한다. | 기각 |
+| B. `CancerCell extends Cell` | 하위 인터페이스 1개. 암세포를 지원하는 `Resident`가 구현하고 `Cell`로 탐색하는 곳에서 지원 여부를 확인한다. | 채택 |
+| C. `Cell.state()`로 일반화 | 공통 상태 계약과 모드별 표현을 설계하고 `Cell` 구현, 이웃 조회, 렌더러, 스냅샷 호출을 함께 이전해야 한다. | 이번 분리 범위가 커져 보류 |
+
+### 코드 변경과 협업 범위
+
+- [CancerCell](../Codes/GameOfLife/src/com/holub/life/model/CancerCell.java)에 `isCancer()`, `setCancer()`, `cureCancer()`를 옮겼다. `Resident`가 구현하고 복합 셀·DUMMY·2인용 셀의 빈 구현을 삭제했다. 일반 `Cell` 변수에서는 세 메서드를 직접 호출할 수 없다.
+- `Resident`는 살아 있는 이웃 중 암세포 기능을 지원하는 셀만 암세포로 셈한다. `CompositeBoard`는 기존 순회·복원 순서를 지키고 암 상태 조회와 적용에 `CancerCell`을 사용한다. `BoardRenderer`는 기존 `Resident` 분기에서 동일한 색을 선택한다.
+- `Cell.Memento`의 암 좌표 조회·기록은 `NeighborhoodState`의 실제 데이터이며 기존 `.life` 경로가 사용한다. [#71](https://github.com/DesignPattern8/DPTermProject/issues/71) 반영 후 모델 Memento 좌표는 `CellPosition`을 사용한다. 기존 `.life` 파일의 `Point` 인코딩과 복원 계약은 유지한다.
+- [#96](https://github.com/DesignPattern8/DPTermProject/pull/96)의 `b993a2f`와 대조했다. 같은 파일에서 #96은 `Resident.toggle()`과 `Neighborhood.treatAt()`을 수정한다. #70은 `Resident`의 타입 선언·이웃 조회와 `Neighborhood`의 빈 메서드를 변경했다. 클릭 제한·치료 범위와 횟수·게임 종료는 #96의 규칙 변경 범위다.
+
+### 실제 비용
+
+- 공통 `Cell` 메서드 14→11개. 인터페이스 1개 추가, 제품 Java 7개 파일에서 23줄 추가·49줄 삭제로 순감 26줄. 외부 의존성 추가 0개.
+- 살아 있는 이웃의 암 조회 전에 타입 확인 한 번을 추가했다. 새 위임 단계와 객체 생성은 0이다. 실행 시간은 측정하지 않았다.
+- [공개 계약](../Codes/GameOfLife/src/com/holub/life/model/docs/interfaces.md#암세포-셀-계약-70)과 기존 2인용 클래스 다이어그램을 코드에 맞췄다.
+
+### 검증 결과
+
+| 검증 | 결과 |
+| --- | --- |
+| 구현 전, 새 보드 가장자리 특성 테스트 포함 | 전체 358개 통과 |
+| 구현 후, 같은 보드 가장자리 테스트와 2인용 타입 계약 포함 | 전체 359개 통과, 실패·오류·건너뜀 각 0개 |
+| 잘못된 호출 | `javac`에서 일반 `Cell` 변수의 암세포 메서드 세 호출을 모두 컴파일 오류로 확인 |
+| #96 충돌 확인 | `129f6b3f..b993a2f` 전체 패치의 `git apply --check` 통과. 두 브랜치의 통합 테스트는 별도다. |
+
+JDK 26에서 `Codes/GameOfLife`의 `./gradlew test --no-daemon --rerun-tasks`를 실행했다. 일반·암세포·2인용 세대 규칙, 암세포 스냅샷과 `.life` 복원, 암세포 화면 색을 기존 테스트로 검증했다. [모델 테스트 기준](../Codes/GameOfLife/src/com/holub/life/model/docs/test-cases.md#암세포-셀-계약-분리-70)
+
+### 2026-11-24 · #71 반영 후 통합 검증
+
+[#106](https://github.com/DesignPattern8/DPTermProject/pull/106)이 병합된 `refactor/base`의 `1b53b40`을 #70 브랜치에 합쳤다. 모델 README의 두 링크와 이 문서의 두 기록을 모두 유지했다. 기준 브랜치에서 추가된 `PresetPlacementTest`·`SnapshotFileStoreTest`의 암세포 호출을 `Resident`로 좁혔다. #71의 `MementoCoordinateTest`는 `Resident`와 `CancerCell`로 암세포 기능의 지원 여부를 구분한다.
+
+JDK 26에서 `./gradlew test --no-daemon --rerun-tasks`로 전체 441개가 통과했다. 실패·오류·건너뜀은 각각 0개였다.

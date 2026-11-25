@@ -3,6 +3,7 @@ package com.holub.life.model;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Random;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -38,9 +39,9 @@ class CancerModelTest {
     board = new Neighborhood(8, new Neighborhood(8, new Resident()));
   }
 
-  static Cell cellAt(Neighborhood board, int row, int column) {
+  static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   private void cancerAt(int row, int column) {
@@ -98,6 +99,19 @@ class CancerModelTest {
     boolean born = cancerNeighbors == 3 || cancerNeighbors == 4;
     assertEquals(born, cell.isAlive());
     assertEquals(born, cell.isCancer());
+  }
+
+  @Test
+  @DisplayName("CAN-M15 보드 바깥 이웃이 있어도 가장자리에서 암세포가 태어난다")
+  void cancerIsBornAtBoardEdge() {
+    CompositeBoard composite = new CompositeBoard(board);
+    Set<CellPosition> cancer =
+        Set.of(new CellPosition(1, 5), new CellPosition(1, 6), new CellPosition(1, 7));
+    composite.restore(new BoardSnapshot(composite.rows(), composite.columns(), cancer, cancer));
+
+    composite.step();
+
+    assertTrue(composite.snapshot().cancerCells().contains(new CellPosition(0, 6)));
   }
 
   @Test
@@ -268,12 +282,9 @@ class CancerModelTest {
   }
 
   @Test
-  @DisplayName("CAN-M14 복합 셀과 DUMMY는 암세포가 되지 않는다")
-  void compositeAndDummyCellsAreNeverCancer() {
-    board.setCancer();
-    Cell.DUMMY.setCancer();
-
-    assertFalse(board.isCancer());
-    assertFalse(Cell.DUMMY.isCancer());
+  @DisplayName("CAN-M14 복합 셀과 DUMMY는 암세포 계약을 제공하지 않는다")
+  void compositeAndDummyCellsDoNotSupportCancer() {
+    assertFalse(CancerCell.class.isInstance(board));
+    assertFalse(Cell.DUMMY instanceof CancerCell);
   }
 }

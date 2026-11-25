@@ -16,7 +16,7 @@ import javax.swing.SwingUtilities;
  * 리스너를 하나만 달아 지금 모드의 {@link GameMode#tick()}만 부른다.
  *
  * <p>모든 모드의 tick과 모드 전환은 잠금 하나 안에서 돈다. 그래서 두 모드의 보드가 동시에 세대를 진행하지 않는다.
- * {@code Neighborhood}의 읽기 잠금·중첩 깊이가 {@code static}이라 두 보드가 동시에 진행하면 깨지기 때문이다(#74).
+ * {@code Neighborhood}의 전이 상태는 보드별로 분리했지만(#74), 한 번에 한 모드만 진행하는 실행 정책은 유지한다.
  */
 public final class ModeSwitch {
   private final Clock clock;

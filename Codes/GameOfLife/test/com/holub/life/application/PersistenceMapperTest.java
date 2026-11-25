@@ -4,24 +4,24 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.model.*;
 import com.holub.life.persistence.PatternData;
-import java.awt.Point;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 
 class PersistenceMapperTest {
   @Test
   void copiesMutableMemento() {
-    var point = new Point(6, 5);
+    var position = new CellPosition(5, 6);
     var state = new NeighborhoodState();
-    state.replaceCells(new ArrayList<>(List.of(point)), new HashSet<>(Set.of(new Point(point))));
+    state.replaceCells(new ArrayList<>(List.of(position)), new HashSet<>(Set.of(position)));
     var data = PersistenceMapper.capture(state);
-    point.move(0, 0);
+    state.liveCells().clear();
     state.cancerCells().clear();
     assertEquals(List.of(new CellPosition(5, 6)), data.cells());
     var restored = PersistenceMapper.restore(data);
-    ((Point) restored.liveCells().iterator().next()).move(1, 1);
+    restored.liveCells().clear();
+    restored.liveCells().add(new CellPosition(1, 1));
     assertEquals(List.of(new CellPosition(5, 6)), data.cells());
-    assertEquals(Set.of(new Point(6, 5)), restored.cancerCells());
+    assertEquals(Set.of(new CellPosition(5, 6)), restored.cancerCells());
   }
 
   @Test

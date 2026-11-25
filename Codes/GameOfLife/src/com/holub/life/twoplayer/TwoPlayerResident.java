@@ -1,9 +1,9 @@
 package com.holub.life.twoplayer;
 
 import com.holub.life.model.Cell;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Direction;
 import com.holub.life.model.NeighborhoodState;
-import java.awt.Point;
 
 /**
  * 2인용 셀 하나 (rules.md 3장, docs/006-two-player-cell.md 후보 F). 상태는 소유자 {@link Player}이고 null이면 DEAD다.
@@ -129,7 +129,7 @@ final class TwoPlayerResident implements Cell {
 
   /** 2인용 모드는 저장·불러오기를 지원하지 않는다. 아무것도 하지 않는다. */
   @Override
-  public boolean transfer(Memento memento, Point upperLeftCorner, boolean doLoad) {
+  public boolean transfer(Memento memento, CellPosition upperLeftCorner, boolean doLoad) {
     return false;
   }
 
@@ -138,18 +138,4 @@ final class TwoPlayerResident implements Cell {
   public NeighborhoodState createMemento() {
     throw new UnsupportedOperationException("May not create memento of a unitary cell");
   }
-
-  /** 2인용 모드에는 암세포가 없다. */
-  @Override
-  public boolean isCancer() {
-    return false;
-  }
-
-  /** 2인용 모드에는 암세포가 없다. 아무것도 하지 않는다. */
-  @Override
-  public void setCancer() {}
-
-  /** 2인용 모드에는 암세포가 없다. 아무것도 하지 않는다. */
-  @Override
-  public void cureCancer() {}
 }

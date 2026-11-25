@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.application.PersistenceMapper;
 import com.holub.life.model.Cell;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.NeighborhoodState;
 import com.holub.life.model.Resident;
@@ -18,9 +19,9 @@ class CancerCodecTest {
     return new Neighborhood(8, new Neighborhood(8, new Resident()));
   }
 
-  private static Cell cellAt(Neighborhood board, int row, int column) {
+  private static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   private static byte[] store(Neighborhood board) throws IOException {
@@ -33,7 +34,7 @@ class CancerCodecTest {
     Neighborhood board = newBoard();
     NeighborhoodState state =
         PersistenceMapper.restore(new LegacyLifeCodec().read(new ByteArrayInputStream(bytes)));
-    board.transfer(state, new Point(0, 0), Cell.LOAD);
+    board.transfer(state, new CellPosition(0, 0), Cell.LOAD);
     return board;
   }
 

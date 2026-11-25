@@ -5,7 +5,7 @@ import javax.swing.JComponent;
 
 /**
  * 1인용 암세포 게임 (cancer-feature-changes.md). 화면은 클래식과 같은 {@link BoardPanel}이고, {@link GameController}가
- * {@code CancerGame}을 갖는다는 점만 다르다. 이전에는 이 모드가 {@code Classic}이라는 이름이었다(ui/docs/010).
+ * {@code CancerGame}을 갖는다는 점만 다르다. 이전에는 이 모드가 {@code Classic}이라는 이름이었다(ui/docs/012).
  */
 public final class SinglePlayerMode implements GameMode {
   private final JComponent view;

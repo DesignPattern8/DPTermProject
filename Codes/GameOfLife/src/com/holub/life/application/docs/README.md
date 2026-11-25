@@ -1,6 +1,6 @@
 # 실행 도메인 (B)
 
-Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSource`(기본 `UtilTimerTickSource` = 기존 `java.util.Timer`)에서 받는다. GameController는 원본 Universe의 tick·편집·파일 작업 순서를 수행하고 보드 변경을 `GameListener`로 알린다(#44). 편집·세대 진행은 A의 `Board`를 통해 한 번에 하나씩 실행한다(#55).
+Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSource`(기본 `UtilTimerTickSource` = 기존 `java.util.Timer`)에서 받는다. GameController는 원본 Universe의 tick·편집·파일 작업 순서를 수행하고 보드 변경을 `GameListener`로 알린다(#44). 편집·세대 진행·저장·불러오기는 A의 `Board`를 통해 한 번에 하나씩 실행한다(#55, #88).
 
 - [설계 결정](001-domain-extraction.md)
 - [계약](interfaces.md)
@@ -11,6 +11,9 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 - [기존 패턴 분석과 GoF 리팩토링 (채택, #43·#44)](003-pattern-analysis.md)
 - [Board 연결과 보드 호출 직렬화 (채택, #55)](004-board-connection.md)
 - [Load 성공 후 적용·실패 상태 보존 (#63)](005-safe-load.md)
+- [모드별 실행 제어 — 현행 유지와 계약 문서화 (채택, #87)](006-mode-control.md)
+- [저장·불러오기를 Board 스냅샷 경로로 연결 (채택, #88)](007-snapshot-file-connection.md)
+- [프리셋 목록·배치 API (채택, #62)](008-preset-placement.md)
 - [#63 검증 결과](verification-063.md)
 - [검증 결과](verification.md)
 
@@ -22,3 +25,4 @@ Clock은 실행 시점과 속도(`Speed`)를 정하고, 시간 흐름은 `TickSo
 
 - [C Legacy 입력 허용 타입·자원 한도 (#65)](../../persistence/docs/005-legacy-input-policy.md): 지원하지 않는 타입·초과 입력은 IOException. B의 Load 실패 후 보드·Clock 정책은 #63에서 별도로 변경한다.
 - [C 안전한 Store 계약 (#64)](../../persistence/docs/004-atomic-file-replacement.md): capture는 임시 파일 준비 후 호출하며 저장 실패 시 기존 파일을 보존한다. Clock 정지·Store 무알림 계약은 유지한다.
+- [C 스냅샷 파일 API·블록 순서 (#92)](../../persistence/docs/006-snapshot-file-api.md): 크기를 받는 read와 writeSnapshot, 조립 시 블록 폭 설정을 제공한다. B는 #88에서 이 API에 연결하고 파일용 Cell 인자를 제거했다([007](007-snapshot-file-connection.md)). PersistenceMapper는 테스트 사용처가 남아 유지한다.

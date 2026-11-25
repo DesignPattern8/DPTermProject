@@ -4,8 +4,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.application.*;
 import com.holub.life.model.*;
+import java.awt.Cursor;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
+import java.io.File;
 import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,8 +29,7 @@ class BoardPanelTest {
   void clickTogglesCellUnderPointer() {
     Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
     CompositeBoard board = new CompositeBoard(cells);
-    GameController controller =
-        new GameController(board, cells, new Clock(new IdleTickSource()));
+    GameController controller = new GameController(board, new Clock(new IdleTickSource()));
     List<GameListener.Change> changes = new ArrayList<>();
     controller.addGameListener(changes::add);
     BoardPanel panel = new BoardPanel(cells, controller);
@@ -49,9 +50,9 @@ class BoardPanelTest {
     }
   }
 
-  private static Cell cellAt(Neighborhood board, int row, int column) {
+  private static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   private static MouseEvent press(BoardPanel panel, int x, int y, boolean right) {
@@ -76,8 +77,7 @@ class BoardPanelTest {
     for (int r = 54; r <= 56; r++) for (int c = 54; c <= 57; c++) cellAt(cells, r, c).setCancer();
     CancerGame cancer = new CancerGame(cells, new NoNewCancer());
     GameController controller =
-        new GameController(
-            new CompositeBoard(cells), cells, new Clock(new IdleTickSource()), cancer);
+        new GameController(new CompositeBoard(cells), new Clock(new IdleTickSource()), cancer);
     List<GameListener.Change> changes = new ArrayList<>();
     controller.addGameListener(changes::add);
     BoardPanel panel = new BoardPanel(cells, controller);
@@ -95,8 +95,7 @@ class BoardPanelTest {
     Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
     CancerGame cancer = new CancerGame(cells, new NoNewCancer());
     GameController controller =
-        new GameController(
-            new CompositeBoard(cells), cells, new Clock(new IdleTickSource()), cancer);
+        new GameController(new CompositeBoard(cells), new Clock(new IdleTickSource()), cancer);
     BoardPanel panel = new BoardPanel(cells, controller);
     panel.setSize(512, 512);
 
@@ -108,12 +107,12 @@ class BoardPanelTest {
   }
 
   @Test
-  @DisplayName("UI-R20 클래식 모드에서는 원본처럼 오른쪽 클릭도 셀을 토글한다")
+  @DisplayName("UI-R31 클래식 모드에서는 원본처럼 오른쪽 클릭도 셀을 토글한다")
   void rightClickTogglesInClassicMode() {
     Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
     CompositeBoard board = new CompositeBoard(cells);
     GameController controller =
-        new GameController(board, cells, new Clock(new IdleTickSource()));
+        new GameController(board, new Clock(new IdleTickSource()));
     List<GameListener.Change> changes = new ArrayList<>();
     controller.addGameListener(changes::add);
     BoardPanel panel = new BoardPanel(cells, controller);
@@ -123,5 +122,47 @@ class BoardPanelTest {
 
     assertEquals(Set.of(new CellPosition(25, 12)), board.snapshot().liveCells());
     assertEquals(List.of(GameListener.Change.EDITED), changes);
+  }
+
+  /** UI-R29 (#62, decision 010). */
+  @Test
+  void panelClickPlacesPresetAndRestoresCursor() {
+    Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    CompositeBoard board = new CompositeBoard(cells);
+    GameController controller = new GameController(board, new Clock(new IdleTickSource()));
+    UserDialogs dialogs =
+        new UserDialogs() {
+          @Override
+          public Optional<File> chooseFile(String selectButtonText) {
+            throw new AssertionError("not used");
+          }
+
+          @Override
+          public void showError(String message) {
+            fail("unexpected error: " + message);
+          }
+
+          @Override
+          public void showMessage(String message) {
+            throw new AssertionError("not used");
+          }
+        };
+    PresetPlacement placement = new PresetPlacement(controller, dialogs);
+    BoardPanel panel = new BoardPanel(cells, controller, placement);
+    panel.setSize(512, 512);
+
+    placement.select("glider");
+    assertEquals(Cursor.CROSSHAIR_CURSOR, panel.getCursor().getType());
+    panel.dispatchEvent(press(panel, 84, 84, false));
+
+    assertEquals(Cursor.DEFAULT_CURSOR, panel.getCursor().getType());
+    assertEquals(
+        Set.of(
+            new CellPosition(10, 11),
+            new CellPosition(11, 12),
+            new CellPosition(12, 10),
+            new CellPosition(12, 11),
+            new CellPosition(12, 12)),
+        board.snapshot().liveCells());
   }
 }

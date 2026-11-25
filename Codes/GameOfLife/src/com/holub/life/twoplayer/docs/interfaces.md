@@ -66,7 +66,7 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 - 구성: `Neighborhood(8, Neighborhood(8, TwoPlayerResident))`. `rows()` = `columns()` = 64. `CompositeBoard`·`Board`는 쓰지 않는다(006 W3).
 - `TwoPlayerBoard` 계약을 모두 지킨다(위 절).
 - `owner(row, column)`: 그 칸의 소유자. `DEAD`면 `Optional.empty()`. 범위 밖이면 `IndexOutOfBoundsException`. 테스트와 `TwoPlayerSession.snapshot()`이 쓴다. **`TwoPlayerBoard` 인터페이스에는 넣지 않았다**(#7, 007 결정 3: 렌더러는 세션 스냅숏만 읽고, 세션은 실제 보드 클래스를 안다. `StubBoard`는 바뀌지 않음).
-- 스레드: 한 번에 하나씩만 부른다. 내부 `Neighborhood`의 `static` 잠금(`model/Neighborhood.java:32`)을 클래식 보드와 공유한다(#74). 클래식 보드와 **동시에 세대를 진행하면 잠금 상태가 깨진다**(007 "#74 확인"). 앱에서는 `ModeSwitch`가 두 모드의 tick을 직렬화한다.
+- 스레드: 같은 보드의 호출은 한 번에 하나씩만 진행한다. #74에서 `Neighborhood`의 읽기 허가·전이 깊이를 보드별로 분리해 클래식 보드와 공유하지 않는다. 앱에서 두 모드의 tick을 직렬화하는 `ModeSwitch` 정책은 유지한다. [A 모델 계약](../../model/docs/interfaces.md)
 
 ## package-private: `TwoPlayerResident`
 
@@ -83,7 +83,7 @@ final class TwoPlayerResident implements Cell {
 - **"소유자 지정 → toggle" 규칙**: 칸을 살릴 때는 `prepareOwner(owner)`를 부른 뒤 반드시 루트 `Neighborhood.toggle(row, column)`으로 살린다. 셀의 상태만 바꾸면 그 블록이 활성으로 표시되지 않아 다음 세대에 계산되지 않는다(`model/Neighborhood.java:120-128`, `313-320`). `NeighborhoodTwoPlayerBoard.place`가 이 순서를 지킨다.
 - `toggle`: 살아 있으면 `DEAD`로, `DEAD`면 정해 둔 소유자의 산 셀로 바꾸고, 정해 둔 소유자는 지운다. 정해 둔 소유자 없이 `DEAD` 칸을 toggle하면 `DEAD` 그대로다. 살아 있는 칸을 toggle하면 죽이므로, `place`는 살아 있는 칸을 먼저 거부한다.
 - 전이: rules.md 3장. 이웃은 같은 보드의 `TwoPlayerResident` 또는 `Cell.DUMMY`(`DEAD`)다.
-- 저장·암 메서드: `transfer`는 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`, `isCancer`는 false, `setCancer`·`cureCancer`는 아무것도 안 함(2인용 저장 미지원, rules.md 8장).
+- 저장·암 메서드: #71에 따라 `transfer(Memento, CellPosition, boolean)`을 구현하며 AWT 좌표에 의존하지 않는다. `transfer`는 false(아무것도 안 함), `createMemento`는 `UnsupportedOperationException`, `isCancer`는 false, `setCancer`·`cureCancer`는 아무것도 안 함(2인용 저장 미지원, rules.md 8장).
 
 ---
 
@@ -182,7 +182,7 @@ public final class TwoPlayerSession {
 - `status()`의 조각: 단계(`Placement`, `Round r Simulation g/K`, `Round r Intervention`, `Game over: … (wipe out | rounds completed)`), 차례(`Turn: A`), 남은 개수(`Left A:x B:y`), 임시 배치(`Selected (r,c)`), 셀 수(`A:B = a:b`). 영어 한 줄.
 - 리스너: 입력 메서드(거부 포함)와 `newGame()` 뒤 1번, `tick()`은 세대를 진행했을 때만 1번. 잠금 밖에서, 그 메서드를 부른 스레드에서 부른다. 화면 갱신 스레드로 넘기는 것은 리스너의 일이다.
 - `snapshot()`: 잠금 안에서 64×64 소유자를 복사한다. 돌려받은 배열을 고쳐도 게임은 바뀌지 않는다.
-- 스레드: 모든 공개 메서드가 `synchronized`라 클릭(EDT)과 tick(시계 스레드)이 섞여도 `TwoPlayerGame`에는 하나씩 들어간다. 보드의 `static` 잠금 문제(#74)는 막지 않는다. 다른 보드와 동시에 세대를 진행하지 않는 것은 `ModeSwitch`의 일이다.
+- 스레드: 모든 공개 메서드가 `synchronized`라 클릭(EDT)과 tick(시계 스레드)이 섞여도 `TwoPlayerGame`에는 하나씩 들어간다. #74에서 모델의 전이 상태는 보드별로 분리됐다. 다른 모드와 동시에 세대를 진행하지 않는 앱 정책은 계속 `ModeSwitch`가 담당한다.
 
 ---
 

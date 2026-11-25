@@ -14,6 +14,14 @@ public final class BoardPanel extends JPanel {
   private final Cell outermostCell;
 
   public BoardPanel(Cell outermostCell, GameController controller) {
+    this(outermostCell, controller, null);
+  }
+
+  /**
+   * @param presets the Preset menu's placement state (decision 010), or null for a panel without
+   *     presets. While it waits, a click goes to it instead of toggle/treat.
+   */
+  public BoardPanel(Cell outermostCell, GameController controller, PresetPlacement presets) {
     this.outermostCell = outermostCell;
     final Dimension PREFERRED_SIZE =
         new Dimension(
@@ -50,12 +58,20 @@ public final class BoardPanel extends JPanel {
             bounds.x = 0;
             bounds.y = 0;
             CellPosition cell = GridCoordinateMapper.cellAt(outermostCell, e.getPoint(), bounds);
-            // Classic Life toggles on any button, as the original Universe did (ui/docs/010).
-            if (SwingUtilities.isRightMouseButton(e) && controller.hasCancerRules())
-              controller.treat(cell.row(), cell.column());
+            boolean right = SwingUtilities.isRightMouseButton(e);
+            if (presets != null && presets.click(cell, right)) return;
+            // Classic Life toggles on any button, as the original Universe did (ui/docs/012).
+            if (right && controller.hasCancerRules()) controller.treat(cell.row(), cell.column());
             else controller.toggle(cell.row(), cell.column());
           }
         });
+
+    if (presets != null)
+      presets.addWaitingListener(
+          waiting ->
+              setCursor(
+                  Cursor.getPredefinedCursor(
+                      waiting ? Cursor.CROSSHAIR_CURSOR : Cursor.DEFAULT_CURSOR)));
 
     // Edits redraw the whole board; generations redraw only the changed blocks, as before.
     controller.addGameListener(

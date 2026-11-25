@@ -21,7 +21,7 @@ Allen Holub의 원본 Game of Life와 같습니다(저장소 최초 커밋 `cb32
 
 - **셀 규칙:** Conway B3/S23. 보드 밖은 죽은 셀입니다.
 
-설계 근거: [ui/docs/010](Codes/GameOfLife/src/com/holub/life/ui/docs/010-classic-mode-restore.md)
+설계 근거: [ui/docs/012](Codes/GameOfLife/src/com/holub/life/ui/docs/012-classic-mode-restore.md)
 
 ### 1인용 — 암세포 게임
 
@@ -31,6 +31,7 @@ Allen Holub의 원본 Game of Life와 같습니다(저장소 최초 커밋 `cb32
 | --- | --- |
 | 왼쪽 클릭 | 셀 놓기/지우기 |
 | 오른쪽 클릭 | 클릭한 칸 중심 5×5 범위의 암세포 치료 |
+| Preset 메뉴 | 패턴을 고른 뒤 보드를 클릭하면 그 칸을 왼쪽 위로 배치(오른쪽 클릭은 취소). 1인용에서만 켜짐 |
 | Go 메뉴 | 연속 실행(Agonizing·Slow·Medium·Fast), Halt, Tick |
 | Grid 메뉴 | Clear, Load, Store, Exit |
 

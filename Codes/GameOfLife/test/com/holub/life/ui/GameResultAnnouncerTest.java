@@ -30,7 +30,7 @@ class GameResultAnnouncerTest {
     final List<String> messages = new ArrayList<>();
 
     @Override
-    public File chooseFile(String selectButtonText) {
+    public Optional<File> chooseFile(String selectButtonText) {
       throw new AssertionError("not used");
     }
 
@@ -45,16 +45,15 @@ class GameResultAnnouncerTest {
     }
   }
 
-  private static Cell cellAt(Neighborhood board, int row, int column) {
+  private static Resident cellAt(Neighborhood board, int row, int column) {
     Neighborhood block = (Neighborhood) board.childAt(row / 8, column / 8);
-    return block.childAt(row % 8, column % 8);
+    return (Resident) block.childAt(row % 8, column % 8);
   }
 
   private final Neighborhood board = new Neighborhood(8, new Neighborhood(8, new Resident()));
   private final GameController controller =
       new GameController(
           new CompositeBoard(board),
-          board,
           new Clock(new IdleTickSource()),
           new CancerGame(board, new NoNewCancer()));
   private final RecordingDialogs dialogs = new RecordingDialogs();

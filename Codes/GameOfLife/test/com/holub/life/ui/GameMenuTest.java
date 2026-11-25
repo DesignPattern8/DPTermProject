@@ -4,7 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.holub.life.application.*;
 import com.holub.life.model.*;
-import java.awt.Point;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -63,34 +62,46 @@ class GameMenuTest {
       board.toggle(10, 10);
       board.toggle(10, 11);
       Clock clock = new Clock(new UtilTimerTickSource(timer));
-      GameController controller = new GameController(new CompositeBoard(board), board, clock);
+      GameController controller = new GameController(new CompositeBoard(board), clock);
       menus.setSelectedPath(new MenuElement[] {new JMenu("Go")});
       GameMenu.onTick(controller);
-      assertTrue(board.createMemento().isAlive(new Point(9, 10)));
+      assertTrue(board.createMemento().isAlive(new CellPosition(10, 9)));
       menus.clearSelectedPath();
       GameMenu.onTick(controller);
-      assertFalse(board.createMemento().isAlive(new Point(9, 10)));
-      assertTrue(board.createMemento().isAlive(new Point(10, 9)));
+      assertFalse(board.createMemento().isAlive(new CellPosition(10, 9)));
+      assertTrue(board.createMemento().isAlive(new CellPosition(9, 10)));
     } finally {
       menus.clearSelectedPath();
       timer.cancel();
     }
   }
 
+  // ---- UI-R30: the clock is wired only through ModeSwitch (decision 011, #102) ----
+
+  @Test
+  void gameMenuHasNoDirectClockWiring() {
+    // Given the menu class; When looking up the old entry point that also added a clock listener
+    // Then it is gone, so nobody can attach a second tick path next to ModeSwitch (006 M2).
+    assertThrows(
+        NoSuchMethodException.class,
+        () ->
+            GameMenu.class.getMethod(
+                "install", BoardPanel.class, GameController.class, Clock.class));
+  }
+
   // ---- UI-R01~R09: menu entry table and injected dialogs (ui/docs/test-cases.md) ----
 
-  /** Records requested button texts and shown errors; returns a preset file or throws. */
+  /** Records requested button texts and shown errors; returns a preset file, or nothing when cancelled. */
   private static class RecordingDialogs implements UserDialogs {
     File choice;
-    FileNotFoundException failure;
+    boolean cancelled;
     final List<String> buttons = new ArrayList<>();
     final List<String> errors = new ArrayList<>();
 
     @Override
-    public File chooseFile(String selectButtonText) throws FileNotFoundException {
+    public Optional<File> chooseFile(String selectButtonText) {
       buttons.add(selectButtonText);
-      if (failure != null) throw failure;
-      return choice;
+      return cancelled ? Optional.empty() : Optional.of(choice);
     }
 
     @Override
@@ -123,8 +134,7 @@ class GameMenuTest {
   private final Neighborhood board = new Neighborhood(8, new Neighborhood(8, new Resident()));
   private final RecordingTickSource ticks = new RecordingTickSource();
   private final Clock clock = new Clock(ticks);
-  private final GameController controller =
-      new GameController(new CompositeBoard(board), board, clock);
+  private final GameController controller = new GameController(new CompositeBoard(board), clock);
   private final RecordingDialogs dialogs = new RecordingDialogs();
   private final int[] exits = {0};
   private final List<GameMenu.Entry> entries =
@@ -139,7 +149,7 @@ class GameMenuTest {
     fail("Missing menu entry: " + menu + " / " + label);
   }
 
-  private Set<Point> liveCells() {
+  private Set<CellPosition> liveCells() {
     return new HashSet<>(board.createMemento().liveCells());
   }
 
@@ -178,7 +188,7 @@ class GameMenuTest {
     board.toggle(10, 9);
     board.toggle(10, 10);
     board.toggle(10, 11);
-    Set<Point> blinker = liveCells();
+    Set<CellPosition> blinker = liveCells();
     File file = directory.resolve("blinker.life").toFile();
     controller.store(file);
     board.clear();
@@ -195,7 +205,7 @@ class GameMenuTest {
     board.toggle(3, 4);
     board.toggle(30, 31);
     board.toggle(60, 2);
-    Set<Point> stored = liveCells();
+    Set<CellPosition> stored = liveCells();
     File file = directory.resolve("out.life").toFile();
     dialogs.choice = file;
     run("Grid", "Store");
@@ -209,7 +219,7 @@ class GameMenuTest {
   @Test
   void loadFailureShowsReadFailed() throws Exception {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
+    Set<CellPosition> before = liveCells();
     Path file = directory.resolve("bad.life");
     Files.write(file, new byte[] {1, 2, 3, 4});
     dialogs.choice = file.toFile();
@@ -221,7 +231,7 @@ class GameMenuTest {
   @Test
   void storeFailureShowsWriteFailed() {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
+    Set<CellPosition> before = liveCells();
     dialogs.choice = directory.toFile();
     run("Grid", "Store");
     assertEquals(List.of("Write Failed!"), dialogs.errors);
@@ -229,14 +239,27 @@ class GameMenuTest {
   }
 
   @Test
-  void cancelKeepsOriginalFailureMessage() {
+  void cancelDoesNothing() {
     board.toggle(5, 6);
-    Set<Point> before = liveCells();
-    dialogs.failure = new FileNotFoundException("No file selected by user");
+    Set<CellPosition> before = liveCells();
+    List<GameListener.Change> changes = new ArrayList<>();
+    controller.addGameListener(changes::add);
+    dialogs.cancelled = true;
     run("Grid", "Load");
     run("Grid", "Store");
     assertEquals(before, liveCells());
-    assertEquals(List.of("Read Failed!", "Write Failed!"), dialogs.errors);
+    assertTrue(changes.isEmpty());
+    assertEquals(List.of(), dialogs.errors);
+  }
+
+  @Test
+  void missingChosenFileStillShowsReadFailed() {
+    board.toggle(5, 6);
+    Set<CellPosition> before = liveCells();
+    dialogs.choice = directory.resolve("missing.life").toFile();
+    run("Grid", "Load");
+    assertEquals(List.of("Read Failed!"), dialogs.errors);
+    assertEquals(before, liveCells());
   }
 
   @Test
@@ -263,11 +286,11 @@ class GameMenuTest {
   }
 
   @Test
-  @DisplayName("UI-R25 Grid 메뉴의 Clear는 지금 모드의 컨트롤러에 간다")
+  @DisplayName("UI-R36 Grid 메뉴의 Clear는 지금 모드의 컨트롤러에 간다")
   void gridEntriesFollowActiveController() {
     Neighborhood singleBoard = new Neighborhood(8, new Neighborhood(8, new Resident()));
     GameController single =
-        new GameController(new CompositeBoard(singleBoard), singleBoard, clock);
+        new GameController(new CompositeBoard(singleBoard), clock);
     board.toggle(1, 1);
     singleBoard.toggle(2, 2);
     GameController[] active = {single};
@@ -277,11 +300,11 @@ class GameMenuTest {
         routed.stream().filter(e -> e.label().equals("Clear")).findFirst().orElseThrow();
 
     clear.action().actionPerformed(null);
-    assertFalse(singleBoard.createMemento().isAlive(new Point(2, 2)), "1인용 보드가 빈다");
-    assertTrue(board.createMemento().isAlive(new Point(1, 1)), "클래식 보드는 그대로");
+    assertFalse(singleBoard.createMemento().isAlive(new CellPosition(2, 2)), "1인용 보드가 빈다");
+    assertTrue(board.createMemento().isAlive(new CellPosition(1, 1)), "클래식 보드는 그대로");
 
     active[0] = controller;
     clear.action().actionPerformed(null);
-    assertFalse(board.createMemento().isAlive(new Point(1, 1)), "이제 클래식 보드가 빈다");
+    assertFalse(board.createMemento().isAlive(new CellPosition(1, 1)), "이제 클래식 보드가 빈다");
   }
 }

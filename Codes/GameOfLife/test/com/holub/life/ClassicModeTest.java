@@ -7,6 +7,7 @@ import com.holub.life.application.Clock;
 import com.holub.life.application.GameController;
 import com.holub.life.application.GameListener;
 import com.holub.life.application.TickSource;
+import com.holub.life.model.CellPosition;
 import com.holub.life.model.CompositeBoard;
 import com.holub.life.model.Neighborhood;
 import com.holub.life.model.Resident;
@@ -23,7 +24,7 @@ import javax.swing.JPanel;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-/** UI-R21~R24: 원본 클래식 모드와 1인용(암세포) 모드 분리 (ui/docs/test-cases.md, ui/docs/010). */
+/** UI-R32~R24: 원본 클래식 모드와 1인용(암세포) 모드 분리 (ui/docs/test-cases.md, ui/docs/012). */
 class ClassicModeTest {
   private static final class IdleTicks implements TickSource {
     @Override
@@ -53,19 +54,18 @@ class ClassicModeTest {
   }
 
   private GameController classicController(Neighborhood board) {
-    return new GameController(new CompositeBoard(board), board, clock);
+    return new GameController(new CompositeBoard(board), clock);
   }
 
   private GameController singlePlayerController(Neighborhood board, Random random) {
-    return new GameController(
-        new CompositeBoard(board), board, clock, new CancerGame(board, random));
+    return new GameController(new CompositeBoard(board), clock, new CancerGame(board, random));
   }
 
   private static Set<Point> liveCells(Neighborhood board) {
     Set<Point> live = new HashSet<>();
     var memento = board.createMemento();
     for (int r = 0; r < 64; r++)
-      for (int c = 0; c < 64; c++) if (memento.isAlive(new Point(c, r))) live.add(new Point(c, r));
+      for (int c = 0; c < 64; c++) if (memento.isAlive(new CellPosition(r, c))) live.add(new Point(c, r));
     return live;
   }
 
@@ -80,7 +80,7 @@ class ClassicModeTest {
   }
 
   @Test
-  @DisplayName("UI-R21 클래식 모드는 원본 B3/S23대로 진행하고 암세포를 만들지 않는다")
+  @DisplayName("UI-R32 클래식 모드는 원본 B3/S23대로 진행하고 암세포를 만들지 않는다")
   void classicModeFollowsOriginalRulesWithoutCancer() {
     Neighborhood board = newBoard();
     // R-펜토미노: 오래 변하는 패턴이라 300세대 동안 많은 경우를 지난다.
@@ -103,7 +103,7 @@ class ClassicModeTest {
   }
 
   @Test
-  @DisplayName("UI-R22 메뉴 이름은 Classic과 Single Player로 나뉘고 둘 다 파일 명령을 쓴다")
+  @DisplayName("UI-R33 메뉴 이름은 Classic과 Single Player로 나뉘고 둘 다 파일 명령을 쓴다")
   void modesHaveDistinctMenuNames() {
     ClassicMode classic = new ClassicMode(new JPanel(), classicController(newBoard()));
     Neighborhood board = newBoard();
@@ -117,7 +117,7 @@ class ClassicModeTest {
   }
 
   @Test
-  @DisplayName("UI-R23 1인용 모드의 tick은 암세포 규칙을 적용한다")
+  @DisplayName("UI-R34 1인용 모드의 tick은 암세포 규칙을 적용한다")
   void singlePlayerTickAppliesCancerRules() {
     Neighborhood board = newBoard();
     int[][] block = {{20, 20}, {20, 21}, {21, 20}, {21, 21}};
@@ -131,7 +131,7 @@ class ClassicModeTest {
   }
 
   @Test
-  @DisplayName("UI-R24 클래식과 1인용은 각자 보드를 갖고, 선택한 모드의 보드만 진행한다")
+  @DisplayName("UI-R35 클래식과 1인용은 각자 보드를 갖고, 선택한 모드의 보드만 진행한다")
   void onlySelectedModeAdvances() {
     Neighborhood classicBoard = newBoard();
     Neighborhood singleBoard = newBoard();

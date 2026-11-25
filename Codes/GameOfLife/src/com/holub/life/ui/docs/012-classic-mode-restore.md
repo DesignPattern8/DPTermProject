@@ -1,4 +1,4 @@
-# [010] 원본 클래식 모드 복원과 1인용 모드 분리
+# [012] 원본 클래식 모드 복원과 1인용 모드 분리
 
 - 상태: 채택
 - 작성자: Son2kwon / 2026-11-25 / 브랜치 `feature/classic-mode`
@@ -54,7 +54,7 @@
 | 간접성 | 없음 (클래식 tick = `GameController.tick` 첫 분기, 기존과 같음) | tick마다 플래그 검사 +1 | 규칙 호출 +1 (클래식에서도) | 위임 +1 |
 | 결합도 | 변화 없음 (`ui`는 이미 `GameController`에 의존) | `ui` → `CancerGame` 직접 의존 추가 | 변화 없음 | 변화 없음 |
 | 런타임 비용 | 보드 한 벌 추가 (시작 시 1회 생성). tick 비용 변화 없음 | 없음 | 클래식 tick마다 빈 호출 3번 | 위임 1번 |
-| 테스트 용이성 | 두 모드 모두 창 없이 (UI-R21~R24) | 켜기/끄기 전환 케이스가 추가로 필요 | 같음 | 같음 |
+| 테스트 용이성 | 두 모드 모두 창 없이 (UI-R32~R24) | 켜기/끄기 전환 케이스가 추가로 필요 | 같음 | 같음 |
 | 확장 비용 (모드 1개 추가) | `GameMode` 구현 1 + `Life` 조립 1곳 | 플래그가 늘어날 때마다 조합 폭발 | A와 같음 | A와 같음 |
 
 **A를 채택한다.** 클래식이 원본과 같은 코드 경로를 탄다는 것이 이번 과제 조건의 핵심이고, 이를 바꾸지 않는 것은 A뿐이다. B는 끌 때 남은 암세포가 원본 진행을 바꾼다. C·D는 원본 경로를 고치는 리팩토링이라 "기존 동작을 바꾸지 않는다"(AGENTS 3-2 1)와 충돌한다.
@@ -85,6 +85,20 @@
 | C. 입력 Strategy (`MouseBinding`) | 모드마다 클릭 처리 객체 | 기각. 분기 하나에 타입 2~3개. twoplayer/007 후보 B에서 이미 같은 이유로 보류 |
 | D. `treat`가 `false`면 `toggle` | `BoardPanel`만 수정 | 기각. 1인용에서 치료가 거부되면(암세포 10개 이하 등, #96) 셀이 토글된다 — 1인용 동작이 바뀐다 |
 
+## 결정 4. Preset 메뉴(#62, [010](010-preset-placement-ui.md))를 어느 모드에 둘까
+
+`main` 병합 중 추가한 결정이다. #62는 그때의 `Classic`(= 암세포 게임) 화면에 Preset 메뉴를 붙였고 "2인용에서 비활성"으로 정했다. 이번 PR에서 그 화면은 1인용이 되었다.
+
+| 후보 | 구조 | 판단 |
+| --- | --- | --- |
+| A. 1인용에만 | `PresetPlacement`를 1인용 컨트롤러로 만들어 1인용 `BoardPanel`에만 넘긴다. Preset 메뉴는 1인용일 때만 켠다 | **채택**. #62가 붙였던 화면(암세포 게임)을 그대로 따라가고, 클래식은 원본에 없는 메뉴 동작이 없다 |
+| B. 클래식·1인용 둘 다 | 모드마다 `PresetPlacement`, 메뉴는 지금 모드의 것으로 보냄 | 기각. 클래식에 원본에 없는 입력 상태(배치 대기 중 클릭 가로채기)가 생겨 과제 조건과 어긋난다. `PresetPlacement`도 Supplier로 감싸야 한다 |
+| C. 클래식에만 | 이름만 보고 #62를 클래식에 둠 | 기각. B와 같은 이유 |
+
+- 구현: `GameMenu.installMenus(panel, Supplier<GameController> active, clock, presetController, placement)`. Preset 항목은 `presetController`(1인용)의 목록, `placement == null`이면 Preset 메뉴를 달지 않는다.
+- 메뉴 자체는 늘 보이고, 클래식·2인용에서는 꺼져 있다(`setPresetsEnabled`). 시작 화면이 클래식이라 처음에는 꺼져 있다.
+- `NativeUiSmoke`의 프리셋 단계는 Mode → Single Player로 바꾼 뒤 1인용 보드에서 확인하도록 옮겼다. 클래식에서는 Preset이 꺼져 있는지 확인한다.
+
 ## 전/후 비교
 
 ```
@@ -112,8 +126,9 @@ BoardPanel 오른쪽 클릭 = treat              BoardPanel 오른쪽 클릭 = h
 
 ## 검증
 
-- `./gradlew test`: 342개 통과, 실패 0 (2026-11-25, macOS, JDK 26). 새 테스트 UI-R20~R25 포함, 기존 테스트는 수정·비활성화하지 않았다.
-- `NativeUiSmoke`(실제 창): 시작 화면이 클래식이고 Mode 메뉴에 Classic / Single Player / 2 Players가 있으며, 클래식 보드에서 마우스 토글·Tick·Store·Clear·Load·잘못된 파일 Load가 원본처럼 동작함을 확인. 출력 `PASS: launch, 10 menu items, 3 modes, mouse, Tick, Store unique coordinates, Clear, Load, cancel error, invalid-load preservation`.
+- 처음 구현(`main` `c321d15` 기준): `./gradlew test` 342개 통과, 실패 0.
+- `main`(`3cb0862`, #62 프리셋·#88 스냅샷·#102 등) 병합 후: `./gradlew test` **454개 통과, 실패 0** (2026-11-25, macOS, JDK 26). 새 테스트 UI-R31~R36 포함, 기존 테스트는 수정·비활성화하지 않았다(생성자 인자·좌표 타입을 main 계약에 맞춘 것만 내 테스트에서 고침).
+- `NativeUiSmoke`(실제 창): 출력 `PASS: launch, 10 menu items, 3 modes, mouse, Tick, Store unique coordinates, Clear, Load, cancel without error, invalid-load preservation, single-player preset glider`.
 
 ## 후속 작업
 

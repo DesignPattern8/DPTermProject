@@ -16,15 +16,20 @@
 | [007-renderer-dispatch](007-renderer-dispatch.md) | 채택(현행 유지) | 렌더러 셀 타입 분기. 008에서 재검토 후 유지 |
 | [008-board-api-boundary](008-board-api-boundary.md) | 채택 | A의 Board API: 클릭 경계만 `CellPosition`, 렌더러는 트리 유지 |
 | [009-game-result-dialog](009-game-result-dialog.md) | 채택 | 암세포 게임 결과 메시지를 `UserDialogs.showMessage` + `GameResultAnnouncer`로 |
-| [010-classic-mode-restore](010-classic-mode-restore.md) | 채택 | 원본 Life 클래식 모드 복원, 암세포 게임은 `SinglePlayerMode`로 분리, Grid 메뉴는 지금 모드의 컨트롤러로 |
+| [010-preset-placement-ui](010-preset-placement-ui.md) | 채택 | `Preset` 메뉴 + `PresetPlacement`(배치 대기), 2인용에서 비활성 (#62) |
+| [011-remove-gamemenu-install](011-remove-gamemenu-install.md) | 채택 | 호출처 없는 `GameMenu.install` 삭제, tick 연결은 `ModeSwitch` 하나 (#102, B 006 M2). 2인용 007의 `install` 언급은 이 문서로 대체 |
+| [012-classic-mode-restore](012-classic-mode-restore.md) | 채택 | 원본 Life 클래식 모드 복원, 암세포 게임은 `SinglePlayerMode`로 분리, Grid 메뉴는 지금 모드의 컨트롤러로 |
 
 001-screen-update~004는 #25 이전 구조(`68ad5e6`)에서 쓴 초안이다. 번호가 001-domain-extraction과 겹치지만 AGENTS.md 2-3에 따라 지우지 않고 상태만 바꿨다. 초안 코드(`ActiveBlockDecorator` 등 4개)는 #45 병합 커밋에서 제거했고 커밋 `4eeaa8b`에 남아 있다.
 
-- 다이어그램: [005-before](diagrams/005-before.puml) / [005-after](diagrams/005-after.puml), [009-before](diagrams/009-before.puml) / [009-after](diagrams/009-after.puml)
+- 다이어그램: [005-before](diagrams/005-before.puml) / [005-after](diagrams/005-after.puml), [009-before](diagrams/009-before.puml) / [009-after](diagrams/009-after.puml), [010-after](diagrams/010-after.puml)
+- 시퀀스 다이어그램 (`refactor/base` `ef8ee24` 기준)
+  - [seq-click-toggle](diagrams/seq-click-toggle.puml): 클릭 → `cellAt` → `GameController.toggle`/`treat` → `EDITED` → `repaint` → `BoardRenderer` (EDT)
+  - [seq-game-over](diagrams/seq-game-over.puml): 시계 tick → `ModeSwitch` → `ClassicMode` → `GameController.tick`(세대 진행·암 규칙) → `GENERATION`/`EDITED`/`GAME_OVER` → `GameResultAnnouncer` → `invokeLater` → 결과 창
 
 ### 암세포 기능(#60)이 바꾼 화면 동작
 
-010부터 아래 동작은 **1인용(`Single Player`) 모드에서만** 적용된다. 클래식 모드는 원본처럼 어느 버튼이든 토글이다(UI-R20).
+[012](012-classic-mode-restore.md)부터 아래 동작과 Preset 메뉴([010](010-preset-placement-ui.md))는 **1인용(`Single Player`) 모드에서만** 적용된다. 클래식 모드는 원본처럼 어느 버튼이든 토글이다(UI-R31).
 
 | 입력·알림 | 처리 | 테스트 |
 | --- | --- | --- |
@@ -39,7 +44,7 @@
 - [계약](interfaces.md)
 - [클래식 보드 연동 기준](../../model/docs/interfaces.md#후속-작업-인계)
 - [테스트](test-cases.md)
-- 게임 모드 전환(`GameMode`·`ModeSwitch`·`ClassicMode`, Mode 메뉴)의 처음 결정은 2인용 UI 통합(#7)이 주도한 결정이라 2인용 쪽에 있다: [twoplayer/007](../../twoplayer/docs/007-two-player-ui.md), 계약은 [interfaces.md](interfaces.md#게임-모드-전환-gamemode-modeswitch-classicmode-singleplayermode). 클래식·1인용 분리는 [010](010-classic-mode-restore.md)
+- 게임 모드 전환(`GameMode`·`ModeSwitch`·`ClassicMode`, Mode 메뉴)의 처음 결정은 2인용 UI 통합(#7)이 주도한 결정이라 2인용 쪽에 있다: [twoplayer/007](../../twoplayer/docs/007-two-player-ui.md), 계약은 [interfaces.md](interfaces.md#게임-모드-전환-gamemode-modeswitch-classicmode-singleplayermode). 클래식·1인용 분리는 [012](012-classic-mode-restore.md)
 
 - [전체 이전 구조·전후 UML](../../application/docs/002-domain-layout.md)
 - [검증 결과](../../application/docs/verification.md)
