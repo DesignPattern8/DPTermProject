@@ -67,10 +67,11 @@ public final class GameResultAnnouncer implements GameListener {
 - `SwingUserDialogs.showMessage`: `JOptionPane.showMessageDialog(messageParent, message, "Game of Life", INFORMATION_MESSAGE)`. 이벤트 스레드에서 부른다. `showError`는 계속 부모 없이(`null`) 띄운다(원본).
 - 사용하는 다른 도메인 API(#60): B `GameController.treat(int, int)`, `GameController.gameResultMessage()`, `GameListener.Change.GAME_OVER`, A `Resident.isCancer()` (`CancerCell` 계약).
 
-# 게임 모드 전환 (`GameMode`, `ModeSwitch`, `ClassicMode`)
+# 게임 모드 전환 (`GameMode`, `ModeSwitch`, `ClassicMode`, `SinglePlayerMode`)
 
 - 제공 ui / 사용 조립 지점(`LifeFrame`, `Life`), 2인용(`twoplayer.ui.TwoPlayerMode`) / 담당 Son2kwon
 - 변경 이력: 2026-11-16, 최초 작성 (#7). 설계 근거: [twoplayer/007](../../twoplayer/docs/007-two-player-ui.md)
+- 변경 이력: 2026-11-25, 클래식 모드 복원. `ClassicMode`는 암 규칙 없는 컨트롤러(원본 Life)에 붙이고, 암세포 게임은 `SinglePlayerMode`("Single Player")로 분리. `GameMenu.entries/installMenus(Supplier<GameController>, ...)` 추가, `LifeFrame(Cell, GameController, Clock, List)` → `LifeFrame(Cell, GameController, Cell, GameController, Clock, List)`. 설계 근거: [012](012-classic-mode-restore.md)
 
 ```java
 public interface GameMode {
@@ -88,16 +89,28 @@ public final class ModeSwitch {
 }
 public final class ClassicMode implements GameMode {
   public ClassicMode(JComponent view, GameController controller);  // "Classic", tick = controller.tick(), 파일 명령 true
+}                                                                  // controller는 암 규칙 없음(원본 Life)
+public final class SinglePlayerMode implements GameMode {
+  public SinglePlayerMode(JComponent view, GameController controller); // "Single Player", controller는 CancerGame 포함
 }
 // 추가: GameMenu.installMenus(panel, controller, clock), GameMenu.setFileCommandsEnabled(panel, enabled)
-// 추가: LifeFrame(Cell, GameController, Clock, List<GameMode> otherModes)
+// 추가: GameMenu.entries(Supplier<GameController> active, clock, dialogs, exit)
+//       GameMenu.installMenus(panel, Supplier<GameController> active, clock,
+//                             GameController presetController, PresetPlacement placement)
+//         // Clear·Load·Store는 누른 순간의 active로, Preset은 presetController로. placement == null이면 Preset 메뉴 없음
+// 변경: LifeFrame(Cell classicBoard, GameController classic, Cell singleBoard, GameController single,
+//                 Clock clock, List<GameMode> otherModes)  // singleBoard == null이면 1인용 없음
+// 유지: LifeFrame(Cell, GameController, Clock)  // 클래식만, Mode 메뉴 없음
 ```
 
 - `ModeSwitch`는 만들 때 시계에 리스너를 하나 단다. tick마다 메뉴가 열려 있으면 건너뛰고(기존 `onTick`과 같음), 아니면 잠금 안에서 지금 모드의 `tick()`만 부른다.
 - `select`: 시계를 멈추고 → 잠금을 잡아(진행 중인 tick이 끝나길 기다림) 지금 모드를 바꾸고 → 카드를 바꾸고 창을 `pack()`하고 → `fileCommandsEnabled`에 새 모드의 값을 넘긴다. 등록하지 않은 모드면 `IllegalArgumentException`.
 - 모든 모드의 tick과 전환이 한 잠금 안에서 돌므로 두 모드의 보드가 동시에 세대를 진행하지 않는다. #74에서 `Neighborhood`의 읽기 허가·전이 깊이는 보드별로 분리했으며, 이 앱 실행 정책은 그대로 유지한다. [A 모델 계약](../../model/docs/interfaces.md)
 - `GameMode.tick()`은 시계 스레드(Go → Tick이면 EDT)에서 잠금을 잡은 채 불린다. 오래 걸리면 모드 전환이 기다린다. 다른 스레드를 기다리는 일(예: `invokeAndWait`)을 하면 안 된다.
-- ~~`GameMenu.install`은 원래 동작 그대로다(Grid·Go 메뉴 + 클래식 tick 리스너).~~ → 2026-11-24 #102에서 삭제([011](011-remove-gamemenu-install.md)). 시계 리스너는 `ModeSwitch`만 단다. `LifeFrame`은 `installMenus` + `ModeSwitch`를 쓴다. `otherModes`가 비어 있으면 Mode 메뉴를 달지 않는다.
+- ~~`GameMenu.install`은 원래 동작 그대로다(Grid·Go 메뉴 + 클래식 tick 리스너).~~ → 2026-11-24 #102에서 삭제([011](011-remove-gamemenu-install.md)). 시계 리스너는 `ModeSwitch`만 단다. `LifeFrame`은 `installMenus` + `ModeSwitch`를 쓴다. `LifeFrame`은 클래식으로 시작하고 Mode 메뉴에 Classic → Single Player → `otherModes` 순으로 단다. 고를 모드가 클래식 하나뿐이면 Mode 메뉴를 달지 않는다.
+- Grid 메뉴는 한 벌만 단다(요청자 = 클래식 `BoardPanel`). Clear·Load·Store는 누른 순간 `ModeSwitch.current()`에 대응하는 컨트롤러로 간다. 2인용에는 컨트롤러가 없지만 그때는 파일 명령이 꺼져 있다.
+- `BoardPanel`의 오른쪽 클릭은 `controller.hasCancerRules()`일 때만 치료(`treat`)이고, 아니면 원본처럼 토글이다.
+- Preset 메뉴는 1인용 컨트롤러·`PresetPlacement`에 묶이고 1인용에서만 켜진다. 클래식·2인용에서는 꺼진다(012). 시작 화면이 클래식이라 처음에는 꺼져 있다.
 - `setFileCommandsEnabled`는 Grid의 Clear·Load·Store만 켜고 끈다. Exit은 그대로.
 
 # 프리셋 선택·배치 (#62)

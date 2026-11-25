@@ -87,3 +87,18 @@ GameMenuTest는 기존 속도 매핑·메뉴 선택 중 tick 차단을 검증한
 | UI-R30 | 경계 | 시계 tick 연결 경로가 `ModeSwitch` 하나뿐인지 확인 (`GameMenu`에 시계 리스너를 직접 다는 공개 진입점이 없음, 006 M2) | `GameMenu` 클래스의 공개 메서드 목록 | `install(BoardPanel, GameController, Clock)`이 없다(`NoSuchMethodException`) | `GameMenuTest#gameMenuHasNoDirectClockWiring` |
 
 - 그대로 통과해야 하는 기존 테스트: UI-R01(메뉴 10개), UI-R09(Go 항목), `GameMenuTest#openMenuSuppressesTick`(메뉴 열림 시 tick 무시, `onTick`), 2인용 TP-U-11(2인용 모드에서 클래식 보드 정지)·TP-U-16(메뉴 열림 시 2인용 tick 무시), `NativeUiSmoke`(EXT-N01).
+
+## 클래식 모드 복원 · 1인용 모드 분리 (결정 [012](012-classic-mode-restore.md))
+
+구현 전에 정의한다. 과제 조건: 원본(Holub) Life를 바꾸지 않은 **클래식 모드**를 따로 제공하고, 지금까지 `Classic`이라는 이름으로 돌던 암세포 게임은 **1인용(`Single Player`) 모드**로 옮긴다. 원본 기준은 저장소 최초 커밋 `cb32b00`의 `Universe.java`·`Resident.java`다(마우스 버튼 구분 없이 토글, B3/S23, 암세포 없음). 모두 창 없이 실행한다.
+
+기존 UI-R13~R15(클릭·치료), UI-R21~R29(프리셋), TP-U-08(2인용 → 클래식 복귀)은 수정하지 않고 그대로 통과해야 한다.
+
+| ID | 분류 | 목적 | 입력/초기 상태 | 기대 결과 | 테스트 메서드 |
+| --- | --- | --- | --- | --- | --- |
+| UI-R31 | 정상(특성) | 클래식 모드에서는 원본처럼 오른쪽 클릭도 셀을 토글하는지 확인 | 암 규칙 없는 컨트롤러, 512px 패널, 픽셀 (100, 200) 오른쪽 버튼 `MOUSE_PRESSED` | 살아 있는 셀 = {(행 25, 열 12)}, 알림 `EDITED` 1회 | `BoardPanelTest#rightClickTogglesInClassicMode` |
+| UI-R32 | 정상 | 클래식 모드의 tick이 원본 B3/S23과 같게 진행하고 암세포를 만들지 않는지 확인 | R-펜토미노(가운데), `ClassicMode.tick()` 300번 | 매 세대 `ReferenceLife`와 같은 셀, 암세포 0개, `GAME_OVER` 알림 0회 | `ClassicModeTest#classicModeFollowsOriginalRulesWithoutCancer` |
+| UI-R33 | 정상 | 메뉴 이름이 Classic / Single Player로 나뉘는지 확인 | `ClassicMode`, `SinglePlayerMode` | `menuName()` = `"Classic"`, `"Single Player"`, 둘 다 파일 명령 사용 | `ClassicModeTest#modesHaveDistinctMenuNames` |
+| UI-R34 | 정상 | 1인용 모드의 tick은 암세포 규칙을 적용하는지 확인 | 블록(2×2, 정물) 1개, 자연 발생 확률 검사가 항상 통과하는 `Random` 대역(`nextDouble()` = 0.0), `SinglePlayerMode.tick()` 1번 | 암세포 1개 이상 | `ClassicModeTest#singlePlayerTickAppliesCancerRules` |
+| UI-R35 | 경계 | 두 모드가 각자 보드를 갖고, 선택한 모드의 보드만 진행하는지 확인 | 두 보드에 blinker, `ModeSwitch(classic)` + single 추가, 1인용 선택 후 `clock.tick()` | 1인용 blinker만 세로, 클래식 blinker는 가로 그대로 | `ClassicModeTest#onlySelectedModeAdvances` |
+| UI-R36 | 정상 | Grid 메뉴(Clear)가 지금 모드의 컨트롤러에 가는지 확인 | 두 컨트롤러에 셀 1개씩, `entries(supplier, ...)`의 supplier가 1인용 → 클래식 순서로 바뀜, 그때마다 Clear | 처음에는 1인용 보드만 비고, 다음에 클래식 보드도 빈다 | `GameMenuTest#gridEntriesFollowActiveController` |

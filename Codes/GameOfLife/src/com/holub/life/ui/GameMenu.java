@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javax.swing.*;
 
 /** The original Grid and Go menus as one table of entries, plus the menu-open tick filter. */
@@ -30,12 +31,21 @@ public final class GameMenu {
    */
   public static List<Entry> entries(
       GameController controller, Clock clock, UserDialogs dialogs, Runnable exit) {
+    return entries(() -> controller, clock, dialogs, exit);
+  }
+
+  /**
+   * Same table, but Clear, Load and Store act on whichever controller {@code active} returns when
+   * the item is chosen: the current mode's board (Classic or Single Player, ui/docs/012).
+   */
+  public static List<Entry> entries(
+      Supplier<GameController> active, Clock clock, UserDialogs dialogs, Runnable exit) {
     List<Entry> entries =
         new ArrayList<>(
             List.of(
-                new Entry(GRID, "Clear", e -> controller.clear()),
-                new Entry(GRID, "Load", e -> load(controller, dialogs)),
-                new Entry(GRID, "Store", e -> store(controller, dialogs)),
+                new Entry(GRID, "Clear", e -> active.get().clear()),
+                new Entry(GRID, "Load", e -> load(active.get(), dialogs)),
+                new Entry(GRID, "Store", e -> store(active.get(), dialogs)),
                 new Entry(GRID, "Exit", e -> exit.run())));
     entries.addAll(goEntries(clock));
     return List.copyOf(entries);
@@ -81,18 +91,34 @@ public final class GameMenu {
    */
   public static void installMenus(
       BoardPanel panel, GameController controller, Clock clock, PresetPlacement placement) {
-    for (Entry entry : entries(controller, clock, new SwingUserDialogs(), () -> System.exit(0))) {
+    installMenus(panel, () -> controller, clock, controller, placement);
+  }
+
+  /**
+   * Like {@link #installMenus(BoardPanel, GameController, Clock, PresetPlacement)}, but Grid's
+   * Clear, Load and Store go to {@code active} (the current mode, ui/docs/012) and the Preset menu
+   * lists {@code presetController}'s presets, placed through {@code placement} (null: no Preset
+   * menu).
+   */
+  public static void installMenus(
+      BoardPanel panel,
+      Supplier<GameController> active,
+      Clock clock,
+      GameController presetController,
+      PresetPlacement placement) {
+    for (Entry entry : entries(active, clock, new SwingUserDialogs(), () -> System.exit(0))) {
       Object requester = entry.menu().equals(GRID) ? panel : clock;
       MenuSite.addLine(
           requester,
           entry.menu(),
           entry.label(),
           e -> {
-            placement.cancel();
+            if (placement != null) placement.cancel();
             entry.action().actionPerformed(e);
           });
     }
-    for (Entry entry : presetEntries(controller, placement))
+    if (placement == null) return; // no Preset menu (classic-only frame)
+    for (Entry entry : presetEntries(presetController, placement))
       MenuSite.addLine(panel, entry.menu(), entry.label(), entry.action());
   }
 

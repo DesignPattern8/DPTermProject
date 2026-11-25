@@ -136,6 +136,11 @@ public final class GameController {
     return treated;
   }
 
+  /** True if this controller runs the single-player cancer rules; false for classic Life. */
+  public boolean hasCancerRules() {
+    return cancerGame != null;
+  }
+
   /** Presets the UI can offer, in catalog order. */
   public List<PresetChoice> presets() {
     return presets.list().stream()

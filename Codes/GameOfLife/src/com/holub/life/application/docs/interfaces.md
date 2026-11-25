@@ -19,6 +19,7 @@ PresetResult GameController.applyPreset(String id, CellPosition origin)
 record PresetChoice(String id, String displayName)
 enum PresetResult { APPLIED, OUT_OF_BOUNDS, UNKNOWN_ID }
 void GameController.addGameListener(GameListener listener)
+boolean GameController.hasCancerRules()  // CancerGame을 받았으면 true(1인용), null이면 false(클래식)
 
 Clock(TickSource ticks)
 void Clock.start(Speed speed)
@@ -47,3 +48,4 @@ applyPreset은 프리셋 좌상단 (0,0)을 `origin`에 맞춘다. 없는 id는 
 - 변경: 2026-11-17, #63. 공개 시그니처 유지, Load 실패 시 Clear/Clock 정지/EDITED를 제거하고 읽기·변환 성공 후 적용하도록 변경. B 주도, C read(Path) 사용, D의 IOException 표시 유지. [005](005-safe-load.md), [#63 구현 전 계약](https://github.com/DesignPattern8/DPTermProject/issues/63)과 PR에서 검토하며 팀원 합의 완료를 주장하지 않는다.
 - 변경: 2026-11-23, #88. `GameController(Board, Cell, Clock[, CancerGame[, BoardFileStore]])` → `GameController(Board, Clock[, CancerGame[, BoardFileStore]])`. Load/Store가 파일용 `Cell` Memento 대신 `Board.snapshot()/restore()`와 C의 스냅샷 파일 API(#93)를 쓴다. 기본 저장소는 블록 폭 `[8, 1]`. 영향: `Life` 조립 1곳, A·D·2인용 테스트의 생성자 호출(인자 삭제만). 근거: [007](007-snapshot-file-connection.md)
 - 변경: 2026-11-24, #62. `presets()`, `applyPreset(String, CellPosition)`, `PresetChoice`, `PresetResult`, `PresetCatalog`를 받는 생성자 추가. 기존 생성자·메서드 변경 없음. 영향: D(`Preset` 메뉴에서 사용). 합의: #62 11/17 댓글. 근거: [008](008-preset-placement.md)
+- 변경: 2026-11-25, 클래식 모드 복원. `GameController.hasCancerRules()` 추가(기존 동작 변경 없음). `BoardPanel`이 오른쪽 클릭을 치료로 볼지 정한다. 영향: D(`BoardPanel`). 근거: [ui/012](../../ui/docs/012-classic-mode-restore.md)

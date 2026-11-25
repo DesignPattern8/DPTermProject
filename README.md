@@ -2,12 +2,26 @@
 
 중앙대학교 설계패턴 텀프로젝트(8팀) 저장소입니다. Allen Holub의 Java Life Game(Conway의 Game of Life)에 **1인용 암세포 게임**과 **2인용 대전 게임**을 추가하고, 기존 코드를 도메인별로 나눠 리팩토링했습니다.
 
-- 실행 시 두 모드만 제공합니다. 원래의 승패 없는 클래식 모드는 따로 두지 않았습니다.
+- 실행하면 원본 그대로의 **클래식 모드**로 시작하고, 1인용·2인용 모드를 따로 고를 수 있습니다.
 - 모든 설계 결정은 GoF 패턴 후보(패턴을 쓰지 않는 구현 포함)를 2개 이상 비교하고 근거를 각 도메인의 `docs/`에 남겼습니다. 규칙은 [AGENTS.md](AGENTS.md)를 따릅니다.
 
 ## 게임 모드
 
-Mode 메뉴에서 두 모드를 오갑니다. 메뉴 항목 이름은 `Classic`(1인용)과 `2 Players`입니다.
+Mode 메뉴에서 세 모드를 오갑니다. 메뉴 항목 이름은 `Classic`, `Single Player`, `2 Players`입니다. 모드마다 보드가 따로 있고, 선택한 모드의 보드만 진행합니다.
+
+### 클래식 — 원본 Life
+
+Allen Holub의 원본 Game of Life와 같습니다(저장소 최초 커밋 `cb32b00` 기준). 승패와 암세포가 없습니다.
+
+| 조작 | 동작 |
+| --- | --- |
+| 클릭(왼쪽·오른쪽 모두) | 셀 놓기/지우기 |
+| Go 메뉴 | 연속 실행(Agonizing·Slow·Medium·Fast), Halt, Tick |
+| Grid 메뉴 | Clear, Load, Store, Exit |
+
+- **셀 규칙:** Conway B3/S23. 보드 밖은 죽은 셀입니다.
+
+설계 근거: [ui/docs/012](Codes/GameOfLife/src/com/holub/life/ui/docs/012-classic-mode-restore.md)
 
 ### 1인용 — 암세포 게임
 
@@ -17,6 +31,7 @@ Mode 메뉴에서 두 모드를 오갑니다. 메뉴 항목 이름은 `Classic`(
 | --- | --- |
 | 왼쪽 클릭 | 셀 놓기/지우기 |
 | 오른쪽 클릭 | 클릭한 칸 중심 5×5 범위의 암세포 치료 |
+| Preset 메뉴 | 패턴을 고른 뒤 보드를 클릭하면 그 칸을 왼쪽 위로 배치(오른쪽 클릭은 취소). 1인용에서만 켜짐 |
 | Go 메뉴 | 연속 실행(Agonizing·Slow·Medium·Fast), Halt, Tick |
 | Grid 메뉴 | Clear, Load, Store, Exit |
 
@@ -82,7 +97,7 @@ Codes/GameOfLife/
 │   ├── model/           셀·보드 규칙, 활성 블록 (Cell, Resident, Neighborhood, Board)
 │   ├── application/     실행 제어 (Clock, TickSource, GameController, CancerGame)
 │   ├── persistence/     .life 파일 저장·불러오기, 프리셋 데이터
-│   ├── ui/              Swing 화면·입력, 모드 전환 (LifeFrame, BoardPanel, GameMenu, ModeSwitch)
+│   ├── ui/              Swing 화면·입력, 모드 전환 (LifeFrame, BoardPanel, GameMenu, ModeSwitch, ClassicMode, SinglePlayerMode)
 │   └── twoplayer/       2인용 게임 모델 (TwoPlayerGame, 단계별 State, GameJudge)
 │       └── ui/          2인용 화면 (TwoPlayerMode, TwoPlayerPanel)
 └── test/                JUnit 5 테스트
