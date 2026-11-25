@@ -1,6 +1,6 @@
 # [007] 2인용 UI 통합 — 모드 전환, 진입점, 렌더러, 상태 표시줄
 
-- 상태: 채택 (구현 완료 2026-11-16. 오버헤드 표 D 열은 실측)
+- 상태: 채택 (구현 완료 2026-11-16. 오버헤드 표 D 열은 실측). #74 수정·`GameMenu.install` 삭제·Single Player 분리의 영향은 끝의 "이후 변경"
 - 작성자: Son2kwon / 2026-11-16 / 관련 이슈: #7 (관련: #69, #72, #74)
 - 근거 명세: [rules.md](rules.md) 4장(단계), 5장(배치·확정·불가능한 클릭), 8장(Store 비활성, 상태 표시줄 한 줄 + 진영 경계선)
 - 코드 근거: `feature/base` `1889b16`. 파일 경로는 `Codes/GameOfLife/src/com/holub/life/` 아래 기준
@@ -149,7 +149,7 @@ public final class TwoPlayerMode implements GameMode { ... } // 2인용 진입�
 - **2인용 모드에서 Grid의 Clear·Load·Store를 끈다.** Store는 rules.md 8장. Load·Clear는 보이지 않는 클래식 보드를 바꾸므로 함께 끈다. Exit는 그대로. 2인용 보드 비우기는 "새 게임" 버튼이 한다. 클래식으로 돌아오면 다시 켠다.
 - **Go 메뉴의 Tick·속도는 2인용에서도 같은 시계를 움직인다.** 시뮬레이션 단계에서만 세대가 진행되고 K에 들어간다(`TwoPlayerGame.tick()`). 다른 단계의 tick은 아무것도 하지 않고 문구도 바꾸지 않는다(빠른 속도로 돌 때 문구가 깜빡이지 않도록).
 - **메뉴가 열려 있으면 tick을 건너뛴다**(기존 `GameMenu.onTick`, `GameMenu.java:48-50`). `ModeSwitch`가 모든 모드에 같은 검사를 한다.
-- `GameMenu.install`(Grid·Go 메뉴 + 클래식 tick 리스너)은 그대로 두고, 메뉴만 다는 `installMenus`를 나눈다. `LifeFrame`은 `installMenus` + `ModeSwitch`를 쓴다. 기존 `GameMenuTest`는 `install`·`go`·`onTick`을 그대로 쓴다.
+- `GameMenu.install`(Grid·Go 메뉴 + 클래식 tick 리스너)은 그대로 두고, 메뉴만 다는 `installMenus`를 나눈다. `LifeFrame`은 `installMenus` + `ModeSwitch`를 쓴다. 기존 `GameMenuTest`는 `install`·`go`·`onTick`을 그대로 쓴다. (이후 #102에서 `install`은 삭제됨, 아래 "이후 변경")
 
 ## 전/후 비교
 
@@ -186,5 +186,29 @@ scratch 드라이버로 `Life.main`을 띄우고(headless 아님) 확인했다. 
 - ~~구현 후 오버헤드 표 D 열을 실측으로 바꾼다.~~ 완료.
 - 2인용 저장·불러오기, 배치 가능 칸 강조는 범위 밖(rules.md 8장).
 - Grid 메뉴 항목을 켜고 끄는 `GameMenu.setFileCommandsEnabled`는 `MenuSite`가 `JFrame`을 요구해 headless 테스트가 없다. 실제 창 확인만 했다.
-- #74: 재현 결과를 댓글로 남겼다(2026-11-16). `Neighborhood` 쪽 수정은 리팩토링 팀. 고쳐지면 `ModeSwitch`의 잠금은 "tick 하나씩"이라는 의미만 남는다.
-- #69: ui 담당이 B·C로 렌더러를 일반화하면 `TwoPlayerRenderer`를 그쪽으로 옮길 수 있다.
+- ~~#74: 재현 결과를 댓글로 남겼다(2026-11-16). `Neighborhood` 쪽 수정은 리팩토링 팀. 고쳐지면 `ModeSwitch`의 잠금은 "tick 하나씩"이라는 의미만 남는다.~~ 고쳐짐(아래 "이후 변경").
+- ~~#69: ui 담당이 B·C로 렌더러를 일반화하면 `TwoPlayerRenderer`를 그쪽으로 옮길 수 있다.~~ ui는 `BoardRenderer`를 현행 유지로 정했고 #69는 닫혔다. `TwoPlayerRenderer`는 `twoplayer.ui`에 그대로 둔다.
+- 남은 일: `ModeSwitch`의 tick 정책을 application의 실행기로 옮기는 안(application [006](../../application/docs/006-mode-control.md) 후보 B)은 B 담당이 후속 작업으로 미뤘다. 옮기면 `TwoPlayerMode.tick()`의 위치가 바뀌므로 이 문서 결정 1을 다시 합의해야 한다.
+
+## 이후 변경 (2026-11-25 확인)
+
+위 본문은 결정 당시 코드(`1889b16`) 기준이라 줄 번호와 사실을 그대로 둔다. 그 뒤 다른 도메인의 작업으로 바뀐 것만 적는다. 결정 1~3은 바뀌지 않았다. 확인 기준: `origin/main` `2c22cab`.
+
+| 변경 | 이슈·문서 | 이 문서에 미치는 영향 |
+| --- | --- | --- |
+| `Neighborhood`의 읽기 허가·전이 깊이가 보드별로 바뀜 | #74, PR #90, [GTY 007](../../../../../../../../docs/GTY.md#007-보드별-전이-읽기-허가-분리-74) | "#74 확인"의 S2·S3이 더는 재현되지 않는다(아래 실측). `ModeSwitch.tickLock`(`ui/ModeSwitch.java:26`)은 모델 안전장치가 아니라 "보이지 않는 모드의 보드를 진행하지 않는다"는 앱 실행 정책으로 남는다(`ModeSwitch.java:18-19` 주석, application [006](../../application/docs/006-mode-control.md)) |
+| `GameMenu.install` 삭제 | #102, ui [011](../../ui/docs/011-remove-gamemenu-install.md) | "그 밖의 결정"의 "`GameMenu.install`은 그대로 둔다"(152행)는 더는 맞지 않는다. 시계 리스너는 `ModeSwitch` 하나만 단다(`ModeSwitch.java:40`). TP-U-11·16은 그대로 통과 |
+| Mode 메뉴가 Classic / Single Player / 2 Players | #109, PR #110, ui [012](../../ui/docs/012-classic-mode-restore.md) | 클래식은 암세포 없는 원본, 암세포 게임은 `SinglePlayerMode`로 나뉘었다. 모드마다 보드·`GameController`가 따로다. `GameMode` 계약과 `TwoPlayerMode`는 바뀌지 않았다. "확장 — 다음 모드: `GameMode` 구현 1"이 `SinglePlayerMode`로 한 번 더 확인됐다 |
+| Preset 메뉴 (Single Player에서만 켜짐) | #62, ui [010](../../ui/docs/010-preset-placement-ui.md)·[012](../../ui/docs/012-classic-mode-restore.md) | 2인용에서도 꺼진다. `GameMode`에 능력 플래그를 더하지 않고 `LifeFrame`이 지금 모드를 보고 켜고 끈다(`LifeFrame.java:77-81`) |
+| `BoardRenderer` 현행 유지 | #69 닫힘, ui [007](../../ui/docs/007-renderer-dispatch.md)·[008](../../ui/docs/008-board-api-boundary.md) | 결정 3 렌더러 A 그대로 |
+
+**#74 수정 뒤 재측정** (2026-11-25, `StaticLockCheck`, 코드 무수정. 환경: Apple M4 Pro 12코어, macOS 26.7.3, JDK 26.0.2.1)
+
+| 경우 | 수정 전 (위 "#74 확인") | 수정 뒤 |
+| --- | --- | --- |
+| S1. 한 번에 한 보드만 | false 0 / 200,000 | false 0 / 200,000 |
+| S2. 두 보드를 동시에 (5회) | 5회 모두 false 10,000 / 10,000 | 5회 모두 false 0 / 10,000 |
+| S3. 모드마다 시계 (Fast 두 개) | 6회 모두 1초 안에 `nestingLevel` 깨짐 | 각 100 tick 완료, false 0 / 10,000 |
+
+- `StaticLockCheck`는 #74 작업에서 A 담당이 고쳤다(`6673256`): `static` 필드가 없어져 반사로 `nestingLevel`을 읽지 않고 공개 `beginRedraw(true)` 결과만 보며, S3은 경과 시간 대신 각 100 tick 완료로 끝낸다. 그래서 S3의 수정 전·후 값은 같은 방법으로 잰 값이 아니다.
+- 결정적인 회귀 검증은 이 측정이 아니라 A의 `NeighborhoodReadGateTest`다(`StaticLockCheck` Javadoc).

@@ -7,6 +7,7 @@
 ' 초안과 달라진 점: E2 "2인 게임 시작" → "새 게임"(2인용 게임은 프로그램 시작 때 만들어지고, 다시 시작은 New Game 버튼),
 '                   E6은 배치·개입이 끝나도 자동으로 돌지 않고 Go 메뉴(UC2 연속 실행 / UC4 Tick)로 진행,
 '                   Clear·Load·Store(UC5~UC7)를 2인용 모드에서 비활성화.
+' 2026-11-25: Mode 메뉴가 Classic / Single Player / 2 Players로 바뀜(#109, ui/docs/012). Preset 메뉴는 2인용에서 꺼져 있다.
 
 skinparam defaultFontName "Noto Sans CJK KR"
 skinparam shadowing false
@@ -48,7 +49,7 @@ PB -up-|> User
 
 rectangle "Holub Life Game" {
 
-  usecase "E1. 게임 모드 선택\n(Mode > Classic / 2 Players)" as E1 <<extended>>
+  usecase "E1. 게임 모드 선택\n(Mode > Classic / Single Player / 2 Players)" as E1 <<extended>>
   usecase "E2. 새 게임\n(New Game)" as E2 <<extended>>
   usecase "E3. 셀 선택(임시 배치)\n(보드 클릭)" as E3 <<extended>>
   usecase "E4. 배치 확정\n(Confirm / Enter)" as E4 <<extended>>
@@ -89,7 +90,8 @@ E6 ..> E7 : <<include>>\n(매 세대 직후)
 
 note right of E1
   ModeSwitch.select: 시계를 멈추고
-  진행 중인 tick이 끝난 뒤 화면을 바꾼다(#74).
+  진행 중인 tick이 끝난 뒤 화면을 바꾼다
+  (한 번에 한 모드만 진행).
   2인용 게임 상태는 모드를 바꿔도 유지.
 end note
 

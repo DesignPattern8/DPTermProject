@@ -233,13 +233,13 @@ A가 B의 block 옆면에 셀 1개를 두면, B가 대응하지 않을 때 양�
 - 빈 확정: 임시 배치 없이 확정하면 거부한다
 - 예시 5 정정: (5,8) 대응 시 B=24 고정은 세대 10이 아니라 세대 17부터
 
-## 9. 구현과 다른 부분 (2026-11-16, #8)
+## 9. 구현과 다른 부분 (2026-11-16, #8. 2026-11-25 최종 확인)
 
-규칙(3·5·6장의 전이·배치·판정)은 명세대로 구현했고 테스트(TP-R·TP-P·TP-E·TP-F)로 확인했다. 아래는 명세에 없거나 명세와 다르게 구현한 것이다. 근거는 [007](007-two-player-ui.md) 등 설계 결정 문서에 있다.
+규칙(3·5·6장의 전이·배치·판정)은 명세대로 구현했고 테스트(TP-R·TP-P·TP-E·TP-F)로 확인했다. 아래는 명세에 없거나 명세와 다르게 구현한 것이다. 근거는 [007](007-two-player-ui.md) 등 설계 결정 문서에 있다. 2026-11-25 `origin/main` `2c22cab`에서 다시 확인했고, 규칙 구현은 그대로다. 바뀐 것은 D1의 메뉴 구성뿐이다.
 
 | ID | 명세 | 구현 | 근거 |
 | --- | --- | --- | --- |
-| D1 | 8장: 2인용 모드에서 저장 메뉴만 비활성화 | Grid 메뉴의 **Clear·Load·Store를 모두 끈다**. Exit는 켜 둔다. Classic으로 돌아오면 다시 켠다 (`TwoPlayerMode.supportsFileCommands()` = false, `GameMenu.setFileCommandsEnabled`) | 007 "그 밖의 결정": Clear·Load는 보이지 않는 클래식 보드를 바꾸므로. TP-U-06, TP-U-08 |
+| D1 | 8장: 2인용 모드에서 저장 메뉴만 비활성화 | Grid 메뉴의 **Clear·Load·Store를 모두 끈다**. Exit는 켜 둔다. Classic·Single Player로 돌아오면 다시 켠다 (`TwoPlayerMode.supportsFileCommands()` = false, `GameMenu.setFileCommandsEnabled`). #62·#109 이후 생긴 Preset 메뉴도 2인용에서는 꺼져 있다(Single Player에서만 켜짐) | 007 "그 밖의 결정": Clear·Load는 보이지 않는 클래식 보드를 바꾸므로. Preset은 [ui 012](../../ui/docs/012-classic-mode-restore.md). TP-U-06, TP-U-08 |
 | D2 | 없음 | **New Game 버튼**: 어느 단계에서든 빈 보드로 초기 배치부터 다시 시작한다 (`TwoPlayerSession.newGame`). 2인용 보드를 비우는 방법은 이것뿐(Clear는 D1로 꺼짐) | 007 "그 밖의 결정". TP-U-15 |
 | D3 | 4장 2: 시뮬레이션은 K세대를 자동으로 진행 | 배치·개입이 끝나면 **시뮬레이션 단계로 바뀌기만 하고, 세대는 시계 tick마다 1개씩** 진행한다. 시계는 클래식과 같은 Go 메뉴(속도 / Tick)로 돌린다. 상태 표시줄에 `run with Go`. 다른 단계의 tick은 아무것도 하지 않는다 | 007 결정 1(시계 하나, `ModeSwitch`). TP-U-10, TP-U-12 |
 | D4 | 8장 UI: 상태 표시줄 한 줄(단계, 차례, 남은 개수, A:B 셀 수) | 위 항목에 더해 **라운드·세대(`Simulation g/K`), 임시 배치 칸(`Selected (r,c)`), 거부 이유(`Rejected: …`)**를 보여 준다. 상태 표시줄 아래에 Confirm·Pass·New Game 버튼 줄을 둔다 | 007 "구현하면서 바뀐 것". TP-U-02, TP-U-03, TP-U-07, TP-U-17 |

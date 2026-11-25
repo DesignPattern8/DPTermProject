@@ -2,6 +2,7 @@
 
 - 근거: [rules.md](rules.md) (2인용 Life Game 규칙 명세). 아래에서 "명세 N장"은 이 문서를 뜻한다.
 - 상태: TP-F·TP-P는 #6 1차, TP-E는 #6 2차에서 테스트 작성(아래 각 장 참고). TP-R·TP-B·TP-I는 #5에서 [006](006-two-player-cell.md) 설계(F) 기준으로 정의하고 테스트를 작성했다(37개, 골격 단계에서 모두 실패 → 구현 후 통과). TP-U는 #7에서 [007](007-two-player-ui.md) 기준으로 다시 정의하고 테스트를 작성했다(5장, 17개, `TwoPlayerUiTest`. 골격 단계에서 17개 실패 → 구현 후 통과).
+- 최종 확인 (2026-11-25, `origin/main` `2c22cab`, `./gradlew test --rerun-tasks`): TP 케이스 JUnit 96개 모두 통과. #7 이후 다른 도메인 변경(#70·#71·#74·#102·#109)에도 TP 케이스의 정의·기대값은 바뀌지 않았다. 같은 테스트 패키지에 다른 도메인이 정의한 테스트가 늘었다(6장).
 - 공통 전제
   - 좌표는 (행, 열)이고 0부터 센다. 보드 밖은 항상 `DEAD`다.
   - 격자 표기: `A`·`B`는 각 플레이어의 살아 있는 셀, `.`은 죽은 셀이다. 적지 않은 아래쪽 행은 모두 `.`이다.
@@ -197,8 +198,19 @@ TP-P-10: 남은 개수가 0인 플레이어는 자동 패스(TP-F-09) 때문에 
 | TP-U-17 | 예외 | 격자 밖 픽셀 클릭은 무시되고 이유가 표시된다 | 보드 영역 520×520(칸 8px, 격자 512px), 픽셀 (515,10) 클릭 | 임시 배치 없음, 문구에 `Rejected: outside the board` | `#clickOutsideGridShowsReason` |
 
 - TP-U-06에서 Clear·Load까지 끄는 이유는 007 결정(149행): 2인용 모드에서 누르면 보이지 않는 클래식 보드를 바꾸기 때문이다.
-- TP-U-08의 Exit은 `System.exit(0)`을 부르므로(`ui/GameMenu.java:23`) 실제 종료는 테스트하지 않는다.
+- TP-U-08의 Exit은 `System.exit(0)`을 부르므로(정의 당시 `ui/GameMenu.java:23`, 지금 `:69`·`:109`) 실제 종료는 테스트하지 않는다.
+- 앱의 Mode 메뉴는 #109부터 Classic / Single Player / 2 Players다([ui 012](../../ui/docs/012-classic-mode-restore.md)). TP-U는 `ModeSwitch`에 `ClassicMode`(암세포 없는 `GameController`)와 2인용만 넣어 확인하고, Classic·Single Player 분리는 `com.holub.life.ClassicModeTest`(#109)가 맡는다. TP-U-11(지금 모드만 tick)·TP-U-13(전환은 진행 중 tick 뒤)은 모드 수와 관계없는 `ModeSwitch`의 보장이다.
+- TP-U-13은 #74가 고쳐진 뒤에도 유지한다. 이제 보호하는 것은 모델 잠금이 아니라 "보이지 않는 모드의 보드를 진행하지 않는다"는 실행 정책이다([007](007-two-player-ui.md) "이후 변경").
 - 이전 정의(2026-11-03)와 달라진 점: TP-U-01의 "셀 종류가 바뀐다"를 "화면(카드)이 바뀐다"로 고쳤다(007: 한 패널의 셀을 바꾸지 않고 모드마다 화면을 둔다). TP-U-06에 Clear·Load를 더했다. TP-U-09~17을 추가했다(패스·Tick·#74 회피·시계 정지·새 게임·메뉴 열림·격자 밖 클릭). TP-U-08의 `Universe.java` 근거를 지금 파일로 바꿨다.
+
+## 6. 이 패키지에 있지만 다른 도메인이 정의한 테스트
+
+package-private `TwoPlayerResident`에 접근하려고 `com.holub.life.twoplayer` 테스트 패키지에 둔 A 모델 테스트다. 정의와 기대값은 [model test-cases.md](../../model/docs/test-cases.md)가 기준이고, 여기서는 2인용 계약에 닿는 부분만 적는다.
+
+| ID | 정의한 곳 | 2인용 계약과의 관계 | 테스트 |
+| --- | --- | --- | --- |
+| CAN-M14 | model, #70 | `TwoPlayerResident`는 `CancerCell`이 아니다(암 메서드 없음, [interfaces.md](interfaces.md) `TwoPlayerResident`) | `TwoPlayerRuleTest#twoPlayerCellsDoNotSupportCancer` |
+| COORD-01~07 | model, #71 | COORD-05: 2인용 셀의 `transfer`는 false이고 셀을 바꾸지 않는다(2인용 저장 미지원, rules.md 8장). 나머지는 클래식·파일 좌표 | `MementoCoordinateTest` (JUnit 8개) |
 
 ## 기대값 검증 기록
 

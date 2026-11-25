@@ -1,6 +1,6 @@
 # [006] 2인용 셀 상태 표현과 `TwoPlayerBoard` 실제 구현
 
-- 상태: 채택 (구현 완료 2026-11-15, `NeighborhoodTwoPlayerBoard`·`TwoPlayerResident`)
+- 상태: 채택 (구현 완료 2026-11-15, `NeighborhoodTwoPlayerBoard`·`TwoPlayerResident`). 이슈 (a)~(f)의 처리 결과는 끝의 "이후 변경"
 - 작성자: Son2kwon / 2026-11-15 / 관련 이슈: #5
 - 대체하는 문서: [001 셀 상태 표현과 이웃 상태 조회](../../docs/001-cell-state-representation.md) (상태: 대체됨(→ twoplayer/006))
 - 근거 명세: [rules.md](rules.md) 3장(세대 전이), 6장(셀 수), 8장 요구사항 1~3
@@ -217,3 +217,19 @@ public final class NeighborhoodTwoPlayerBoard implements TwoPlayerBoard {
 - #7: 렌더러가 `owner()`를 `TwoPlayerBoard` 인터페이스로 읽어야 하는지 정한다(그러면 `StubBoard`에도 필요하다). 지금은 `NeighborhoodTwoPlayerBoard`에만 있다([interfaces.md](interfaces.md)).
 - ~~실제 2인용 셀·보드가 `src`에 들어오면 `CellCandidateBenchmark`의 F 쪽을 실제 클래스로 바꾼다.~~ 완료(2026-11-15). `PrototypeCell`을 지우고 F는 `NeighborhoodTwoPlayerBoard`를 쓴다. G와 클래식 기준선은 비교용으로 남겼다.
 - ~~구현 후 이 문서의 F 열을 실제 클래스의 LOC·tick 시간으로 다시 적는다.~~ 완료(오버헤드 비교표, "측정값 갱신").
+
+## 이후 변경 (2026-11-25 확인)
+
+위 본문은 결정 당시 코드(`8dcec2f`) 기준이라 줄 번호와 사실을 그대로 둔다. 그 뒤 다른 도메인이 (a)~(f)를 처리하면서 F의 "감수하는 비용" 일부가 없어졌다. 결정(F, W3)은 바뀌지 않았다. 확인 기준: `origin/main` `2c22cab`, GitHub 이슈 상태는 2026-11-25 조회.
+
+| 이슈 | 처리 | 2인용에 생긴 변화 |
+| --- | --- | --- |
+| #69 (a) 렌더러 | 닫힘(11-24). `BoardRenderer`는 바꾸지 않음(ui [007](../../ui/docs/007-renderer-dispatch.md)·[008](../../ui/docs/008-board-api-boundary.md) 현행 유지) | 없음. 2인용은 [007](007-two-player-ui.md) 결정 3의 `TwoPlayerRenderer`로 그린다 |
+| #70 (b) `Cell`의 암 메서드 | 코드 반영(PR #107, [GTY 009](../../../../../../../../docs/GTY.md#009-암세포-셀-계약-분리-70)): 암 메서드가 `CancerCell`로 분리. GitHub 이슈는 다시 열린 상태 | `TwoPlayerResident`의 할 일 없는 암 메서드 3개 삭제. 구현할 `Cell` 메서드 14개 → 11개. CAN-M14로 고정 |
+| #71 (c) `java.awt.Point` | 닫힘(11-24, PR #106, [GTY 008](../../../../../../../../docs/GTY.md#008-모델-좌표-계약의-point-의존-제거-71)): `Cell.transfer`·`Memento` 좌표가 `CellPosition` | `twoplayer` 패키지의 `java.awt` import 1개 → 0개. COORD-05로 고정 |
+| #72 (d) 2인용 진입점 | 닫힘(11-16, #7) | `TwoPlayerSession`·`TwoPlayerMode` ([007](007-two-player-ui.md)) |
+| #73 (e) 스냅숏 | 닫힘(11-17, PR #83, [GTY 004](../../../../../../../../docs/GTY.md#004-암세포-스냅샷-보존-73)): 암 상태 보존 | 없음. 2인용은 `Board`·`BoardSnapshot`을 쓰지 않는다(W3). 2인용 소유자 저장은 여전히 범위 밖(rules.md 8장) |
+| #74 (f) `static` 잠금 | 닫힘(11-23, PR #90, [GTY 007](../../../../../../../../docs/GTY.md#007-보드별-전이-읽기-허가-분리-74)): 읽기 허가·전이 깊이가 보드별 | 클래식 보드와 잠금을 공유하지 않는다. `ModeSwitch`의 "한 번에 한 모드만 tick"은 앱 실행 정책으로 남음([007](007-two-player-ui.md) "이후 변경") |
+
+- "감수하는 비용" 중 `java.awt` 의존(#71), 할 일 없는 암 메서드(#70), `static` 잠금 공유(#74)는 없어졌다. 남은 비용은 "소유자 지정 → `toggle`" 두 단계와 `step()` 4줄 중복(W3)이다.
+- 오버헤드 비교표의 F 열(`Point` 1개, `TwoPlayerResident` 105줄)은 결정 당시 실측값으로 둔다. 같은 기준(빈 줄·주석 제외)으로 지금 `TwoPlayerResident`는 97줄이다(암 메서드 3개 삭제로 −8, 실측).
