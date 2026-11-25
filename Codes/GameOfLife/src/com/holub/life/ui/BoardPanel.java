@@ -50,7 +50,9 @@ public final class BoardPanel extends JPanel {
             bounds.x = 0;
             bounds.y = 0;
             CellPosition cell = GridCoordinateMapper.cellAt(outermostCell, e.getPoint(), bounds);
-            if (SwingUtilities.isRightMouseButton(e)) controller.treat(cell.row(), cell.column());
+            // Classic Life toggles on any button, as the original Universe did (ui/docs/010).
+            if (SwingUtilities.isRightMouseButton(e) && controller.hasCancerRules())
+              controller.treat(cell.row(), cell.column());
             else controller.toggle(cell.row(), cell.column());
           }
         });

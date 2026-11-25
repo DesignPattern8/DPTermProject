@@ -7,6 +7,7 @@ import com.holub.life.model.*;
 import java.awt.event.InputEvent;
 import java.awt.event.MouseEvent;
 import java.util.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -104,5 +105,23 @@ class BoardPanelTest {
     assertTrue(cellAt(cells, 25, 12).isAlive());
     assertFalse(cellAt(cells, 25, 12).isCancer());
     assertEquals(CancerGame.INITIAL_TREATMENT_CHARGES, cancer.treatmentCharges());
+  }
+
+  @Test
+  @DisplayName("UI-R20 클래식 모드에서는 원본처럼 오른쪽 클릭도 셀을 토글한다")
+  void rightClickTogglesInClassicMode() {
+    Neighborhood cells = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    CompositeBoard board = new CompositeBoard(cells);
+    GameController controller =
+        new GameController(board, cells, new Clock(new IdleTickSource()));
+    List<GameListener.Change> changes = new ArrayList<>();
+    controller.addGameListener(changes::add);
+    BoardPanel panel = new BoardPanel(cells, controller);
+    panel.setSize(512, 512);
+
+    panel.dispatchEvent(press(panel, 100, 200, true));
+
+    assertEquals(Set.of(new CellPosition(25, 12)), board.snapshot().liveCells());
+    assertEquals(List.of(GameListener.Change.EDITED), changes);
   }
 }

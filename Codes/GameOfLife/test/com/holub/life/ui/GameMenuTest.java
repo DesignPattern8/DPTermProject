@@ -10,6 +10,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.Timer;
 import javax.swing.*;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -259,5 +260,28 @@ class GameMenuTest {
         List.of("start 500", "start 150", "start 70", "start 30", "stop", "stop"),
         ticks.requests);
     assertEquals(1, tickCount[0]);
+  }
+
+  @Test
+  @DisplayName("UI-R25 Grid 메뉴의 Clear는 지금 모드의 컨트롤러에 간다")
+  void gridEntriesFollowActiveController() {
+    Neighborhood singleBoard = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    GameController single =
+        new GameController(new CompositeBoard(singleBoard), singleBoard, clock);
+    board.toggle(1, 1);
+    singleBoard.toggle(2, 2);
+    GameController[] active = {single};
+    List<GameMenu.Entry> routed =
+        GameMenu.entries(() -> active[0], clock, dialogs, () -> exits[0]++);
+    GameMenu.Entry clear =
+        routed.stream().filter(e -> e.label().equals("Clear")).findFirst().orElseThrow();
+
+    clear.action().actionPerformed(null);
+    assertFalse(singleBoard.createMemento().isAlive(new Point(2, 2)), "1인용 보드가 빈다");
+    assertTrue(board.createMemento().isAlive(new Point(1, 1)), "클래식 보드는 그대로");
+
+    active[0] = controller;
+    clear.action().actionPerformed(null);
+    assertFalse(board.createMemento().isAlive(new Point(1, 1)), "이제 클래식 보드가 빈다");
   }
 }

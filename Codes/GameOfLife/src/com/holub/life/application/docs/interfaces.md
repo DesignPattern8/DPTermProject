@@ -10,6 +10,7 @@ boolean GameController.tick()
 void GameController.load(File file) throws IOException
 void GameController.store(File file) throws IOException
 void GameController.addGameListener(GameListener listener)
+boolean GameController.hasCancerRules()  // CancerGame을 받았으면 true(1인용), null이면 false(클래식)
 
 Clock(TickSource ticks)
 void Clock.start(Speed speed)
@@ -34,3 +35,4 @@ Load는 같은 보드 잠금 안에서 파일 읽기·닫기와 Memento 변환�
 - 변경: 2026-11-13, #55. `GameController(Cell, Clock)` → `GameController(Board, Cell, Clock)`. 편집·tick은 A의 `Board`로, Load/Store는 기존 `Cell` Memento 경로. `GameController`의 보드 호출은 잠금 하나로 직렬화하고 알림은 잠금 밖에서 보낸다. 범위 밖 `toggle`은 `IndexOutOfBoundsException`(상태 변경 없음). 영향: D(`Life.java` 조립 1곳). 근거: [004](004-board-connection.md)
 
 - 변경: 2026-11-17, #63. 공개 시그니처 유지, Load 실패 시 Clear/Clock 정지/EDITED를 제거하고 읽기·변환 성공 후 적용하도록 변경. B 주도, C read(Path) 사용, D의 IOException 표시 유지. [005](005-safe-load.md), [#63 구현 전 계약](https://github.com/DesignPattern8/DPTermProject/issues/63)과 PR에서 검토하며 팀원 합의 완료를 주장하지 않는다.
+- 변경: 2026-11-25, 클래식 모드 복원. `GameController.hasCancerRules()` 추가(기존 동작 변경 없음). `BoardPanel`이 오른쪽 클릭을 치료로 볼지 정한다. 영향: D(`BoardPanel`). 근거: [ui/010](../../ui/docs/010-classic-mode-restore.md)

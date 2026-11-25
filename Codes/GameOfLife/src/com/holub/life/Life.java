@@ -20,16 +20,24 @@ public final class Life {
   private Life() {}
 
   public static void main(String[] arguments) {
-    Neighborhood board = new Neighborhood(8, new Neighborhood(8, new Resident()));
     Clock clock = new Clock(new UtilTimerTickSource(new Timer()));
-    CancerGame cancerGame = new CancerGame(board, new Random());
-    GameController controller =
+    BoardFileStore files = new BoardFileStore(new LegacyLifeCodec());
+
+    // 클래식: 원본 Holub Life (B3/S23, 암세포 없음)
+    Neighborhood classicBoard = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    GameController classic =
+        new GameController(new CompositeBoard(classicBoard), classicBoard, clock, null, files);
+
+    // 1인용: 암세포 게임
+    Neighborhood singleBoard = new Neighborhood(8, new Neighborhood(8, new Resident()));
+    GameController single =
         new GameController(
-            new CompositeBoard(board),
-            board,
+            new CompositeBoard(singleBoard),
+            singleBoard,
             clock,
-            cancerGame,
-            new BoardFileStore(new LegacyLifeCodec()));
-    new LifeFrame(board, controller, clock, List.of(new TwoPlayerMode()));
+            new CancerGame(singleBoard, new Random()),
+            files);
+
+    new LifeFrame(classicBoard, classic, singleBoard, single, clock, List.of(new TwoPlayerMode()));
   }
 }

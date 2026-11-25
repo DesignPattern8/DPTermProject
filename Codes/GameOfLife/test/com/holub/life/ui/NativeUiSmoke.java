@@ -155,6 +155,8 @@ public class NativeUiSmoke {
       for (String name :
           new String[] {"Halt", "Tick (Single Step)", "Agonizing", "Slow", "Medium", "Fast"})
         item("Go", name);
+      // ui/docs/010: 시작 화면은 클래식, Mode 메뉴는 Classic / Single Player / 2 Players
+      for (String name : new String[] {"Classic", "Single Player", "2 Players"}) item("Mode", name);
       click(10, 9);
       click(10, 10);
       click(10, 11);
@@ -182,7 +184,7 @@ public class NativeUiSmoke {
       fileMenu("Load", bad, false, true);
       check(cells().equals(beforeFailure), "read failure preserves board");
       System.out.println(
-          "PASS: launch, 10 menu items, mouse, Tick, Store unique coordinates, Clear, Load, cancel"
+          "PASS: launch, 10 menu items, 3 modes, mouse, Tick, Store unique coordinates, Clear, Load, cancel"
               + " error, invalid-load preservation");
       System.out.println("EXIT_MENU_REQUESTED");
       System.out.flush();

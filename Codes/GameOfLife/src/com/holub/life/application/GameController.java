@@ -125,6 +125,11 @@ public final class GameController {
     return treated;
   }
 
+  /** True if this controller runs the single-player cancer rules; false for classic Life. */
+  public boolean hasCancerRules() {
+    return cancerGame != null;
+  }
+
   /** The cancer game's win/lose message, or null if the game is running or has no cancer rules. */
   public String gameResultMessage() {
     return cancerGame == null ? null : cancerGame.resultMessage();
